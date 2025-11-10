@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Game Control v3.3</title>
+<title>Game Control v3.4</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -17,7 +17,6 @@
     height: 100vh;
     overflow-x: hidden;
   }
-
   h1 {
     background-color: #333;
     color: #fff;
@@ -27,12 +26,10 @@
     margin: 0 0 20px 0;
     font-size: 28px;
   }
-
   .timer {
     font-size: 72px;
     margin: 10px 0;
   }
-
   .controls {
     display: flex;
     flex-wrap: wrap;
@@ -40,7 +37,6 @@
     gap: 8px;
     margin-bottom: 20px;
   }
-
   .controls button {
     background-color: #444;
     color: #f5f5f5;
@@ -51,11 +47,7 @@
     cursor: pointer;
     transition: 0.2s;
   }
-
-  .controls button:hover {
-    background-color: #666;
-  }
-
+  .controls button:hover { background-color: #666; }
   .players {
     display: flex;
     flex-wrap: wrap;
@@ -63,35 +55,22 @@
     gap: 12px;
     margin-bottom: 25px;
   }
-
   .player {
     background-color: #2a2a2a;
     border-radius: 10px;
-    padding: 12px;
-    width: 140px;
+    padding: 14px;
+    width: 180px;
+    height: 100px;
     text-align: center;
     cursor: pointer;
     transition: 0.2s;
+    font-size: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
-
-  .player.active {
-    background-color: #256e25;
-  }
-
-  .player.inactive {
-    background-color: #772828;
-  }
-
-  .player input {
-    background: none;
-    border: none;
-    color: #fff;
-    text-align: center;
-    font-size: 15px;
-    width: 100%;
-    outline: none;
-  }
-
+  .player.active { background-color: #2e8b57; }
+  .player.inactive { background-color: #772828; }
   .summary {
     background-color: #2a2a2a;
     border-radius: 10px;
@@ -100,41 +79,25 @@
     max-width: 900px;
     overflow-x: auto;
   }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
+  table { width: 100%; border-collapse: collapse; }
   th, td {
     border: 1px solid #444;
     padding: 6px;
     text-align: center;
   }
-
-  th {
-    background-color: #333;
-  }
-
+  th { background-color: #333; }
   .fullscreen-btn {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    background: none;
-    border: none;
-    color: #fff;
-    font-size: 24px;
+    top: 10px; right: 10px;
+    background: none; border: none;
+    color: #fff; font-size: 24px;
     cursor: pointer;
   }
-
-  /* Painel lateral jogadores */
   #playerPanel {
     position: fixed;
-    top: 0;
-    right: -400px;
-    width: 350px;
-    height: 100%;
-    background-color: rgba(20, 20, 20, 0.95);
+    top: 0; right: -400px;
+    width: 350px; height: 100%;
+    background-color: rgba(20,20,20,0.95);
     color: #fff;
     box-shadow: -4px 0 8px rgba(0,0,0,0.4);
     transition: right 0.4s ease;
@@ -142,54 +105,31 @@
     padding: 20px;
     overflow-y: auto;
   }
-
-  #playerPanel.open {
-    right: 0;
-  }
-
-  #playerPanel h3 {
-    margin-top: 0;
-  }
-
+  #playerPanel.open { right: 0; }
   #playerPanel input {
     background-color: #333;
-    border: none;
-    color: #fff;
+    border: none; color: #fff;
     width: 100%;
     margin-bottom: 8px;
     padding: 6px;
     border-radius: 5px;
     text-align: center;
   }
-
   #playerPanel button {
     background-color: #444;
-    color: #fff;
-    border: none;
+    color: #fff; border: none;
     border-radius: 6px;
     padding: 8px 14px;
-    cursor: pointer;
-    margin-top: 10px;
+    cursor: pointer; margin-top: 10px;
   }
-
-  #playerPanel button:hover {
-    background-color: #666;
-  }
-
-  .workload-high {
-    color: #00ff7f;
-    font-weight: bold;
-  }
-
-  .workload-low {
-    color: #ff5252;
-    font-weight: bold;
-  }
+  #playerPanel button:hover { background-color: #666; }
+  .workload-high { color: #00ff7f; font-weight: bold; }
+  .workload-low { color: #ff5252; font-weight: bold; }
 </style>
 </head>
 <body>
   <button class="fullscreen-btn" id="fullscreenBtn">⛶</button>
-  <h1>Game Control v3.3</h1>
+  <h1>Game Control v3.4</h1>
   <div class="timer" id="timer">20:00</div>
   <div class="controls">
     <input type="number" id="setMinutes" value="20" min="1" style="width:60px;"> min
@@ -198,6 +138,8 @@
     <button id="intervalBtn">Intervalo</button>
     <button id="resetBtn">Reset</button>
     <button id="playersBtn">🧍‍♂️ Jogadores</button>
+    <button id="addBtn">➕</button>
+    <button id="removeBtn">➖</button>
     <button id="printBtn">📸 Print</button>
   </div>
 
@@ -225,266 +167,134 @@
     <div id="playerList"></div>
     <button id="closePanelBtn">Fechar</button>
   </div>
+
 <script>
-let duration = 20 * 60; // segundos
+let duration = 20 * 60;
 let remaining = duration;
 let timerInterval;
 let running = false;
 let players = [];
-let totalRotations = 0;
 
-// === Funções base ===
-function formatTime(sec) {
-  const sign = sec < 0 ? '-' : '';
+function formatTime(sec){
   const s = Math.abs(sec);
   const m = Math.floor(s / 60);
   const r = s % 60;
-  return sign + String(m).padStart(2, '0') + ':' + String(r).padStart(2, '0');
+  return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`;
 }
+function updateTimerDisplay(){ document.getElementById('timer').textContent = formatTime(remaining); }
 
-function updateTimerDisplay() {
-  document.getElementById('timer').textContent = formatTime(remaining);
-}
-
-function tick() {
+function tick(){
   remaining--;
   updateTimerDisplay();
-
-  players.forEach(p => {
-    if (p.active) p.secondsIn++;
-    else p.secondsOut++;
-  });
-
-  updateSummary();
-  autoSave();
+  players.forEach(p=> p.active ? p.secondsIn++ : p.secondsOut++);
+  updateSummary(); autoSave();
 }
-
-// === Controlo do cronómetro ===
-function startTimer() {
-  if (running) return;
-  running = true;
-  timerInterval = setInterval(tick, 1000);
-}
-
-function pauseTimer() {
-  running = false;
-  clearInterval(timerInterval);
-}
-
-function intervalTimer() {
+function startTimer(){ if(running)return; running=true; timerInterval=setInterval(tick,1000);}
+function pauseTimer(){ running=false; clearInterval(timerInterval);}
+function intervalTimer(){ pauseTimer(); remaining=duration; updateTimerDisplay();}
+function resetTimer(){
+  if(!confirm("⚠️ Reiniciar o jogo?"))return;
   pauseTimer();
-  remaining = duration;
-  updateTimerDisplay();
-  players.forEach(p => { p.secondsPart1 = p.secondsIn; });
+  const mins=parseInt(document.getElementById('setMinutes').value)||20;
+  duration=mins*60; remaining=duration;
+  players.forEach(p=>{p.secondsIn=0;p.secondsOut=0;p.rotations=0;p.active=false;});
+  updateTimerDisplay(); updateSummary(); localStorage.removeItem("gameControlData");
 }
-
-function resetTimer() {
-  if (!confirm("⚠️ Deseja realmente reiniciar o jogo? Todos os tempos serão apagados.")) return;
-  pauseTimer();
-  const mins = parseInt(document.getElementById('setMinutes').value) || 20;
-  duration = mins * 60;
-  remaining = duration;
-  players.forEach(p => {
-    p.secondsIn = 0;
-    p.secondsOut = 0;
-    p.rotations = 0;
-    p.active = false;
-  });
-  updateTimerDisplay();
-  updateSummary();
-  localStorage.removeItem("gameControlData");
-}
-
-// === Jogadores ===
-function createPlayers(n = 14) {
-  const container = document.getElementById('players');
-  container.innerHTML = '';
-  players = [];
-
-  for (let i = 1; i <= n; i++) {
-    const name = 'Jogador ' + i;
-    const p = { id: i, name, active: false, secondsIn: 0, secondsOut: 0, rotations: 0 };
+function createPlayers(n=14){
+  const container=document.getElementById('players');
+  container.innerHTML=''; players=[];
+  for(let i=1;i<=n;i++){
+    const name='Jogador '+i;
+    const p={id:i,name,active:false,secondsIn:0,secondsOut:0,rotations:0};
     players.push(p);
-
-    const div = document.createElement('div');
-    div.className = 'player inactive';
-    div.id = 'player' + i;
-
-    const input = document.createElement('input');
-    input.value = name;
-    input.addEventListener('change', () => {
-      p.name = input.value;
-      updateSummary();
-      autoSave();
-    });
-
-    div.appendChild(input);
-    div.addEventListener('click', () => togglePlayer(i));
+    const div=document.createElement('div');
+    div.className='player inactive'; div.id='player'+i;
+    div.textContent=name;
+    div.addEventListener('click',()=>togglePlayer(i));
     container.appendChild(div);
-  }
-
-  buildPlayerPanel();
+  } buildPlayerPanel();
 }
-
-function togglePlayer(id) {
-  const p = players.find(x => x.id === id);
-  if (!p) return;
-
-  p.active = !p.active;
-  if (p.active) p.rotations++;
-  const div = document.getElementById('player' + id);
-  div.className = 'player ' + (p.active ? 'active' : 'inactive');
-
-  updateSummary();
-  autoSave();
+function togglePlayer(id){
+  const p=players.find(x=>x.id===id); if(!p)return;
+  p.active=!p.active; if(p.active)p.rotations++;
+  const div=document.getElementById('player'+id);
+  div.className='player '+(p.active?'active':'inactive');
+  updateSummary(); autoSave();
 }
-
-function buildPlayerPanel() {
-  const list = document.getElementById('playerList');
-  list.innerHTML = '';
-  players.forEach(p => {
-    const input = document.createElement('input');
-    input.value = p.name;
-    input.addEventListener('change', () => {
-      p.name = input.value;
-      document.querySelector(`#player${p.id} input`).value = p.name;
-      updateSummary();
-      autoSave();
+function buildPlayerPanel(){
+  const list=document.getElementById('playerList'); list.innerHTML='';
+  players.forEach(p=>{
+    const input=document.createElement('input');
+    input.value=p.name;
+    input.addEventListener('change',()=>{
+      p.name=input.value;
+      document.getElementById('player'+p.id).textContent=p.name;
+      updateSummary(); autoSave();
     });
     list.appendChild(input);
   });
 }
-
-function togglePlayerPanel(open) {
-  const panel = document.getElementById('playerPanel');
-  if (open) panel.classList.add('open');
-  else panel.classList.remove('open');
+function togglePlayerPanel(open){
+  const panel=document.getElementById('playerPanel');
+  if(open)panel.classList.add('open'); else panel.classList.remove('open');
 }
-
-// === Workload ===
-function calculateWorkload(p) {
-  const minIn = p.secondsIn / 60;
-  const minOut = p.secondsOut / 60;
-  const wl = (minIn * (1 + 0.1 * p.rotations)) / (minOut + 1);
-  return wl;
+function calculateWorkload(p){
+  const minIn=p.secondsIn/60; const minOut=p.secondsOut/60;
+  return (minIn*(1+0.1*p.rotations))/(minOut+1);
 }
-function updateSummary() {
-  const tbody = document.getElementById('summaryBody');
-  tbody.innerHTML = '';
-
-  // calcular média de workload da equipa
-  const workloads = players.map(p => calculateWorkload(p));
-  const avgWl = workloads.reduce((a, b) => a + b, 0) / (workloads.length || 1);
-
-  players.forEach((p, i) => {
-    const wl = calculateWorkload(p);
-    const wlClass = wl >= avgWl ? 'workload-high' : 'workload-low';
-
-    const total = p.secondsIn + p.secondsOut;
-    const perc = total > 0 ? ((p.secondsIn / total) * 100).toFixed(1) + '%' : '0%';
-
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
+function updateSummary(){
+  const tbody=document.getElementById('summaryBody'); tbody.innerHTML='';
+  const workloads=players.map(p=>calculateWorkload(p));
+  const avg=workloads.reduce((a,b)=>a+b,0)/(workloads.length||1);
+  players.forEach(p=>{
+    const wl=calculateWorkload(p);
+    const wlClass=wl>=avg?'workload-high':'workload-low';
+    const total=p.secondsIn+p.secondsOut;
+    const perc=total>0?((p.secondsIn/total)*100).toFixed(1)+'%':'0%';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
       <td>${p.name}</td>
       <td>${formatTime(p.secondsIn)}</td>
       <td>${formatTime(p.secondsOut)}</td>
       <td>${p.rotations}</td>
       <td class="${wlClass}">${wl.toFixed(1)}</td>
-      <td>${perc}</td>
-    `;
+      <td>${perc}</td>`;
     tbody.appendChild(tr);
   });
 }
-
-// === Auto Save ===
-function autoSave() {
-  const data = {
-    remaining,
-    duration,
-    players
-  };
-  localStorage.setItem("gameControlData", JSON.stringify(data));
-}
-
-function restoreData() {
-  const saved = localStorage.getItem("gameControlData");
-  if (!saved) return;
-  try {
-    const data = JSON.parse(saved);
-    duration = data.duration;
-    remaining = data.remaining;
-    players = data.players;
+function autoSave(){localStorage.setItem("gameControlData",JSON.stringify({remaining,duration,players}));}
+function restoreData(){
+  const saved=localStorage.getItem("gameControlData"); if(!saved)return;
+  try{
+    const data=JSON.parse(saved); duration=data.duration; remaining=data.remaining; players=data.players;
     updateTimerDisplay();
-    const container = document.getElementById('players');
-    container.innerHTML = '';
-    players.forEach(p => {
-      const div = document.createElement('div');
-      div.className = 'player ' + (p.active ? 'active' : 'inactive');
-      div.id = 'player' + p.id;
-
-      const input = document.createElement('input');
-      input.value = p.name;
-      input.addEventListener('change', () => {
-        p.name = input.value;
-        updateSummary();
-        autoSave();
-      });
-
-      div.appendChild(input);
-      div.addEventListener('click', () => togglePlayer(p.id));
+    const container=document.getElementById('players'); container.innerHTML='';
+    players.forEach(p=>{
+      const div=document.createElement('div');
+      div.className='player '+(p.active?'active':'inactive'); div.id='player'+p.id;
+      div.textContent=p.name; div.addEventListener('click',()=>togglePlayer(p.id));
       container.appendChild(div);
-    });
-    buildPlayerPanel();
-    updateSummary();
-  } catch (e) {
-    console.error('Erro ao restaurar dados', e);
-  }
+    }); buildPlayerPanel(); updateSummary();
+  }catch(e){console.error('Erro ao restaurar',e);}
 }
-
-// === Print ===
-function printSummary() {
-  const table = document.querySelector('.summary').innerHTML;
-  const w = window.open('', '', 'width=900,height=700');
-  w.document.write(`
-    <html><head><title>Resumo do Jogo</title>
-    <style>
-      body{font-family:Arial,sans-serif;background:#fff;color:#000;}
-      table{width:100%;border-collapse:collapse;margin-top:20px;}
-      th,td{border:1px solid #000;padding:6px;text-align:center;}
-      th{background:#eee;}
-      h2{text-align:center;}
-    </style>
-    </head><body>
-    <h2>Resumo do Jogo</h2>
-    ${table}
-    </body></html>
-  `);
-  w.document.close();
-  w.print();
+function printSummary(){
+  const table=document.querySelector('.summary').innerHTML;
+  const w=window.open('','','width=900,height=700');
+  w.document.write(`<html><head><title>Resumo</title>
+  <style>body{font-family:Arial}table{width:100%;border-collapse:collapse}th,td{border:1px solid #000;padding:6px;text-align:center}th{background:#eee}</style>
+  </head><body><h2>Resumo do Jogo</h2>${table}</body></html>`); w.document.close(); w.print();
 }
-
-// === Fullscreen ===
-document.getElementById('fullscreenBtn').addEventListener('click', () => {
-  if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-  else document.exitFullscreen();
-});
-
-// === Ligações ===
-document.getElementById('startBtn').onclick = startTimer;
-document.getElementById('pauseBtn').onclick = pauseTimer;
-document.getElementById('intervalBtn').onclick = intervalTimer;
-document.getElementById('resetBtn').onclick = resetTimer;
-document.getElementById('playersBtn').onclick = () => togglePlayerPanel(true);
-document.getElementById('closePanelBtn').onclick = () => togglePlayerPanel(false);
-document.getElementById('printBtn').onclick = printSummary;
-
-// === Inicialização ===
-window.onload = () => {
-  restoreData();
-  if (players.length === 0) createPlayers(14);
-  updateTimerDisplay();
-  setInterval(updateSummary, 1000);
-};
+document.getElementById('fullscreenBtn').onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
+document.getElementById('startBtn').onclick=startTimer;
+document.getElementById('pauseBtn').onclick=pauseTimer;
+document.getElementById('intervalBtn').onclick=intervalTimer;
+document.getElementById('resetBtn').onclick=resetTimer;
+document.getElementById('playersBtn').onclick=()=>togglePlayerPanel(true);
+document.getElementById('closePanelBtn').onclick=()=>togglePlayerPanel(false);
+document.getElementById('printBtn').onclick=printSummary;
+document.getElementById('addBtn').onclick=()=>{const id=players.length+1;const p={id,name:'Jogador '+id,active:false,secondsIn:0,secondsOut:0,rotations:0};players.push(p);const div=document.createElement('div');div.className='player inactive';div.id='player'+id;div.textContent=p.name;div.addEventListener('click',()=>togglePlayer(id));document.getElementById('players').appendChild(div);buildPlayerPanel();autoSave();};
+document.getElementById('removeBtn').onclick=()=>{if(players.length>0){players.pop();document.getElementById('players').lastChild.remove();buildPlayerPanel();autoSave();}};
+window.onload=()=>{restoreData(); if(players.length===0)createPlayers(14); updateTimerDisplay(); setInterval(updateSummary,1000);}
 </script>
 </body>
 </html>
