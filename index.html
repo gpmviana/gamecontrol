@@ -1,173 +1,490 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Game Control</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Game Control v3.3</title>
 <style>
-body{margin:0;font-family:Arial,sans-serif;background:#1e1e1e;color:#f0f0f0;display:flex;flex-direction:column;align-items:center;min-height:100vh;}
-h1{margin-top:10px;}
-.top-bar{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:5px;}
-.top-bar input{background:#333;color:#fff;border:1px solid #666;border-radius:6px;text-align:center;padding:5px 10px;font-size:16px;width:150px;}
-#photoBtn{background:none;border:none;font-size:26px;color:#fff;cursor:pointer;}
-#fullscreenBtn{position:absolute;top:10px;right:15px;background:none;border:none;color:#fff;font-size:28px;cursor:pointer;}
-.timer{font-size:80px;font-weight:bold;color:#00ff66;background:#000;padding:10px 25px;border-radius:15px;border:2px solid #00ff66;margin:5px 0;}
-.controls{margin:8px 0;}
-.controls button{margin:5px;padding:10px 18px;font-size:15px;border-radius:8px;border:none;background:#333;color:#fff;cursor:pointer;}
-.controls button:hover{background:#555;}
-.players{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:20px;}
-.player{width:170px;height:120px;border-radius:10px;text-align:center;padding:10px;user-select:none;display:flex;flex-direction:column;justify-content:center;border:2px solid #555;color:#fff;}
-.player.active{background:#007a33;}
-.player.inactive{background:#7a0000;}
-.summary{margin-top:25px;width:95%;background:#2a2a2a;border-radius:10px;padding:10px;overflow-x:auto;}
-table{width:100%;border-collapse:collapse;font-size:14px;color:#fff;}
-th,td{border:1px solid #444;padding:5px;text-align:center;}
-th{background:#333;}
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #1e1e1e;
+    color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    background-color: #333;
+    color: #fff;
+    width: 100%;
+    text-align: center;
+    padding: 15px 0;
+    margin: 0 0 20px 0;
+    font-size: 28px;
+  }
+
+  .timer {
+    font-size: 72px;
+    margin: 10px 0;
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .controls button {
+    background-color: #444;
+    color: #f5f5f5;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .controls button:hover {
+    background-color: #666;
+  }
+
+  .players {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 25px;
+  }
+
+  .player {
+    background-color: #2a2a2a;
+    border-radius: 10px;
+    padding: 12px;
+    width: 140px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .player.active {
+    background-color: #256e25;
+  }
+
+  .player.inactive {
+    background-color: #772828;
+  }
+
+  .player input {
+    background: none;
+    border: none;
+    color: #fff;
+    text-align: center;
+    font-size: 15px;
+    width: 100%;
+    outline: none;
+  }
+
+  .summary {
+    background-color: #2a2a2a;
+    border-radius: 10px;
+    padding: 10px;
+    width: 90%;
+    max-width: 900px;
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    border: 1px solid #444;
+    padding: 6px;
+    text-align: center;
+  }
+
+  th {
+    background-color: #333;
+  }
+
+  .fullscreen-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+  }
+
+  /* Painel lateral jogadores */
+  #playerPanel {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 350px;
+    height: 100%;
+    background-color: rgba(20, 20, 20, 0.95);
+    color: #fff;
+    box-shadow: -4px 0 8px rgba(0,0,0,0.4);
+    transition: right 0.4s ease;
+    z-index: 1000;
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  #playerPanel.open {
+    right: 0;
+  }
+
+  #playerPanel h3 {
+    margin-top: 0;
+  }
+
+  #playerPanel input {
+    background-color: #333;
+    border: none;
+    color: #fff;
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 6px;
+    border-radius: 5px;
+    text-align: center;
+  }
+
+  #playerPanel button {
+    background-color: #444;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+
+  #playerPanel button:hover {
+    background-color: #666;
+  }
+
+  .workload-high {
+    color: #00ff7f;
+    font-weight: bold;
+  }
+
+  .workload-low {
+    color: #ff5252;
+    font-weight: bold;
+  }
 </style>
 </head>
 <body>
-<button id="fullscreenBtn">🔳</button>
+  <button class="fullscreen-btn" id="fullscreenBtn">⛶</button>
+  <h1>Game Control v3.3</h1>
+  <div class="timer" id="timer">20:00</div>
+  <div class="controls">
+    <input type="number" id="setMinutes" value="20" min="1" style="width:60px;"> min
+    <button id="startBtn">Iniciar</button>
+    <button id="pauseBtn">Pausar</button>
+    <button id="intervalBtn">Intervalo</button>
+    <button id="resetBtn">Reset</button>
+    <button id="playersBtn">🧍‍♂️ Jogadores</button>
+    <button id="printBtn">📸 Print</button>
+  </div>
 
-<h1>Game Control</h1>
-<div class="top-bar">
-  <input id="homeTeam" placeholder="Equipa Casa">
-  <span style="font-weight:bold;">vs</span>
-  <input id="awayTeam" placeholder="Equipa Visitante">
-  <button id="photoBtn">📸</button>
-</div>
+  <div class="players" id="players"></div>
 
-<div class="timer" id="timer">20:00</div>
+  <div class="summary">
+    <h3>Resumo de Jogo</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Jogador</th>
+          <th>Tempo em Campo</th>
+          <th>Tempo Fora</th>
+          <th>Rotações</th>
+          <th>Workload</th>
+          <th>% Jogo</th>
+        </tr>
+      </thead>
+      <tbody id="summaryBody"></tbody>
+    </table>
+  </div>
 
-<div class="controls">
-  <input type="number" id="setMinutes" value="20" min="1" style="width:60px;"> min
-  <button id="startBtn">Iniciar</button>
-  <button id="pauseBtn">Pausar</button>
-  <button id="intervalBtn">Intervalo</button>
-  <button id="resetBtn">Reset</button>
-  <button id="addPlayerBtn">➕</button>
-  <button id="removePlayerBtn">➖</button>
-</div>
-
-<div class="players" id="players"></div>
-
-<div class="summary" id="summaryContainer">
-  <h3>Resumo de Jogo</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Jogador</th>
-        <th>Em Campo</th>
-        <th>Fora</th>
-        <th>1.ª Parte</th>
-        <th>2.ª Parte</th>
-        <th>Última Rotação</th>
-        <th>Rotações</th>
-        <th>% Jogo</th>
-      </tr>
-    </thead>
-    <tbody id="summaryBody"></tbody>
-  </table>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <div id="playerPanel">
+    <h3>Editar Jogadores</h3>
+    <div id="playerList"></div>
+    <button id="closePanelBtn">Fechar</button>
+  </div>
 <script>
-let duration=20*60,remaining=duration,timerInterval,running=false,firstHalf=true,players=[];
-function formatTime(s){const m=Math.floor(s/60),r=s%60;return String(m).padStart(2,'0')+':'+String(r).padStart(2,'0');}
-function updateTimerDisplay(){document.getElementById('timer').textContent=formatTime(Math.max(remaining,0));}
-function tick(){if(remaining>0){remaining--;players.forEach(p=>{p.totalTime++;if(p.active){p.inField++;if(firstHalf)p.firstHalf++;else p.secondHalf++;}else p.outField++;});}updateSummary();updateTimerDisplay();saveState();}
-function startTimer(){if(running)return;running=true;timerInterval=setInterval(tick,1000);}
-function pauseTimer(){running=false;clearInterval(timerInterval);saveState();}
-function resetTimer(){pauseTimer();const m=parseInt(document.getElementById('setMinutes').value)||20;duration=m*60;remaining=duration;players.forEach(p=>{Object.assign(p,{inField:0,outField:0,totalTime:0,firstHalf:0,secondHalf:0,rotacoes:0,lastRotation:0});});updateSummary();updateTimerDisplay();saveState();}
-function intervalTimer(){pauseTimer();firstHalf=!firstHalf;remaining=parseInt(document.getElementById('setMinutes').value)*60;updateTimerDisplay();saveState();}
+let duration = 20 * 60; // segundos
+let remaining = duration;
+let timerInterval;
+let running = false;
+let players = [];
+let totalRotations = 0;
 
-function addPlayer(name){
- const id=players.length+1;
- const p={id,name:name||'Jogador '+id,active:false,inField:0,outField:0,totalTime:0,firstHalf:0,secondHalf:0,rotacoes:0,lastRotation:0,sessionStart:0};
- players.push(p);
- const div=document.createElement('div');
- div.className='player inactive';div.id='player'+id;
- div.innerHTML=`<strong contenteditable="true">${p.name}</strong><div class="time">00:00</div><small class="last"></small>`;
- // clique no cartão (fora do nome) alterna estado
- div.addEventListener('click',e=>{if(e.target.tagName!=='STRONG')togglePlayer(id);});
- // editar nome sem alternar estado
- div.querySelector('strong').addEventListener('input',e=>{e.stopPropagation();p.name=e.target.textContent;updateSummary();saveState();});
- document.getElementById('players').appendChild(div);
+// === Funções base ===
+function formatTime(sec) {
+  const sign = sec < 0 ? '-' : '';
+  const s = Math.abs(sec);
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return sign + String(m).padStart(2, '0') + ':' + String(r).padStart(2, '0');
 }
 
-function removePlayer(){if(players.length>0){const last=players.pop();document.getElementById('player'+last.id)?.remove();updateSummary();saveState();}}
-
-function togglePlayer(id){
- const p=players.find(x=>x.id===id),div=document.getElementById('player'+id);
- if(!p.active){p.active=true;p.sessionStart=p.inField;p.rotacoes++;div.className='player active';}
- else{p.active=false;p.lastRotation=p.inField-p.sessionStart;div.className='player inactive';div.querySelector('.last').textContent='Última: '+formatTime(p.lastRotation);}
- updateSummary();saveState();
+function updateTimerDisplay() {
+  document.getElementById('timer').textContent = formatTime(remaining);
 }
 
-function updateSummary(){
- const tbody=document.getElementById('summaryBody');
- tbody.innerHTML='';
- players.forEach(p=>{
-   const perc=((p.inField/(p.totalTime||1))*100).toFixed(1)+'%';
-   const tr=document.createElement('tr');
-   tr.innerHTML=`<td>${p.name}</td><td>${formatTime(p.inField)}</td><td>${formatTime(p.outField)}</td><td>${formatTime(p.firstHalf)}</td><td>${formatTime(p.secondHalf)}</td><td>${formatTime(p.lastRotation)}</td><td>${p.rotacoes}</td><td>${perc}</td>`;
-   tbody.appendChild(tr);
-   const card=document.getElementById('player'+p.id);
-   if(card){card.querySelector('.time').textContent=p.active?formatTime(p.inField):formatTime(p.outField);}
- });
+function tick() {
+  remaining--;
+  updateTimerDisplay();
+
+  players.forEach(p => {
+    if (p.active) p.secondsIn++;
+    else p.secondsOut++;
+  });
+
+  updateSummary();
+  autoSave();
 }
 
-function toggleFullscreen(){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}
-
-function saveState(){
- const state={remaining,duration,running,firstHalf,players,homeTeam:document.getElementById('homeTeam').value,awayTeam:document.getElementById('awayTeam').value};
- localStorage.setItem('gamecontrol_state',JSON.stringify(state));
+// === Controlo do cronómetro ===
+function startTimer() {
+  if (running) return;
+  running = true;
+  timerInterval = setInterval(tick, 1000);
 }
 
-function loadState(){
- const data=localStorage.getItem('gamecontrol_state');if(!data)return;
- const s=JSON.parse(data);
- remaining=s.remaining;duration=s.duration;firstHalf=s.firstHalf;
- document.getElementById('homeTeam').value=s.homeTeam||'';document.getElementById('awayTeam').value=s.awayTeam||'';
- players=[];document.getElementById('players').innerHTML='';
- s.players.forEach(pl=>{
-   addPlayer(pl.name);
-   Object.assign(players[pl.id-1],pl);
-   const div=document.getElementById('player'+pl.id);
-   div.className=pl.active?'player active':'player inactive';
-   if(!pl.active && pl.lastRotation>0)div.querySelector('.last').textContent='Última: '+formatTime(pl.lastRotation);
- });
- updateSummary();updateTimerDisplay();
- if(s.running)startTimer();
+function pauseTimer() {
+  running = false;
+  clearInterval(timerInterval);
 }
 
-document.getElementById('fullscreenBtn').onclick=toggleFullscreen;
-document.getElementById('startBtn').onclick=startTimer;
-document.getElementById('pauseBtn').onclick=pauseTimer;
-document.getElementById('resetBtn').onclick=resetTimer;
-document.getElementById('intervalBtn').onclick=intervalTimer;
-document.getElementById('addPlayerBtn').onclick=()=>addPlayer();
-document.getElementById('removePlayerBtn').onclick=removePlayer;
+function intervalTimer() {
+  pauseTimer();
+  remaining = duration;
+  updateTimerDisplay();
+  players.forEach(p => { p.secondsPart1 = p.secondsIn; });
+}
 
-document.getElementById('photoBtn').onclick=()=>{
- const home=document.getElementById('homeTeam').value||'Equipa Casa';
- const away=document.getElementById('awayTeam').value||'Equipa Visitante';
- const container=document.createElement('div');
- container.style.background='white';container.style.color='black';container.style.padding='20px';
- container.innerHTML=`<h2 style="text-align:center;">${home} vs ${away}</h2>`+document.getElementById('summaryContainer').innerHTML;
- document.body.appendChild(container);
- html2canvas(container,{backgroundColor:'#fff'}).then(c=>{
-   const link=document.createElement('a');
-   const date=new Date().toISOString().split('T')[0];
-   link.download=`Resumo_${home}_vs_${away}_${date}.png`;
-   link.href=c.toDataURL('image/png');link.click();container.remove();
- });
+function resetTimer() {
+  if (!confirm("⚠️ Deseja realmente reiniciar o jogo? Todos os tempos serão apagados.")) return;
+  pauseTimer();
+  const mins = parseInt(document.getElementById('setMinutes').value) || 20;
+  duration = mins * 60;
+  remaining = duration;
+  players.forEach(p => {
+    p.secondsIn = 0;
+    p.secondsOut = 0;
+    p.rotations = 0;
+    p.active = false;
+  });
+  updateTimerDisplay();
+  updateSummary();
+  localStorage.removeItem("gameControlData");
+}
+
+// === Jogadores ===
+function createPlayers(n = 14) {
+  const container = document.getElementById('players');
+  container.innerHTML = '';
+  players = [];
+
+  for (let i = 1; i <= n; i++) {
+    const name = 'Jogador ' + i;
+    const p = { id: i, name, active: false, secondsIn: 0, secondsOut: 0, rotations: 0 };
+    players.push(p);
+
+    const div = document.createElement('div');
+    div.className = 'player inactive';
+    div.id = 'player' + i;
+
+    const input = document.createElement('input');
+    input.value = name;
+    input.addEventListener('change', () => {
+      p.name = input.value;
+      updateSummary();
+      autoSave();
+    });
+
+    div.appendChild(input);
+    div.addEventListener('click', () => togglePlayer(i));
+    container.appendChild(div);
+  }
+
+  buildPlayerPanel();
+}
+
+function togglePlayer(id) {
+  const p = players.find(x => x.id === id);
+  if (!p) return;
+
+  p.active = !p.active;
+  if (p.active) p.rotations++;
+  const div = document.getElementById('player' + id);
+  div.className = 'player ' + (p.active ? 'active' : 'inactive');
+
+  updateSummary();
+  autoSave();
+}
+
+function buildPlayerPanel() {
+  const list = document.getElementById('playerList');
+  list.innerHTML = '';
+  players.forEach(p => {
+    const input = document.createElement('input');
+    input.value = p.name;
+    input.addEventListener('change', () => {
+      p.name = input.value;
+      document.querySelector(`#player${p.id} input`).value = p.name;
+      updateSummary();
+      autoSave();
+    });
+    list.appendChild(input);
+  });
+}
+
+function togglePlayerPanel(open) {
+  const panel = document.getElementById('playerPanel');
+  if (open) panel.classList.add('open');
+  else panel.classList.remove('open');
+}
+
+// === Workload ===
+function calculateWorkload(p) {
+  const minIn = p.secondsIn / 60;
+  const minOut = p.secondsOut / 60;
+  const wl = (minIn * (1 + 0.1 * p.rotations)) / (minOut + 1);
+  return wl;
+}
+function updateSummary() {
+  const tbody = document.getElementById('summaryBody');
+  tbody.innerHTML = '';
+
+  // calcular média de workload da equipa
+  const workloads = players.map(p => calculateWorkload(p));
+  const avgWl = workloads.reduce((a, b) => a + b, 0) / (workloads.length || 1);
+
+  players.forEach((p, i) => {
+    const wl = calculateWorkload(p);
+    const wlClass = wl >= avgWl ? 'workload-high' : 'workload-low';
+
+    const total = p.secondsIn + p.secondsOut;
+    const perc = total > 0 ? ((p.secondsIn / total) * 100).toFixed(1) + '%' : '0%';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${p.name}</td>
+      <td>${formatTime(p.secondsIn)}</td>
+      <td>${formatTime(p.secondsOut)}</td>
+      <td>${p.rotations}</td>
+      <td class="${wlClass}">${wl.toFixed(1)}</td>
+      <td>${perc}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// === Auto Save ===
+function autoSave() {
+  const data = {
+    remaining,
+    duration,
+    players
+  };
+  localStorage.setItem("gameControlData", JSON.stringify(data));
+}
+
+function restoreData() {
+  const saved = localStorage.getItem("gameControlData");
+  if (!saved) return;
+  try {
+    const data = JSON.parse(saved);
+    duration = data.duration;
+    remaining = data.remaining;
+    players = data.players;
+    updateTimerDisplay();
+    const container = document.getElementById('players');
+    container.innerHTML = '';
+    players.forEach(p => {
+      const div = document.createElement('div');
+      div.className = 'player ' + (p.active ? 'active' : 'inactive');
+      div.id = 'player' + p.id;
+
+      const input = document.createElement('input');
+      input.value = p.name;
+      input.addEventListener('change', () => {
+        p.name = input.value;
+        updateSummary();
+        autoSave();
+      });
+
+      div.appendChild(input);
+      div.addEventListener('click', () => togglePlayer(p.id));
+      container.appendChild(div);
+    });
+    buildPlayerPanel();
+    updateSummary();
+  } catch (e) {
+    console.error('Erro ao restaurar dados', e);
+  }
+}
+
+// === Print ===
+function printSummary() {
+  const table = document.querySelector('.summary').innerHTML;
+  const w = window.open('', '', 'width=900,height=700');
+  w.document.write(`
+    <html><head><title>Resumo do Jogo</title>
+    <style>
+      body{font-family:Arial,sans-serif;background:#fff;color:#000;}
+      table{width:100%;border-collapse:collapse;margin-top:20px;}
+      th,td{border:1px solid #000;padding:6px;text-align:center;}
+      th{background:#eee;}
+      h2{text-align:center;}
+    </style>
+    </head><body>
+    <h2>Resumo do Jogo</h2>
+    ${table}
+    </body></html>
+  `);
+  w.document.close();
+  w.print();
+}
+
+// === Fullscreen ===
+document.getElementById('fullscreenBtn').addEventListener('click', () => {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
+});
+
+// === Ligações ===
+document.getElementById('startBtn').onclick = startTimer;
+document.getElementById('pauseBtn').onclick = pauseTimer;
+document.getElementById('intervalBtn').onclick = intervalTimer;
+document.getElementById('resetBtn').onclick = resetTimer;
+document.getElementById('playersBtn').onclick = () => togglePlayerPanel(true);
+document.getElementById('closePanelBtn').onclick = () => togglePlayerPanel(false);
+document.getElementById('printBtn').onclick = printSummary;
+
+// === Inicialização ===
+window.onload = () => {
+  restoreData();
+  if (players.length === 0) createPlayers(14);
+  updateTimerDisplay();
+  setInterval(updateSummary, 1000);
 };
-
-setInterval(saveState,1000);
-
-function createPlayers(){for(let i=1;i<=14;i++)addPlayer('Jogador '+i);}
-if(localStorage.getItem('gamecontrol_state'))loadState();else createPlayers();
-updateTimerDisplay();
 </script>
 </body>
 </html>
