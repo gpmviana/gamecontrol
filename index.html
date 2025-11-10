@@ -49,19 +49,17 @@
   #resetBtn{background:#607D8B;color:#fff;}
   #printBtn{background:#9C27B0;color:#fff;}
   #fullscreenBtn{background:#212121;color:#fff;}
-  .players{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:25px;}
+  .players{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:25px;}
   .player{
-    width:180px;height:90px;background:#2b2b2b;border-radius:12px;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    font-size:18px;font-weight:bold;cursor:pointer;user-select:none;
+    width:200px;height:120px;background:#2b2b2b;border-radius:12px;
+    display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+    font-weight:bold;cursor:pointer;user-select:none;padding:8px;
   }
   .player.active{background:#2e7d32;color:#fff;}
   .player.inactive{background:#8B0000;color:#fff;position:relative;}
-  .last-rotation {
-    font-size: 12px;
-    color: #4CAF50;
-    margin-top: 4px;
-  }
+  .player-name{font-size:16px;}
+  .player-time{font-size:36px;line-height:1;}
+  .last-rotation {font-size: 12px;color: #4CAF50;}
   .summary{
     margin-top:30px;width:95%;max-width:1000px;
     background:#2b2b2b;border-radius:10px;padding:10px;
@@ -138,7 +136,7 @@ function tick(){
       p.secondsIn++;
     } else p.secondsOut++;
   });
-  updateSummary();autoSave();
+  updatePlayersDisplay();updateSummary();autoSave();
 }
 function startTimer(){if(running)return;running=true;timerInterval=setInterval(tick,1000);}
 function pauseTimer(){running=false;clearInterval(timerInterval);}
@@ -146,7 +144,7 @@ function resetTimer(){
   pauseTimer();const mins=parseInt(document.getElementById("setMinutes").value)||20;
   duration=mins*60;remaining=duration;isSecondHalf=false;
   players.forEach(p=>{p.secondsP1=p.secondsP2=p.secondsIn=p.secondsOut=p.rotations=0;p.active=false;p.lastRotation=0;});
-  updateTimerDisplay();updateSummary();autoSave();
+  updateTimerDisplay();updatePlayersDisplay();updateSummary();autoSave();
 }
 function intervalTimer(){
   pauseTimer();isSecondHalf=true;
@@ -160,7 +158,8 @@ function createPlayers(n){
     const p={id:i,name:"Jogador "+i,active:false,secondsIn:0,secondsOut:0,secondsP1:0,secondsP2:0,rotations:0,lastRotation:0};
     players.push(p);
     const d=document.createElement("div");
-    d.className="player inactive";d.id="player"+i;d.innerHTML=`<div>${p.name}</div><div class='last-rotation'></div>`;
+    d.className="player inactive";d.id="player"+i;
+    d.innerHTML=`<div class='player-name'>${p.name}</div><div class='player-time'>00:00</div><div class='last-rotation'></div>`;
     d.onclick=()=>togglePlayer(i);c.appendChild(d);
   }
   updateSummary();autoSave();
@@ -171,17 +170,26 @@ function togglePlayer(id){
   if(!p)return;
   const box=document.getElementById("player"+id);
   const info=box.querySelector(".last-rotation");
-  if(p.active){ // sai de campo
+  if(p.active){ // sai
     p.lastRotation = (isSecondHalf?p.secondsP2:p.secondsP1) - p.rotationStart;
     info.textContent = "Última rotação: "+formatTime(p.lastRotation);
-  } else { // entra em campo
+  } else { // entra
     p.rotationStart = (isSecondHalf?p.secondsP2:p.secondsP1);
     info.textContent = "";
     p.rotations++;
   }
   p.active=!p.active;
   box.className=p.active?"player active":"player inactive";
+  updatePlayersDisplay();
   autoSave();
+}
+
+function updatePlayersDisplay(){
+  players.forEach(p=>{
+    const box=document.getElementById("player"+p.id);
+    const t=box.querySelector(".player-time");
+    t.textContent=p.active?formatTime(p.secondsIn):formatTime(p.secondsOut);
+  });
 }
 
 function calculateWorkload(p){return (p.secondsIn - p.secondsOut)/60;}
@@ -212,7 +220,7 @@ function buildPlayerPanel(){
   players.forEach(p=>{
     const inp=document.createElement("input");
     inp.value=p.name;
-    inp.onchange=()=>{p.name=inp.value;document.querySelector("#player"+p.id+" div:first-child").textContent=p.name;updateSummary();autoSave();};
+    inp.onchange=()=>{p.name=inp.value;document.querySelector("#player"+p.id+" .player-name").textContent=p.name;updateSummary();autoSave();};
     list.appendChild(inp);
   });
 }
@@ -224,7 +232,8 @@ document.getElementById("closePanelBtn").onclick=()=>togglePanel(false);
 document.getElementById("addBtn").onclick=()=>{
   playerCount++;const p={id:playerCount,name:"Jogador "+playerCount,active:false,secondsIn:0,secondsOut:0,secondsP1:0,secondsP2:0,rotations:0,lastRotation:0};
   players.push(p);
-  const d=document.createElement("div");d.className="player inactive";d.id="player"+p.id;d.innerHTML=`<div>${p.name}</div><div class='last-rotation'></div>`;
+  const d=document.createElement("div");d.className="player inactive";d.id="player"+p.id;
+  d.innerHTML=`<div class='player-name'>${p.name}</div><div class='player-time'>00:00</div><div class='last-rotation'></div>`;
   d.onclick=()=>togglePlayer(p.id);document.getElementById("players").appendChild(d);autoSave();
 };
 document.getElementById("removeBtn").onclick=()=>{
@@ -269,7 +278,7 @@ function restoreData(){
       p.secondsP1=p.secondsP1||0;p.secondsP2=p.secondsP2||0;
       const div=document.createElement("div");
       div.id="player"+p.id;div.className=p.active?"player active":"player inactive";
-      div.innerHTML=`<div>${p.name}</div><div class='last-rotation'>${p.lastRotation? "Última rotação: "+formatTime(p.lastRotation):""}</div>`;
+      div.innerHTML=`<div class='player-name'>${p.name}</div><div class='player-time'>${p.active?formatTime(p.secondsIn):formatTime(p.secondsOut)}</div><div class='last-rotation'>${p.lastRotation? "Última rotação: "+formatTime(p.lastRotation):""}</div>`;
       div.onclick=()=>togglePlayer(p.id);c.appendChild(div);
     });
   }catch(e){console.error("Erro ao restaurar",e);}
@@ -278,7 +287,7 @@ document.getElementById("startBtn").onclick=startTimer;
 document.getElementById("pauseBtn").onclick=pauseTimer;
 document.getElementById("intervalBtn").onclick=intervalTimer;
 document.getElementById("resetBtn").onclick=resetTimer;
-window.onload=()=>{restoreData();if(players.length===0)createPlayers(14);updateTimerDisplay();setInterval(updateSummary,1000);}
+window.onload=()=>{restoreData();if(players.length===0)createPlayers(14);updateTimerDisplay();setInterval(()=>{updatePlayersDisplay();updateSummary();},1000);}
 </script>
 </body>
 </html>
