@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Painel de Jogo Futsal</title>
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #1e1e1e;
+  color: #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+.top-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.top-bar input {
+  background: #333;
+  color: #fff;
+  border: 1px solid #666;
+  border-radius: 6px;
+  text-align: center;
+  padding: 5px 10px;
+  font-size: 16px;
+  width: 150px;
+}
+#photoBtn {
+  background: none;
+  border: none;
+  font-size: 26px;
+  color: #fff;
+  cursor: pointer;
+}
+#fullscreenBtn {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 28px;
+  cursor: pointer;
+}
+.timer {
+  font-size: 80px;
+  font-weight: bold;
+  color: #00ff66;
+  background: #000;
+  padding: 10px 25px;
+  border-radius: 15px;
+  border: 2px solid #00ff66;
+  margin: 5px 0;
+}
+.controls {
+  margin: 8px 0;
+}
+.controls button {
+  margin: 5px;
+  padding: 10px 18px;
+  font-size: 15px;
+  border-radius: 8px;
+  border: none;
+  background: #333;
+  color: #fff;
+  cursor: pointer;
+}
+.controls button:hover {
+  background: #555;
+}
+.players {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+.player {
+  width: 170px;
+  height: 120px;
+  border-radius: 10px;
+  text-align: center;
+  padding: 10px;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 2px solid #555;
+  color: #fff;
+}
+.player.active { background: #007a33; }
+.player.inactive { background: #7a0000; }
+.summary {
+  margin-top: 25px;
+  width: 95%;
+  background: #2a2a2a;
+  border-radius: 10px;
+  padding: 10px;
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: #fff;
+}
+th, td {
+  border: 1px solid #444;
+  padding: 5px;
+  text-align: center;
+}
+th { background: #333; }
+</style>
+</head>
+<body>
+<button id="fullscreenBtn">🔳</button>
+
+<div class="top-bar">
+  <input id="homeTeam" placeholder="Equipa Casa" />
+  <span style="font-weight:bold;">vs</span>
+  <input id="awayTeam" placeholder="Equipa Visitante" />
+  <button id="photoBtn">📸</button>
+</div>
+
+<div class="timer" id="timer">20:00</div>
+
+<div class="controls">
+  <input type="number" id="setMinutes" value="20" min="1" style="width:60px;"> min
+  <button id="startBtn">Iniciar</button>
+  <button id="pauseBtn">Pausar</button>
+  <button id="intervalBtn">Intervalo</button>
+  <button id="resetBtn">Reset</button>
+  <button id="addPlayerBtn">➕</button>
+  <button id="removePlayerBtn">➖</button>
+</div>
+
+<div class="players" id="players"></div>
+
+<div class="summary" id="summaryContainer">
+  <h3>Resumo de Jogo</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Jogador</th>
+        <th>Em Campo</th>
+        <th>Fora</th>
+        <th>1.ª Parte</th>
+        <th>2.ª Parte</th>
+        <th>Última Rotação</th>
+        <th>Rotações</th>
+        <th>% Jogo</th>
+      </tr>
+    </thead>
+    <tbody id="summaryBody"></tbody>
+  </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+let duration = 20 * 60;
+let remaining = duration;
+let timerInterval;
+let running = false;
+let firstHalf = true;
+let players = [];
+
+function formatTime(sec){
+  const m=Math.floor(sec/60),s=sec%60;
+  return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+function updateTimerDisplay(){
+  document.getElementById('timer').textContent=formatTime(Math.max(remaining,0));
+}
+function tick(){
+  if(remaining>0){
+    remaining--;
+    players.forEach(p=>{
+      p.totalTime++;
+      if(p.active){p.inField++; if(firstHalf)p.firstHalf++; else p.secondHalf++;}
+      else p.outField++;
+    });
+  }
+  updateSummary(); updateTimerDisplay();
+}
+function startTimer(){if(running)return; running=true; timerInterval=setInterval(tick,1000);}
+function pauseTimer(){running=false; clearInterval(timerInterval);}
+function resetTimer(){
+  pauseTimer();
+  const mins=parseInt(document.getElementById('setMinutes').value)||20;
+  duration=mins*60; remaining=duration;
+  players.forEach(p=>{p.totalTime=0;p.inField=0;p.outField=0;p.firstHalf=0;p.secondHalf=0;p.rotacoes=0;p.lastRotation=0;});
+  updateSummary(); updateTimerDisplay();
+}
+function intervalTimer(){pauseTimer();firstHalf=!firstHalf;remaining=parseInt(document.getElementById('setMinutes').value)*60;updateTimerDisplay();}
+function createPlayers(){for(let i=1;i<=14;i++)addPlayer('Jogador '+i);}
+function addPlayer(name){
+  const id=players.length+1;
+  const p={id,name,active:false,inField:0,outField:0,totalTime:0,firstHalf:0,secondHalf:0,rotacoes:0,lastRotation:0,sessionStart:0};
+  players.push(p);
+  const div=document.createElement('div');
+  div.className='player inactive';
+  div.id='player'+id;
+  div.innerHTML=`<strong contenteditable="true">${name}</strong><div class="time">00:00</div><small class="last"></small>`;
+  div.onclick=()=>togglePlayer(id);
+  document.getElementById('players').appendChild(div);
+}
+function removePlayer(){
+  if(players.length>0){
+    const last=players.pop();
+    const div=document.getElementById('player'+last.id);
+    if(div)div.remove();
+    updateSummary();
+  }
+}
+function togglePlayer(id){
+  const p=players.find(x=>x.id===id);
+  const div=document.getElementById('player'+id);
+  if(!p.active){p.active=true;p.sessionStart=p.inField;p.rotacoes++;div.className='player active';}
+  else{p.active=false;p.lastRotation=p.inField-p.sessionStart;div.className='player inactive';div.querySelector('.last').textContent='Última: '+formatTime(p.lastRotation);}
+}
+function updateSummary(){
+  const tbody=document.getElementById('summaryBody');
+  tbody.innerHTML='';
+  players.forEach(p=>{
+    const total=p.totalTime;
+    const perc=((p.inField/(total||1))*100).toFixed(1)+'%';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${p.name}</td><td>${formatTime(p.inField)}</td><td>${formatTime(p.outField)}</td>
+    <td>${formatTime(p.firstHalf)}</td><td>${formatTime(p.secondHalf)}</td><td>${formatTime(p.lastRotation)}</td><td>${p.rotacoes}</td><td>${perc}</td>`;
+    tbody.appendChild(tr);
+    const card=document.getElementById('player'+p.id);
+    if(card){card.querySelector('.time').textContent=p.active?formatTime(p.inField):formatTime(p.outField);}
+  });
+}
+function toggleFullscreen(){
+  if(!document.fullscreenElement){document.documentElement.requestFullscreen();}
+  else{document.exitFullscreen();}
+}
+document.getElementById('fullscreenBtn').onclick=toggleFullscreen;
+document.getElementById('startBtn').onclick=startTimer;
+document.getElementById('pauseBtn').onclick=pauseTimer;
+document.getElementById('resetBtn').onclick=resetTimer;
+document.getElementById('intervalBtn').onclick=intervalTimer;
+document.getElementById('addPlayerBtn').onclick=()=>addPlayer('Jogador '+(players.length+1));
+document.getElementById('removePlayerBtn').onclick=removePlayer;
+
+// Captura da tabela com dados reais
+document.getElementById('photoBtn').onclick=()=>{
+  const home=document.getElementById('homeTeam').value||'Equipa Casa';
+  const away=document.getElementById('awayTeam').value||'Equipa Visitante';
+  const summary=document.getElementById('summaryContainer');
+  const tempHeader=document.createElement('div');
+  tempHeader.style.background='white';
+  tempHeader.style.color='black';
+  tempHeader.style.padding='15px';
+  tempHeader.innerHTML=`<h2 style="text-align:center;">${home} vs ${away}</h2>`;
+  summary.parentNode.insertBefore(tempHeader, summary);
+  html2canvas(summary,{backgroundColor:'#fff'}).then(canvas=>{
+    const ctx=canvas.getContext('2d');
+    const headerCanvas=document.createElement('canvas');
+    headerCanvas.width=canvas.width;
+    headerCanvas.height=canvas.height+100;
+    const hctx=headerCanvas.getContext('2d');
+    hctx.fillStyle='white';
+    hctx.fillRect(0,0,headerCanvas.width,headerCanvas.height);
+    hctx.drawImage(canvas,0,100);
+    hctx.fillStyle='black';
+    hctx.font='30px Arial';
+    hctx.textAlign='center';
+    hctx.fillText(`${home} vs ${away}`,headerCanvas.width/2,50);
+    const link=document.createElement('a');
+    const date=new Date().toISOString().split('T')[0];
+    link.download=`Resumo_${home}_vs_${away}_${date}.png`;
+    link.href=headerCanvas.toDataURL('image/png');
+    link.click();
+    tempHeader.remove();
+  });
+};
+
+createPlayers();
+updateTimerDisplay();
+</script>
+</body>
+</html>
