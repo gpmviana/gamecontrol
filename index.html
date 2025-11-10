@@ -79,30 +79,67 @@ function startTimer(){if(running)return;running=true;timerInterval=setInterval(t
 function pauseTimer(){running=false;clearInterval(timerInterval);saveState();}
 function resetTimer(){pauseTimer();const m=parseInt(document.getElementById('setMinutes').value)||20;duration=m*60;remaining=duration;players.forEach(p=>{Object.assign(p,{inField:0,outField:0,totalTime:0,firstHalf:0,secondHalf:0,rotacoes:0,lastRotation:0});});updateSummary();updateTimerDisplay();saveState();}
 function intervalTimer(){pauseTimer();firstHalf=!firstHalf;remaining=parseInt(document.getElementById('setMinutes').value)*60;updateTimerDisplay();saveState();}
-function addPlayer(name){const id=players.length+1,p={id,name:name||'Jogador '+id,active:false,inField:0,outField:0,totalTime:0,firstHalf:0,secondHalf:0,rotacoes:0,lastRotation:0,sessionStart:0};
-players.push(p);const div=document.createElement('div');div.className='player inactive';div.id='player'+id;
-div.innerHTML=`<strong contenteditable="true">${p.name}</strong><div class="time">00:00</div><small class="last"></small>`;
-div.onclick=()=>togglePlayer(id);
-div.querySelector('strong').addEventListener('input',e=>{p.name=e.target.textContent;updateSummary();saveState();});
-document.getElementById('players').appendChild(div);}
+
+function addPlayer(name){
+ const id=players.length+1;
+ const p={id,name:name||'Jogador '+id,active:false,inField:0,outField:0,totalTime:0,firstHalf:0,secondHalf:0,rotacoes:0,lastRotation:0,sessionStart:0};
+ players.push(p);
+ const div=document.createElement('div');
+ div.className='player inactive';div.id='player'+id;
+ div.innerHTML=`<strong contenteditable="true">${p.name}</strong><div class="time">00:00</div><small class="last"></small>`;
+ // clique no cartão (fora do nome) alterna estado
+ div.addEventListener('click',e=>{if(e.target.tagName!=='STRONG')togglePlayer(id);});
+ // editar nome sem alternar estado
+ div.querySelector('strong').addEventListener('input',e=>{e.stopPropagation();p.name=e.target.textContent;updateSummary();saveState();});
+ document.getElementById('players').appendChild(div);
+}
+
 function removePlayer(){if(players.length>0){const last=players.pop();document.getElementById('player'+last.id)?.remove();updateSummary();saveState();}}
-function togglePlayer(id){const p=players.find(x=>x.id===id),div=document.getElementById('player'+id);
-if(!p.active){p.active=true;p.sessionStart=p.inField;p.rotacoes++;div.className='player active';}
-else{p.active=false;p.lastRotation=p.inField-p.sessionStart;div.className='player inactive';div.querySelector('.last').textContent='Última: '+formatTime(p.lastRotation);}
-updateSummary();saveState();}
-function updateSummary(){const tbody=document.getElementById('summaryBody');tbody.innerHTML='';
-players.forEach(p=>{const perc=((p.inField/(p.totalTime||1))*100).toFixed(1)+'%';
-const tr=document.createElement('tr');
-tr.innerHTML=`<td>${p.name}</td><td>${formatTime(p.inField)}</td><td>${formatTime(p.outField)}</td><td>${formatTime(p.firstHalf)}</td><td>${formatTime(p.secondHalf)}</td><td>${formatTime(p.lastRotation)}</td><td>${p.rotacoes}</td><td>${perc}</td>`;
-tbody.appendChild(tr);
-const card=document.getElementById('player'+p.id);if(card)card.querySelector('.time').textContent=p.active?formatTime(p.inField):formatTime(p.outField);});}
+
+function togglePlayer(id){
+ const p=players.find(x=>x.id===id),div=document.getElementById('player'+id);
+ if(!p.active){p.active=true;p.sessionStart=p.inField;p.rotacoes++;div.className='player active';}
+ else{p.active=false;p.lastRotation=p.inField-p.sessionStart;div.className='player inactive';div.querySelector('.last').textContent='Última: '+formatTime(p.lastRotation);}
+ updateSummary();saveState();
+}
+
+function updateSummary(){
+ const tbody=document.getElementById('summaryBody');
+ tbody.innerHTML='';
+ players.forEach(p=>{
+   const perc=((p.inField/(p.totalTime||1))*100).toFixed(1)+'%';
+   const tr=document.createElement('tr');
+   tr.innerHTML=`<td>${p.name}</td><td>${formatTime(p.inField)}</td><td>${formatTime(p.outField)}</td><td>${formatTime(p.firstHalf)}</td><td>${formatTime(p.secondHalf)}</td><td>${formatTime(p.lastRotation)}</td><td>${p.rotacoes}</td><td>${perc}</td>`;
+   tbody.appendChild(tr);
+   const card=document.getElementById('player'+p.id);
+   if(card){card.querySelector('.time').textContent=p.active?formatTime(p.inField):formatTime(p.outField);}
+ });
+}
+
 function toggleFullscreen(){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}
-function saveState(){const state={remaining,duration,running,firstHalf,players,homeTeam:document.getElementById('homeTeam').value,awayTeam:document.getElementById('awayTeam').value};
-localStorage.setItem('gamecontrol_state',JSON.stringify(state));}
-function loadState(){const data=localStorage.getItem('gamecontrol_state');if(!data)return;const s=JSON.parse(data);
-remaining=s.remaining;duration=s.duration;firstHalf=s.firstHalf;players=[];document.getElementById('homeTeam').value=s.homeTeam||'';document.getElementById('awayTeam').value=s.awayTeam||'';
-document.getElementById('players').innerHTML='';s.players.forEach(pl=>{addPlayer(pl.name);Object.assign(players[pl.id-1],pl);});
-updateSummary();updateTimerDisplay();if(s.running)startTimer();}
+
+function saveState(){
+ const state={remaining,duration,running,firstHalf,players,homeTeam:document.getElementById('homeTeam').value,awayTeam:document.getElementById('awayTeam').value};
+ localStorage.setItem('gamecontrol_state',JSON.stringify(state));
+}
+
+function loadState(){
+ const data=localStorage.getItem('gamecontrol_state');if(!data)return;
+ const s=JSON.parse(data);
+ remaining=s.remaining;duration=s.duration;firstHalf=s.firstHalf;
+ document.getElementById('homeTeam').value=s.homeTeam||'';document.getElementById('awayTeam').value=s.awayTeam||'';
+ players=[];document.getElementById('players').innerHTML='';
+ s.players.forEach(pl=>{
+   addPlayer(pl.name);
+   Object.assign(players[pl.id-1],pl);
+   const div=document.getElementById('player'+pl.id);
+   div.className=pl.active?'player active':'player inactive';
+   if(!pl.active && pl.lastRotation>0)div.querySelector('.last').textContent='Última: '+formatTime(pl.lastRotation);
+ });
+ updateSummary();updateTimerDisplay();
+ if(s.running)startTimer();
+}
+
 document.getElementById('fullscreenBtn').onclick=toggleFullscreen;
 document.getElementById('startBtn').onclick=startTimer;
 document.getElementById('pauseBtn').onclick=pauseTimer;
@@ -110,22 +147,25 @@ document.getElementById('resetBtn').onclick=resetTimer;
 document.getElementById('intervalBtn').onclick=intervalTimer;
 document.getElementById('addPlayerBtn').onclick=()=>addPlayer();
 document.getElementById('removePlayerBtn').onclick=removePlayer;
+
 document.getElementById('photoBtn').onclick=()=>{
-  const home=document.getElementById('homeTeam').value||'Equipa Casa';
-  const away=document.getElementById('awayTeam').value||'Equipa Visitante';
-  const container=document.createElement('div');
-  container.style.background='white';container.style.color='black';container.style.padding='20px';
-  container.innerHTML=`<h2 style="text-align:center;">${home} vs ${away}</h2>`+document.getElementById('summaryContainer').innerHTML;
-  document.body.appendChild(container);
-  html2canvas(container,{backgroundColor:'#fff'}).then(c=>{
-    const link=document.createElement('a');
-    const date=new Date().toISOString().split('T')[0];
-    link.download=`Resumo_${home}_vs_${away}_${date}.png`;
-    link.href=c.toDataURL('image/png');link.click();container.remove();
-  });
+ const home=document.getElementById('homeTeam').value||'Equipa Casa';
+ const away=document.getElementById('awayTeam').value||'Equipa Visitante';
+ const container=document.createElement('div');
+ container.style.background='white';container.style.color='black';container.style.padding='20px';
+ container.innerHTML=`<h2 style="text-align:center;">${home} vs ${away}</h2>`+document.getElementById('summaryContainer').innerHTML;
+ document.body.appendChild(container);
+ html2canvas(container,{backgroundColor:'#fff'}).then(c=>{
+   const link=document.createElement('a');
+   const date=new Date().toISOString().split('T')[0];
+   link.download=`Resumo_${home}_vs_${away}_${date}.png`;
+   link.href=c.toDataURL('image/png');link.click();container.remove();
+ });
 };
+
 setInterval(saveState,1000);
-createPlayers=()=>{for(let i=1;i<=14;i++)addPlayer('Jogador '+i);}
+
+function createPlayers(){for(let i=1;i<=14;i++)addPlayer('Jogador '+i);}
 if(localStorage.getItem('gamecontrol_state'))loadState();else createPlayers();
 updateTimerDisplay();
 </script>
