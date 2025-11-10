@@ -5,18 +5,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Game Control</title>
 <style>
+  :root {
+    --bg-color: #1e1e1e;
+    --text-color: #f1f1f1;
+    --box-bg: #2b2b2b;
+    --active-bg: #2e7d32;
+    --inactive-bg: #8B0000;
+    --border-color: #555;
+    --accent-color: #4CAF50;
+  }
+  body.light {
+    --bg-color: #ffffff;
+    --text-color: #000000;
+    --box-bg: #f2f2f2;
+    --active-bg: #a5d6a7;
+    --inactive-bg: #ff8a80;
+    --border-color: #ccc;
+    --accent-color: #388e3c;
+  }
   body {
     font-family: Arial, sans-serif;
-    background-color: #1e1e1e;
-    color: #f1f1f1;
+    background-color: var(--bg-color);
+    color: var(--text-color);
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
+    transition: background-color 0.3s, color 0.3s;
   }
   h1 {
-    background-color: #333;
+    background-color: var(--box-bg);
     width: 100%;
     text-align: center;
     padding: 10px 0;
@@ -31,13 +50,21 @@
     margin-top: 10px;
   }
   .team-input {
-    background: #2b2b2b;
-    border: 1px solid #555;
+    background: var(--box-bg);
+    border: 1px solid var(--border-color);
     border-radius: 6px;
-    color: #fff;
+    color: var(--text-color);
     padding: 6px;
     width: 160px;
     text-align: center;
+  }
+  .mode-toggle {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 28px;
+    cursor: pointer;
+    margin-left: 10px;
   }
   .timer { font-size: 64px; margin: 10px 0; }
   .controls {
@@ -48,7 +75,7 @@
     padding: 10px 16px; font-size: 15px;
     border-radius: 8px; border: none; cursor: pointer;
   }
-  #playersBtn,#addBtn,#removeBtn { background:#555;color:#fff;}
+  #playersBtn,#addBtn,#removeBtn { background:var(--box-bg);color:var(--text-color);}
   #startBtn{background:#4CAF50;color:#fff;}
   #pauseBtn{background:#E53935;color:#fff;}
   #intervalBtn{background:#FBC02D;color:#000;}
@@ -60,16 +87,16 @@
     gap: 12px; margin-top: 25px; max-width: 1200px;
   }
   .player {
-    width: 230px; height: 150px; background: #2b2b2b;
+    width: 230px; height: 150px; background: var(--box-bg);
     border-radius: 12px; display: flex; flex-direction: column;
     align-items: center; justify-content: space-between;
     font-weight: bold; cursor: pointer; user-select: none; padding: 8px;
   }
-  .player.active { background: #2e7d32; color: #fff; }
-  .player.inactive { background: #8B0000; color: #fff; position: relative; }
+  .player.active { background: var(--active-bg); color: #fff; }
+  .player.inactive { background: var(--inactive-bg); color: #fff; position: relative; }
   .player-name { font-size: 16px; }
   .player-time { font-size: 36px; line-height: 1; }
-  .last-rotation { font-size: 12px; color: #4CAF50; }
+  .last-rotation { font-size: 12px; color: var(--accent-color); }
   @media (max-width: 1000px) {
     .player { width: 180px; height: 120px; }
     .player-time { font-size: 30px; }
@@ -80,10 +107,10 @@
   }
   .summary {
     margin-top:30px;width:95%;max-width:1000px;
-    background:#2b2b2b;border-radius:10px;padding:10px;
+    background:var(--box-bg);border-radius:10px;padding:10px;
   }
   table{width:100%;border-collapse:collapse;}
-  th,td{border:1px solid #555;padding:5px;text-align:center;}
+  th,td{border:1px solid var(--border-color);padding:5px;text-align:center;}
   .workload-high{color:#00e676;font-weight:bold;}
   .workload-low{color:#ff5252;font-weight:bold;}
 </style>
@@ -94,7 +121,10 @@
 <div class="topbar">
   <input id="teamA" class="team-input" placeholder="Equipa A">
   <div class="timer" id="timer">20:00</div>
-  <input id="teamB" class="team-input" placeholder="Equipa B">
+  <div style="display:flex;align-items:center;">
+    <input id="teamB" class="team-input" placeholder="Equipa B">
+    <button id="modeToggle" class="mode-toggle" title="Alternar modo">🌞</button>
+  </div>
 </div>
 
 <div class="controls">
@@ -172,10 +202,10 @@ function togglePlayer(id){
   if(!p)return;
   const box=document.getElementById("player"+id);
   const info=box.querySelector(".last-rotation");
-  if(p.active){ // sai
+  if(p.active){ 
     p.lastRotation = (isSecondHalf?p.secondsP2:p.secondsP1) - p.rotationStart;
     info.textContent = "Última rotação: "+formatTime(p.lastRotation);
-  } else { // entra
+  } else {
     p.rotationStart = (isSecondHalf?p.secondsP2:p.secondsP1);
     info.textContent = "";
     p.rotations++;
@@ -234,8 +264,9 @@ document.getElementById("intervalBtn").onclick=intervalTimer;
 document.getElementById("resetBtn").onclick=resetTimer;
 document.getElementById("addBtn").onclick=()=>{playerCount++;const p={id:playerCount,name:"Jogador "+playerCount,active:false,secondsIn:0,secondsOut:0,secondsP1:0,secondsP2:0,rotations:0,lastRotation:0};players.push(p);const d=document.createElement("div");d.className="player inactive";d.id="player"+p.id;d.innerHTML=`<div class='player-name'>${p.name}</div><div class='player-time'>00:00</div><div class='last-rotation'></div>`;d.onclick=()=>togglePlayer(p.id);document.getElementById("players").appendChild(d);autoSave();};
 document.getElementById("removeBtn").onclick=()=>{if(players.length<=1)return;const p=players.pop();document.getElementById("player"+p.id)?.remove();autoSave();};
-function autoSave(){localStorage.setItem("gameControlData",JSON.stringify({players,remaining,duration,isSecondHalf,playerCount,teamA:document.getElementById("teamA").value,teamB:document.getElementById("teamB").value}));}
-function restoreData(){const saved=localStorage.getItem("gameControlData");if(!saved)return;try{const d=JSON.parse(saved);duration=d.duration;remaining=d.remaining;isSecondHalf=d.isSecondHalf||false;playerCount=d.playerCount||14;players=d.players;document.getElementById("teamA").value=d.teamA||"";document.getElementById("teamB").value=d.teamB||"";const c=document.getElementById("players");c.innerHTML="";players.forEach(p=>{p.secondsP1=p.secondsP1||0;p.secondsP2=p.secondsP2||0;const div=document.createElement("div");div.id="player"+p.id;div.className=p.active?"player active":"player inactive";div.innerHTML=`<div class='player-name'>${p.name}</div><div class='player-time'>${p.active?formatTime(p.secondsIn):formatTime(p.secondsOut)}</div><div class='last-rotation'>${p.lastRotation?"Última rotação: "+formatTime(p.lastRotation):""}</div>`;div.onclick=()=>togglePlayer(p.id);c.appendChild(div);});}catch(e){console.error("Erro ao restaurar",e);}}
+function autoSave(){localStorage.setItem("gameControlData",JSON.stringify({players,remaining,duration,isSecondHalf,playerCount,teamA:document.getElementById("teamA").value,teamB:document.getElementById("teamB").value,mode:document.body.classList.contains("light")?"light":"dark"}));}
+function restoreData(){const saved=localStorage.getItem("gameControlData");if(!saved)return;try{const d=JSON.parse(saved);duration=d.duration;remaining=d.remaining;isSecondHalf=d.isSecondHalf||false;playerCount=d.playerCount||14;players=d.players;document.getElementById("teamA").value=d.teamA||"";document.getElementById("teamB").value=d.teamB||"";if(d.mode==="light"){document.body.classList.add("light");document.getElementById("modeToggle").textContent="🌙";}const c=document.getElementById("players");c.innerHTML="";players.forEach(p=>{p.secondsP1=p.secondsP1||0;p.secondsP2=p.secondsP2||0;const div=document.createElement("div");div.id="player"+p.id;div.className=p.active?"player active":"player inactive";div.innerHTML=`<div class='player-name'>${p.name}</div><div class='player-time'>${p.active?formatTime(p.secondsIn):formatTime(p.secondsOut)}</div><div class='last-rotation'>${p.lastRotation?"Última rotação: "+formatTime(p.lastRotation):""}</div>`;div.onclick=()=>togglePlayer(p.id);c.appendChild(div);});}catch(e){console.error("Erro ao restaurar",e);}}
+document.getElementById("modeToggle").onclick=()=>{document.body.classList.toggle("light");const isLight=document.body.classList.contains("light");document.getElementById("modeToggle").textContent=isLight?"🌙":"🌞";autoSave();};
 window.onload=()=>{restoreData();if(players.length===0)createPlayers(14);updateTimerDisplay();setInterval(()=>{updatePlayersDisplay();updateSummary();},1000);}
 </script>
 </body>
