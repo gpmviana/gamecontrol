@@ -19,8 +19,25 @@
     background-color: #333;
     width: 100%;
     text-align: center;
-    padding: 15px 0;
-    margin: 0 0 20px 0;
+    padding: 10px 0;
+    margin: 0;
+  }
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 90%;
+    max-width: 1000px;
+    margin-top: 10px;
+  }
+  .team-input {
+    background: #2b2b2b;
+    border: 1px solid #555;
+    border-radius: 6px;
+    color: #fff;
+    padding: 6px;
+    width: 160px;
+    text-align: center;
   }
   .timer { font-size: 64px; margin: 10px 0; }
   .controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
@@ -35,11 +52,16 @@
   .players{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:25px;}
   .player{
     width:180px;height:90px;background:#2b2b2b;border-radius:12px;
-    display:flex;align-items:center;justify-content:center;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
     font-size:18px;font-weight:bold;cursor:pointer;user-select:none;
   }
   .player.active{background:#2e7d32;color:#fff;}
-  .player.inactive{background:#8B0000;color:#fff;}
+  .player.inactive{background:#8B0000;color:#fff;position:relative;}
+  .last-rotation {
+    font-size: 12px;
+    color: #4CAF50;
+    margin-top: 4px;
+  }
   .summary{
     margin-top:30px;width:95%;max-width:1000px;
     background:#2b2b2b;border-radius:10px;padding:10px;
@@ -61,7 +83,12 @@
 </head>
 <body>
 <h1>Game Control</h1>
-<div class="timer" id="timer">20:00</div>
+
+<div class="topbar">
+  <input id="teamA" class="team-input" placeholder="Equipa A">
+  <div class="timer" id="timer">20:00</div>
+  <input id="teamB" class="team-input" placeholder="Equipa B">
+</div>
 
 <div class="controls">
   <input type="number" id="setMinutes" value="20" min="1" style="width:60px;"> min
@@ -118,7 +145,7 @@ function pauseTimer(){running=false;clearInterval(timerInterval);}
 function resetTimer(){
   pauseTimer();const mins=parseInt(document.getElementById("setMinutes").value)||20;
   duration=mins*60;remaining=duration;isSecondHalf=false;
-  players.forEach(p=>{p.secondsP1=p.secondsP2=p.secondsIn=p.secondsOut=p.rotations=0;p.active=false;});
+  players.forEach(p=>{p.secondsP1=p.secondsP2=p.secondsIn=p.secondsOut=p.rotations=0;p.active=false;p.lastRotation=0;});
   updateTimerDisplay();updateSummary();autoSave();
 }
 function intervalTimer(){
@@ -130,10 +157,10 @@ function intervalTimer(){
 function createPlayers(n){
   const c=document.getElementById("players");players=[];
   for(let i=1;i<=n;i++){
-    const p={id:i,name:"Jogador "+i,active:false,secondsIn:0,secondsOut:0,secondsP1:0,secondsP2:0,rotations:0};
+    const p={id:i,name:"Jogador "+i,active:false,secondsIn:0,secondsOut:0,secondsP1:0,secondsP2:0,rotations:0,lastRotation:0};
     players.push(p);
     const d=document.createElement("div");
-    d.className="player inactive";d.id="player"+i;d.textContent=p.name;
+    d.className="player inactive";d.id="player"+i;d.innerHTML=`<div>${p.name}</div><div class='last-rotation'></div>`;
     d.onclick=()=>togglePlayer(i);c.appendChild(d);
   }
   updateSummary();autoSave();
@@ -142,13 +169,22 @@ function createPlayers(n){
 function togglePlayer(id){
   const p=players.find(x=>x.id===id);
   if(!p)return;
-  p.active=!p.active;if(p.active)p.rotations++;
   const box=document.getElementById("player"+id);
+  const info=box.querySelector(".last-rotation");
+  if(p.active){ // sai de campo
+    p.lastRotation = (isSecondHalf?p.secondsP2:p.secondsP1) - p.rotationStart;
+    info.textContent = "Última rotação: "+formatTime(p.lastRotation);
+  } else { // entra em campo
+    p.rotationStart = (isSecondHalf?p.secondsP2:p.secondsP1);
+    info.textContent = "";
+    p.rotations++;
+  }
+  p.active=!p.active;
   box.className=p.active?"player active":"player inactive";
   autoSave();
 }
 
-function calculateWorkload(p){const w=(p.secondsIn-p.secondsOut)/60;return w;}
+function calculateWorkload(p){return (p.secondsIn - p.secondsOut)/60;}
 function updateSummary(){
   const tb=document.getElementById("summaryBody");tb.innerHTML="";
   const workloads=players.map(p=>calculateWorkload(p));
@@ -176,7 +212,7 @@ function buildPlayerPanel(){
   players.forEach(p=>{
     const inp=document.createElement("input");
     inp.value=p.name;
-    inp.onchange=()=>{p.name=inp.value;document.getElementById("player"+p.id).textContent=p.name;updateSummary();autoSave();};
+    inp.onchange=()=>{p.name=inp.value;document.querySelector("#player"+p.id+" div:first-child").textContent=p.name;updateSummary();autoSave();};
     list.appendChild(inp);
   });
 }
@@ -186,10 +222,10 @@ document.getElementById("playersBtn").onclick=()=>togglePanel(true);
 document.getElementById("closePanelBtn").onclick=()=>togglePanel(false);
 
 document.getElementById("addBtn").onclick=()=>{
-  playerCount++;const p={id:playerCount,name:"Jogador "+playerCount,active:false,secondsIn:0,secondsOut:0,secondsP1:0,secondsP2:0,rotations:0};
+  playerCount++;const p={id:playerCount,name:"Jogador "+playerCount,active:false,secondsIn:0,secondsOut:0,secondsP1:0,secondsP2:0,rotations:0,lastRotation:0};
   players.push(p);
-  const d=document.createElement("div");d.className="player inactive";d.id="player"+p.id;d.textContent=p.name;d.onclick=()=>togglePlayer(p.id);
-  document.getElementById("players").appendChild(d);autoSave();
+  const d=document.createElement("div");d.className="player inactive";d.id="player"+p.id;d.innerHTML=`<div>${p.name}</div><div class='last-rotation'></div>`;
+  d.onclick=()=>togglePlayer(p.id);document.getElementById("players").appendChild(d);autoSave();
 };
 document.getElementById("removeBtn").onclick=()=>{
   if(players.length<=1)return;
@@ -197,13 +233,15 @@ document.getElementById("removeBtn").onclick=()=>{
 };
 
 function printSummary(){
+  const teamA=document.getElementById("teamA").value||"Equipa A";
+  const teamB=document.getElementById("teamB").value||"Equipa B";
   const table=document.querySelector(".summary").innerHTML;
   const w=window.open("","",`width=900,height=700`);
   w.document.write(`<html><head><title>Resumo</title>
   <style>body{font-family:Arial;background:#fff;color:#000;}
   table{width:100%;border-collapse:collapse;margin-top:20px;}
   th,td{border:1px solid #000;padding:6px;text-align:center;}th{background:#eee;}</style>
-  </head><body><h2 style="text-align:center;">Resumo do Jogo</h2>${table}</body></html>`);
+  </head><body><h2 style="text-align:center;">${teamA} vs ${teamB}</h2>${table}</body></html>`);
   w.document.close();w.print();
 }
 
@@ -213,17 +251,26 @@ document.getElementById("fullscreenBtn").onclick=()=>{
   else document.exitFullscreen();
 };
 
-function autoSave(){localStorage.setItem("gameControlData",JSON.stringify({players,remaining,duration,isSecondHalf,playerCount}));}
+function autoSave(){
+  localStorage.setItem("gameControlData",JSON.stringify({
+    players,remaining,duration,isSecondHalf,playerCount,
+    teamA:document.getElementById("teamA").value,
+    teamB:document.getElementById("teamB").value
+  }));
+}
 function restoreData(){
   const saved=localStorage.getItem("gameControlData");if(!saved)return;
   try{
-    const d=JSON.parse(saved);duration=d.duration;remaining=d.remaining;isSecondHalf=d.isSecondHalf||false;playerCount=d.playerCount||14;players=d.players;
+    const d=JSON.parse(saved);
+    duration=d.duration;remaining=d.remaining;isSecondHalf=d.isSecondHalf||false;playerCount=d.playerCount||14;players=d.players;
+    document.getElementById("teamA").value=d.teamA||"";document.getElementById("teamB").value=d.teamB||"";
     const c=document.getElementById("players");c.innerHTML="";
     players.forEach(p=>{
       p.secondsP1=p.secondsP1||0;p.secondsP2=p.secondsP2||0;
-      const div=document.createElement("div");div.id="player"+p.id;
-      div.className=p.active?"player active":"player inactive";
-      div.textContent=p.name;div.onclick=()=>togglePlayer(p.id);c.appendChild(div);
+      const div=document.createElement("div");
+      div.id="player"+p.id;div.className=p.active?"player active":"player inactive";
+      div.innerHTML=`<div>${p.name}</div><div class='last-rotation'>${p.lastRotation? "Última rotação: "+formatTime(p.lastRotation):""}</div>`;
+      div.onclick=()=>togglePlayer(p.id);c.appendChild(div);
     });
   }catch(e){console.error("Erro ao restaurar",e);}
 }
