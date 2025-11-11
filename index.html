@@ -52,22 +52,24 @@ body.light .controls button{background:#ccc;color:#000}
 .players{
   display:grid;
   grid-template-columns:repeat(5,1fr);
-  gap:15px;
-  margin:10px auto;
+  gap:20px;
+  margin:20px auto;
   width:100%;
   max-width:1100px;
   justify-items:center;
 }
 .player{
   width:100%;
-  border-radius:16px; padding:20px;
+  height:170px;
+  border-radius:18px; padding:15px;
   text-align:center; color:#fff; cursor:pointer; transition:transform .2s;
+  display:flex; flex-direction:column; justify-content:center; align-items:center;
 }
-.player:hover{transform:scale(1.04)}
+.player:hover{transform:scale(1.05)}
 .player.active{background:var(--green)}
 .player.inactive{background:var(--red)}
-.player strong{display:block; font-size:18px; margin-bottom:10px}
-.player .time{font-size:36px; font-weight:bold}
+.player strong{font-size:18px; margin-bottom:8px}
+.player .time{font-size:44px; font-weight:bold; line-height:1}
 .player .last{font-size:14px; color:var(--gray); margin-top:4px}
 
 /* Resumo */
@@ -136,7 +138,6 @@ body.light .sidepanel{background:#ddd;color:#000}
   <div class="players" id="players"></div>
 
   <div class="summary">
-    <h3 style="text-align:center;">Resumo do Jogo</h3>
     <table>
       <thead>
         <tr>
@@ -156,31 +157,252 @@ body.light .sidepanel{background:#ddd;color:#000}
 
 <!-- Painel lateral -->
 <div class="sidepanel" id="sidepanel"></div>
-
 <script>
-let duration=20*60,remaining=duration,timerInterval,running=false,firstHalf=true,theme="dark",players=[];
-const $=s=>document.querySelector(s);
-function formatTime(sec){const s=Math.max(0,Math.abs(sec));const m=Math.floor(s/60),r=s%60;return`${String(m).padStart(2,"0")}:${String(r).padStart(2,"0")}`;}
-function updateTimerDisplay(){$("#timer").textContent=formatTime(remaining);}
-function tick(){remaining--;updateTimerDisplay();players.forEach(p=>{if(p.active){p.seconds++;if(firstHalf)p.part1++;else p.part2++;}else p.secondsOut++;});renderPlayers();renderSummary();autosave();}
-function startTimer(){if(running)return;running=true;timerInterval=setInterval(tick,1000);}
-function pauseTimer(){running=false;clearInterval(timerInterval);}
-function resetTimer(){pauseTimer();duration=(parseInt($("#setMinutes").value)||20)*60;remaining=duration;players.forEach(p=>Object.assign(p,{active:false,seconds:0,secondsOut:0,part1:0,part2:0,rotations:0,lastRotation:0,startTime:0}));firstHalf=true;updateTimerDisplay();renderPlayers();renderSummary();autosave();}
-function intervalTimer(){pauseTimer();firstHalf=false;remaining=(parseInt($("#setMinutes").value)||20)*60;updateTimerDisplay();autosave();}
-function defaultPlayer(i){return{id:i,name:"Jogador "+i,active:false,seconds:0,secondsOut:0,part1:0,part2:0,rotations:0,lastRotation:0,startTime:0};}
-function ensurePlayers(n){if(players.length===0){for(let i=1;i<=n;i++)players.push(defaultPlayer(i));return;}while(players.length<n)players.push(defaultPlayer(players.length+1));while(players.length>n)players.pop();}
-function togglePlayer(id){const p=players.find(x=>x.id===id);if(!p)return;p.active=!p.active;if(p.active){p.startTime=Date.now();p.rotations++;}else p.lastRotation=Math.floor((Date.now()-(p.startTime||Date.now()))/1000);renderPlayers();renderSummary();autosave();}
-function renderPlayers(){const c=$("#players");if(c.children.length!==players.length){c.innerHTML="";players.forEach(p=>{const d=document.createElement("div");d.id="player"+p.id;d.className="player "+(p.active?"active":"inactive");d.innerHTML=`<strong>${p.name}</strong><div class="time">${formatTime(p.active?p.seconds:p.secondsOut)}</div><div class="last">${!p.active&&p.lastRotation>0?"Última rotação: "+formatTime(p.lastRotation):""}</div>`;d.onclick=()=>togglePlayer(p.id);c.appendChild(d);});}else players.forEach(p=>{const d=$("#player"+p.id);if(!d)return;d.className="player "+(p.active?"active":"inactive");d.querySelector("strong").textContent=p.name;d.querySelector(".time").textContent=p.active?formatTime(p.seconds):formatTime(p.secondsOut);d.querySelector(".last").textContent=!p.active&&p.lastRotation>0?"Última rotação: "+formatTime(p.lastRotation):"";});}
-function renderSummary(){const t=$("#summaryBody");t.innerHTML="";players.forEach(p=>{const total=p.part1+p.part2,avg=p.rotations>0?Math.floor(total/p.rotations):0,percent=((total/(duration*(firstHalf?1:2)))*100).toFixed(1),workload=p.seconds-p.secondsOut;const tr=document.createElement("tr");tr.innerHTML=`<td>${p.name}</td><td>${formatTime(p.seconds)}</td><td>${formatTime(p.secondsOut)}</td><td>${p.rotations}</td><td>${formatTime(avg)}</td><td>${percent}%</td><td class="${workload>=0?"work-pos":"work-neg"}">${workload>=0?"+":""}${(workload/60).toFixed(1)}m</td>`;t.appendChild(tr);});}
-function buildSidePanel(){const p=$("#sidepanel");p.innerHTML="";players.forEach(pl=>{const i=document.createElement("input");i.value=pl.name;i.oninput=()=>{pl.name=i.value;renderPlayers();renderSummary();autosave();};p.appendChild(i);});}
-function doPrint(){const h=`<h2 style="text-align:center;">${$("#teamA").value||"Equipa"} vs ${$("#opponent").value||"Adversário"}</h2>`;const tab=$(".summary").innerHTML;const w=window.open("","","width=900,height=700");w.document.write(`<html><head><title>Game Control</title></head><body>${h}${tab}</body></html>`);w.document.close();w.print();}
-function setTheme(t){theme=t;document.body.classList.toggle("light",theme==="light");$("#themeToggle").textContent=theme==="light"?"🌞":"🌙";}
-function toggleTheme(){setTheme(theme==="light"?"dark":"light");autosave();}
-let pseudoFull=false;async function toggleFull(){try{if(!document.fullscreenElement){await document.documentElement.requestFullscreen();}else{await document.exitFullscreen();}}catch(e){pseudoFull=!pseudoFull;document.body.classList.toggle("fullscreen-mode",pseudoFull);}}
-function dataKey(){return"gameControlData_vFinal";}
-function autosave(){localStorage.setItem(dataKey(),JSON.stringify({teamA:$("#teamA").value,opponent:$("#opponent").value,duration,remaining,firstHalf,theme,players}));}
-function load(){const r=localStorage.getItem(dataKey());if(r){const d=JSON.parse(r);$("#teamA").value=d.teamA||"";$("#opponent").value=d.opponent||"";duration=d.duration||duration;remaining=typeof d.remaining==="number"?d.remaining:duration;firstHalf=typeof d.firstHalf==="boolean"?d.firstHalf:true;setTheme(d.theme||"dark");players=Array.isArray(d.players)?d.players:[];}ensurePlayers(players.length||12);renderPlayers();renderSummary();buildSidePanel();updateTimerDisplay();}
-$("#startBtn").onclick=startTimer;$("#pauseBtn").onclick=pauseTimer;$("#resetBtn").onclick=resetTimer;$("#intervalBtn").onclick=intervalTimer;$("#printBtn").onclick=doPrint;$("#themeToggle").onclick=toggleTheme;$("#fullscreenBtn").onclick=toggleFull;$("#addBtn").onclick=()=>{ensurePlayers(players.length+1);renderPlayers();renderSummary();buildSidePanel();autosave();};$("#removeBtn").onclick=()=>{if(players.length>1){ensurePlayers(players.length-1);renderPlayers();renderSummary();buildSidePanel();autosave();}};$("#editPlayersBtn").onclick=()=>$("#sidepanel").classList.toggle("open");$("#teamA").oninput=autosave;$("#opponent").oninput=autosave;setInterval(()=>{if(running)autosave();},3000);load();
+let duration = 20 * 60;
+let remaining = duration;
+let timerInterval;
+let running = false;
+let firstHalf = true;
+let players = [];
+let theme = "dark";
+
+/* ---------- Funções utilitárias ---------- */
+function formatTime(sec) {
+  const s = Math.max(0, Math.abs(sec));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+}
+function updateTimerDisplay() {
+  document.getElementById("timer").textContent = formatTime(remaining);
+}
+
+/* ---------- Cronómetro principal ---------- */
+function tick() {
+  remaining--;
+  updateTimerDisplay();
+  players.forEach(p => {
+    if (p.active) {
+      p.seconds++;
+      if (firstHalf) p.part1++;
+      else p.part2++;
+    } else p.secondsOut++;
+  });
+  updateSummary();
+  updatePlayersUI();
+}
+
+function startTimer() {
+  if (running) return;
+  running = true;
+  timerInterval = setInterval(tick, 1000);
+}
+function pauseTimer() {
+  running = false;
+  clearInterval(timerInterval);
+}
+function resetTimer() {
+  pauseTimer();
+  const mins = parseInt(document.getElementById("setMinutes").value) || 20;
+  duration = mins * 60;
+  remaining = duration;
+  players.forEach(p => {
+    p.seconds = 0; p.secondsOut = 0; p.part1 = 0; p.part2 = 0;
+    p.rotations = 0; p.lastRotation = 0;
+  });
+  firstHalf = true;
+  updateTimerDisplay(); updateSummary(); updatePlayersUI(); saveData();
+}
+function intervalTimer() {
+  pauseTimer();
+  firstHalf = false;
+  remaining = parseInt(document.getElementById("setMinutes").value) * 60;
+  updateTimerDisplay();
+}
+
+/* ---------- Jogadores ---------- */
+function togglePlayer(id) {
+  const p = players.find(x => x.id === id);
+  if (!p) return;
+  p.active = !p.active;
+  if (p.active) {
+    p.startTime = Date.now();
+    p.rotations++;
+  } else {
+    const last = Math.floor((Date.now() - p.startTime) / 1000);
+    p.lastRotation = last;
+  }
+  updatePlayersUI();
+  updateSummary();
+  saveData();
+}
+
+function updatePlayersUI() {
+  players.forEach(p => {
+    const div = document.getElementById("player" + p.id);
+    div.className = "player " + (p.active ? "active" : "inactive");
+    div.querySelector(".time").textContent = p.active
+      ? formatTime(p.seconds)
+      : formatTime(p.secondsOut);
+    div.querySelector(".last").textContent =
+      !p.active && p.lastRotation > 0
+        ? `Última rotação: ${formatTime(p.lastRotation)}`
+        : "";
+  });
+}
+
+function createPlayers(count = 12) {
+  const container = document.getElementById("players");
+  container.innerHTML = "";
+  players = [];
+  for (let i = 1; i <= count; i++) {
+    const p = {
+      id: i,
+      name: "Jogador " + i,
+      active: false,
+      seconds: 0,
+      secondsOut: 0,
+      part1: 0,
+      part2: 0,
+      rotations: 0,
+      lastRotation: 0,
+      startTime: 0,
+    };
+    players.push(p);
+
+    const div = document.createElement("div");
+    div.id = "player" + i;
+    div.className = "player inactive";
+    div.innerHTML = `<strong>${p.name}</strong><div class="time">00:00</div><div class="last"></div>`;
+    div.onclick = () => togglePlayer(i);
+    container.appendChild(div);
+  }
+  updatePlayersUI();
+}
+
+/* ---------- Painel lateral (nomes) ---------- */
+function openEditPanel() {
+  const panel = document.getElementById("sidepanel");
+  panel.innerHTML = "<h3>Editar Jogadores</h3>";
+  players.forEach(p => {
+    const inp = document.createElement("input");
+    inp.value = p.name;
+    inp.oninput = () => { p.name = inp.value; updateSummary(); saveData(); };
+    panel.appendChild(inp);
+  });
+  const close = document.createElement("button");
+  close.textContent = "Fechar";
+  close.style.marginTop = "10px";
+  close.onclick = () => panel.classList.remove("open");
+  panel.appendChild(close);
+  panel.classList.add("open");
+}
+
+/* ---------- Tabela resumo ---------- */
+function updateSummary() {
+  const tbody = document.getElementById("summaryBody");
+  tbody.innerHTML = "";
+  players.forEach(p => {
+    const total = p.part1 + p.part2;
+    const avg = p.rotations > 0 ? total / p.rotations : 0;
+    const percent = ((total / (duration * (firstHalf ? 1 : 2))) * 100).toFixed(1);
+    const workload = p.seconds - p.secondsOut;
+    const workClass = workload >= 0 ? "work-pos" : "work-neg";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${p.name}</td>
+      <td>${formatTime(p.seconds)}</td>
+      <td>${formatTime(p.secondsOut)}</td>
+      <td>${p.rotations}</td>
+      <td>${formatTime(avg)}</td>
+      <td>${percent}%</td>
+      <td class="${workClass}">${workload >= 0 ? "+" : ""}${(workload / 60).toFixed(1)}m</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ---------- Guardar / carregar ---------- */
+function saveData() {
+  const data = {
+    teamA: document.getElementById("teamA").value,
+    opponent: document.getElementById("opponent").value,
+    players, firstHalf, remaining, duration, theme
+  };
+  localStorage.setItem("gameControlData", JSON.stringify(data));
+}
+function loadData() {
+  const data = JSON.parse(localStorage.getItem("gameControlData") || "null");
+  if (!data) return createPlayers();
+  document.getElementById("teamA").value = data.teamA || "";
+  document.getElementById("opponent").value = data.opponent || "";
+  duration = data.duration; remaining = data.remaining;
+  firstHalf = data.firstHalf; theme = data.theme || "dark";
+  players = data.players || [];
+  createPlayers(players.length || 12);
+  players.forEach(p => {
+    const ref = document.getElementById("player" + p.id);
+    if (ref) ref.querySelector("strong").textContent = p.name;
+  });
+  if (theme === "light") toggleTheme(false);
+  updateSummary(); updatePlayersUI(); updateTimerDisplay();
+}
+
+/* ---------- Screenshot (só equipas + tabela) ---------- */
+function printScreen() {
+  const canvas = document.createElement("canvas");
+  const el = document.querySelector(".summary");
+  const names = `<h2 style="text-align:center;">${document.getElementById("teamA").value} vs ${document.getElementById("opponent").value}</h2>`;
+  html2canvas(el, {backgroundColor:"#fff"}).then(c => {
+    const link = document.createElement("a");
+    const img = c.toDataURL("image/png");
+    const win = window.open("");
+    win.document.write(`<html><body style='background:#fff;text-align:center;color:#000;'>${names}<img src='${img}' style='width:90%;max-width:900px;border:1px solid #ccc;'></body></html>`);
+  });
+}
+
+/* ---------- Tema / fullscreen ---------- */
+function toggleTheme(save = true) {
+  const body = document.body, btn = document.getElementById("themeToggle");
+  if (body.classList.contains("light")) {
+    body.classList.remove("light"); btn.textContent = "🌙"; theme = "dark";
+  } else {
+    body.classList.add("light"); btn.textContent = "🌞"; theme = "light";
+  }
+  if (save) saveData();
+}
+function toggleFullscreen() {
+  const el = document.documentElement;
+  if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen();
+  else if (document.exitFullscreen) document.exitFullscreen();
+}
+
+/* ---------- Botões ---------- */
+document.getElementById("startBtn").onclick = startTimer;
+document.getElementById("pauseBtn").onclick = pauseTimer;
+document.getElementById("resetBtn").onclick = resetTimer;
+document.getElementById("intervalBtn").onclick = intervalTimer;
+document.getElementById("printBtn").onclick = printScreen;
+document.getElementById("themeToggle").onclick = () => toggleTheme(true);
+document.getElementById("fullscreenBtn").onclick = toggleFullscreen;
+document.getElementById("addBtn").onclick = () => { createPlayers(players.length + 1); saveData(); };
+document.getElementById("removeBtn").onclick = () => { if (players.length > 1) createPlayers(players.length - 1); saveData(); };
+document.getElementById("editPlayersBtn").onclick = openEditPanel;
+
+/* ---------- Autosave ---------- */
+setInterval(() => { if (running) saveData(); }, 3000);
+
+/* ---------- Inicializar ---------- */
+window.onload = () => {
+  createPlayers();
+  loadData();
+  updateTimerDisplay();
+};
+
+/* html2canvas import */
+const script = document.createElement("script");
+script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+document.head.appendChild(script);
 </script>
 </body>
 </html>
