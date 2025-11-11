@@ -1,269 +1,212 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Game Control</title>
 <style>
-  :root {
-    --bg-dark: #2c2c2c;
-    --bg-light: #f7f7f7;
-    --text-dark: #000;
-    --text-light: #fff;
-    --primary-green: #4caf50;
-    --primary-red: #e74c3c;
-    --primary-blue: #3498db;
-    --neutral-gray: #ccc;
-  }
+:root {
+  --bg-dark: #2c2c2c;
+  --bg-light: #f4f4f4;
+  --text-dark: #fff;
+  --text-light: #111;
+  --green: #4caf50;
+  --red: #e74c3c;
+  --gray: #999;
+}
 
-  body {
-    margin: 0;
-    font-family: "Segoe UI", Arial, sans-serif;
-    background-color: var(--bg-dark);
-    color: var(--text-light);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    transition: background-color 0.5s, color 0.5s;
-  }
+body {
+  font-family: Arial, sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-dark);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+body.light-mode {
+  background: var(--bg-light);
+  color: var(--text-light);
+}
 
-  header {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #444;
-    padding: 10px 20px;
-    color: #fff;
-  }
+/* Barra superior */
+.topbar {
+  width: 100%;
+  background: #3b3b3b;
+  color: #fff;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+body.light-mode .topbar {background: #ddd; color: #000;}
+.topbar h1 {
+  margin: 0;
+  font-size: 22px;
+  text-align: center;
+  flex: 1;
+}
+.topbar .icons {
+  display: flex;
+  gap: 15px;
+  font-size: 20px;
+  cursor: pointer;
+}
+.topbar .icons button {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 22px;
+  cursor: pointer;
+}
 
-  .team-input {
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid #aaa;
-    color: inherit;
-    font-size: 18px;
-    width: 180px;
-    text-align: center;
-    outline: none;
-  }
+/* Equipas */
+.team-names {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.team-names input {
+  background: #222;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 16px;
+  width: 160px;
+  text-align: center;
+}
+body.light-mode .team-names input {
+  background: #fff;
+  color: #000;
+  border: 1px solid #aaa;
+}
+.team-names span { font-weight: bold; color: #ccc; }
 
-  .title {
-    font-size: 24px;
-    font-weight: bold;
-  }
+.timer {
+  font-size: 70px;
+  margin: 15px 0;
+  font-weight: bold;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.controls button {
+  padding: 10px 16px;
+  font-size: 15px;
+  border: none;
+  border-radius: 6px;
+  background: #555;
+  color: #fff;
+  cursor: pointer;
+}
+.controls button:hover { background: #666; }
+body.light-mode .controls button { background: #ccc; color: #000; }
 
-  .actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+.players {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin: 10px 20px;
+  width: 90%;
+}
+.player {
+  border-radius: 14px;
+  padding: 15px;
+  text-align: center;
+  color: #fff;
+  cursor: pointer;
+  transition: transform .2s ease;
+}
+.player:hover { transform: scale(1.04); }
+.player.active { background: var(--green); }
+.player.inactive { background: var(--red); }
+.player strong { display: block; font-size: 17px; margin-bottom: 8px; }
+.player .time { font-size: 32px; font-weight: bold; }
+.player .last { font-size: 13px; color: var(--gray); margin-top: 3px; }
 
-  .actions button {
-    background: none;
-    border: none;
-    color: inherit;
-    cursor: pointer;
-    font-size: 20px;
-    transition: transform 0.2s;
-  }
-
-  .actions button:hover {
-    transform: scale(1.2);
-  }
-
-  .timer {
-    font-size: 64px;
-    margin: 10px 0;
-  }
-
-  .controls {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-
-  .controls button {
-    padding: 10px 20px;
-    font-size: 16px;
-    background: #555;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .controls button:hover {
-    background: #777;
-  }
-
-  .players {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-    max-width: 1200px;
-  }
-
-  .player {
-    width: 230px;
-    height: 150px;
-    background: #3a3a3a;
-    border-radius: 12px;
-    color: white;
-    text-align: center;
-    padding: 10px;
-    box-sizing: border-box;
-    cursor: pointer;
-    transition: background 0.3s, transform 0.2s;
-  }
-
-  .player.active {
-    background: #2e7d32;
-  }
-
-  .player.inactive {
-    background: #8b1a1a;
-  }
-
-  .player:hover {
-    transform: scale(1.03);
-  }
-
-  .player strong {
-    display: block;
-    margin-bottom: 5px;
-    font-size: 18px;
-  }
-
-  .player .time {
-    font-size: 32px;
-    font-weight: bold;
-  }
-
-  .player .last {
-    font-size: 14px;
-    color: #9ae59a;
-    margin-top: 6px;
-  }
-
-  .summary {
-    width: 90%;
-    max-width: 1100px;
-    margin-top: 30px;
-    overflow-x: auto;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: center;
-    font-size: 15px;
-    background: inherit;
-  }
-
-  thead {
-    position: sticky;
-    top: 0;
-    background: #555;
-    color: white;
-    z-index: 2;
-  }
-
-  th, td {
-    border: 1px solid #777;
-    padding: 8px;
-  }
-
-  tbody tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  .work-pos {
-    color: #4caf50;
-    font-weight: bold;
-  }
-
-  .work-neg {
-    color: #e74c3c;
-    font-weight: bold;
-  }
-
-  .light-mode {
-    background-color: var(--bg-light);
-    color: var(--text-dark);
-  }
-
-  .light-mode header {
-    background: #ddd;
-    color: #000;
-  }
-
-  .light-mode .player {
-    background: #f2f2f2;
-    color: #000;
-  }
-
-  .light-mode .player.active {
-    background: #a8e6a3;
-  }
-
-  .light-mode .player.inactive {
-    background: #e9a3a3;
-  }
-
-  .light-mode thead {
-    background: #bbb;
-    color: #000;
-  }
-
+.summary {
+  width: 90%;
+  background: #3b3b3b;
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 40px;
+}
+body.light-mode .summary { background: #eee; color: #000; }
+.summary table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: center;
+}
+.summary th, .summary td {
+  border: 1px solid #666;
+  padding: 6px;
+}
+.work-pos { color: var(--green); font-weight: bold; }
+.work-neg { color: var(--red); font-weight: bold; }
 </style>
 </head>
 <body>
-  <header>
-    <input type="text" id="teamA" class="team-input" placeholder="Equipa A">
-    <div class="title">Game Control</div>
-    <div class="actions">
-      <button id="printBtn">📸</button>
-      <button id="fullscreenBtn">⛶</button>
-      <button id="themeToggle">🌙</button>
-    </div>
-  </header>
 
-  <div class="timer" id="timer">20:00</div>
-
-  <div class="controls">
-    <input type="number" id="setMinutes" value="20" min="1" style="width:60px;"> min
-    <button id="startBtn">Iniciar</button>
-    <button id="pauseBtn">Pausar</button>
-    <button id="intervalBtn">Intervalo</button>
-    <button id="resetBtn">Reset</button>
-    <button id="addBtn">➕ Jogador</button>
-    <button id="removeBtn">➖ Jogador</button>
+<!-- Barra superior -->
+<div class="topbar">
+  <h1>Game Control</h1>
+  <div class="icons">
+    <button id="printBtn">📸</button>
+    <button id="themeToggle">🌙</button>
+    <button id="fullscreenBtn">⛶</button>
   </div>
+</div>
 
-  <div class="players" id="players"></div>
+<!-- Equipas -->
+<div class="team-names">
+  <input id="teamA" placeholder="Equipa" />
+  <span>vs</span>
+  <input id="opponent" placeholder="Adversário" />
+</div>
 
-  <div class="summary">
-    <h3 style="text-align:center;">Resumo de Jogo</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Jogador</th>
-          <th>Tempo em Campo</th>
-          <th>Tempo Fora</th>
-          <th>Rotações</th>
-          <th>Média Rotação</th>
-          <th>% Jogo</th>
-          <th>Workload</th>
-        </tr>
-      </thead>
-      <tbody id="summaryBody"></tbody>
-    </table>
-  </div>
+<!-- Cronómetro e controlos -->
+<div class="timer" id="timer">20:00</div>
+<div class="controls">
+  <input type="number" id="setMinutes" value="20" min="1" style="width:60px;"> min
+  <button id="startBtn">Iniciar</button>
+  <button id="pauseBtn">Pausar</button>
+  <button id="intervalBtn">Intervalo</button>
+  <button id="resetBtn">Reset</button>
+  <button id="addBtn">➕</button>
+  <button id="removeBtn">➖</button>
+</div>
+
+<!-- Jogadores -->
+<div class="players" id="players"></div>
+
+<!-- Tabela resumo -->
+<div class="summary">
+  <h3 style="text-align:center;">Resumo do Jogo</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Jogador</th>
+        <th>Tempo Campo</th>
+        <th>Tempo Banco</th>
+        <th>Rotações</th>
+        <th>Média Rotação</th>
+        <th>% Jogo</th>
+        <th>Workload</th>
+      </tr>
+    </thead>
+    <tbody id="summaryBody"></tbody>
+  </table>
+</div>
 
 <script>
 let duration = 20 * 60;
@@ -424,6 +367,7 @@ function updateSummary() {
 function saveData() {
   const data = {
     teamA: document.getElementById("teamA").value,
+    opponent: document.getElementById("opponent").value,
     players,
     firstHalf,
     remaining,
@@ -437,6 +381,7 @@ function loadData() {
   const data = JSON.parse(localStorage.getItem("gameControlData") || "null");
   if (!data) return createPlayers();
   document.getElementById("teamA").value = data.teamA || "";
+  document.getElementById("opponent").value = data.opponent || "";
   duration = data.duration;
   remaining = data.remaining;
   firstHalf = data.firstHalf;
@@ -454,8 +399,10 @@ function loadData() {
 }
 
 function printScreen() {
-  const original = document.body.innerHTML;
-  const header = `<h2 style="text-align:center;">${document.getElementById("teamA").value}</h2>`;
+  const header = `
+    <h2 style="text-align:center;">
+      ${document.getElementById("teamA").value} vs ${document.getElementById("opponent").value}
+    </h2>`;
   const table = document.querySelector(".summary").innerHTML;
   const win = window.open("", "", "width=900,height=700");
   win.document.write(`<html><head><title>Game Control</title></head><body>${header}${table}</body></html>`);
