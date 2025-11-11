@@ -1,430 +1,348 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Game Control v1.1</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Game Control v1.2</title>
 <style>
-:root {
-  --bg-dark: #2c2c2c;
-  --bg-light: #f4f4f4;
-  --text-dark: #fff;
-  --text-light: #111;
-  --green: #4caf50;
-  --red: #e74c3c;
-  --gray: #999;
+:root{
+  --bg-dark:#2c2c2c;
+  --bg-light:#f4f4f4;
+  --text-dark:#fff;
+  --text-light:#111;
+  --green:#4caf50;
+  --red:#e74c3c;
+  --gray:#999;
 }
-body {
-  font-family: Arial, sans-serif;
-  background-color: var(--bg-dark);
-  color: var(--text-dark);
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+body{
+  font-family:Arial, sans-serif;
+  background-color:var(--bg-dark);
+  color:var(--text-dark);
+  margin:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
 }
-body.light-mode {
-  background-color: var(--bg-light);
-  color: var(--text-light);
+body.light-mode{background:var(--bg-light);color:var(--text-light);}
+header{
+  background:#3b3b3b;
+  color:#fff;
+  width:100%;
+  text-align:center;
+  padding:15px 0 10px;
+  font-size:22px;
+  font-weight:bold;
+  position:relative;
 }
-header {
-  text-align: center;
-  padding: 15px 0 10px 0;
-  font-size: 22px;
-  font-weight: bold;
-  background-color: #3b3b3b;
-  color: #fff;
-  width: 100%;
+body.light-mode header{background:#ddd;color:#000;}
+#fullscreenBtn{
+  position:absolute;
+  right:15px;
+  top:12px;
+  background:none;
+  border:none;
+  color:#fff;
+  font-size:20px;
+  cursor:pointer;
 }
-body.light-mode header {
-  background-color: #ddd;
-  color: #000;
+body.light-mode #fullscreenBtn{color:#000;}
+.team-names{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  margin-top:8px;
 }
-.team-names {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  margin-top: 8px;
+.team-names input{
+  background:#222;
+  color:#fff;
+  border:1px solid #555;
+  border-radius:6px;
+  padding:5px 10px;
+  font-size:16px;
+  width:160px;
+  text-align:center;
 }
-.team-names input {
-  background: #222;
-  color: #fff;
-  border: 1px solid #555;
-  border-radius: 6px;
-  padding: 5px 10px;
-  font-size: 16px;
-  width: 150px;
-  text-align: center;
-}
-body.light-mode .team-names input {
-  background: #fff;
-  color: #000;
-  border: 1px solid #aaa;
-}
-.team-names span {
-  font-weight: bold;
-  color: #ccc;
-}
-.controls {
-  margin-top: 10px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-}
-.controls button {
-  padding: 8px 14px;
-  border: none;
-  border-radius: 6px;
-  background-color: #555;
-  color: #fff;
-  cursor: pointer;
-  font-size: 14px;
-}
-.controls button:hover { background-color: #666; }
-body.light-mode .controls button { background-color: #ccc; color: #000; }
+body.light-mode .team-names input{background:#fff;color:#000;border:1px solid #aaa;}
+.team-names span{font-weight:bold;color:#ccc;}
 
-.timer {
-  font-size: 64px;
-  font-weight: bold;
-  margin: 10px 0;
+.timer{
+  font-size:70px;
+  margin:15px 0;
+  font-weight:bold;
 }
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:10px;
+  margin-bottom:20px;
+}
+.controls button{
+  padding:10px 16px;
+  font-size:15px;
+  border:none;
+  border-radius:6px;
+  background:#555;
+  color:#fff;
+  cursor:pointer;
+}
+.controls button:hover{background:#666;}
+body.light-mode .controls button{background:#ccc;color:#000;}
 
-.players {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px;
-  margin: 20px;
-  width: 90%;
+.players{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:12px;
+  margin:10px 20px;
+  width:90%;
 }
-.player {
-  background-color: #3b3b3b;
-  color: #fff;
-  border-radius: 12px;
-  text-align: center;
-  padding: 10px;
-  cursor: pointer;
-  transition: transform 0.2s ease;
+.player{
+  border-radius:14px;
+  padding:15px;
+  text-align:center;
+  color:#fff;
+  cursor:pointer;
+  transition:transform .2s ease;
 }
-.player:hover { transform: scale(1.03); }
-.player.active { background-color: var(--green); }
-.player.inactive { background-color: var(--red); }
-.player strong {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 16px;
-}
-.player .time {
-  font-size: 26px;
-  font-weight: bold;
-}
-.player .last {
-  font-size: 13px;
-  color: var(--gray);
-  margin-top: 3px;
-}
+.player:hover{transform:scale(1.04);}
+.player.active{background:var(--green);}
+.player.inactive{background:var(--red);}
+.player strong{display:block;font-size:17px;margin-bottom:8px;}
+.player .time{font-size:32px;font-weight:bold;}
+.player .last{font-size:13px;color:var(--gray);margin-top:3px;}
 
-.summary {
-  width: 90%;
-  background-color: #3b3b3b;
-  border-radius: 10px;
-  padding: 10px;
-  margin-bottom: 40px;
+.summary{
+  width:90%;
+  background:#3b3b3b;
+  color:#fff;
+  border-radius:10px;
+  padding:10px;
+  margin-bottom:40px;
 }
-body.light-mode .summary { background-color: #eee; color: #000; }
-.summary table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: center;
-  font-size: 14px;
+body.light-mode .summary{background:#eee;color:#000;}
+.summary table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:14px;
+  text-align:center;
 }
-.summary th, .summary td {
-  border: 1px solid #666;
-  padding: 6px;
+.summary th,.summary td{
+  border:1px solid #666;
+  padding:6px;
 }
-.work-pos { color: var(--green); font-weight: bold; }
-.work-neg { color: var(--red); font-weight: bold; }
-#themeToggle, #fullscreenBtn, #printBtn, #addBtn, #removeBtn {
-  font-size: 16px;
-}
+.work-pos{color:var(--green);font-weight:bold;}
+.work-neg{color:var(--red);font-weight:bold;}
 </style>
 </head>
 <body>
-  <header>
-    <div>Game Control</div>
-    <div class="team-names">
-      <input id="teamA" placeholder="Equipa A">
-      <span>vs</span>
-      <input id="teamB" placeholder="Equipa B">
-    </div>
-  </header>
-
-  <div class="timer" id="timer">20:00</div>
-  <div class="controls">
-    <input type="number" id="setMinutes" value="20" min="1" style="width:60px;"> min
-    <button id="startBtn">Iniciar</button>
-    <button id="pauseBtn">Pausar</button>
-    <button id="intervalBtn">Intervalo</button>
-    <button id="resetBtn">Reset</button>
-    <button id="printBtn">📸</button>
-    <button id="themeToggle">🌙</button>
-    <button id="fullscreenBtn">⛶</button>
-    <button id="addBtn">➕</button>
-    <button id="removeBtn">➖</button>
+<header>
+  Game Control
+  <button id="fullscreenBtn">⛶</button>
+  <div class="team-names">
+    <input id="teamA" placeholder="Equipa" />
+    <span>vs</span>
+    <input id="opponent" placeholder="Adversário" />
   </div>
+</header>
 
-  <div class="players" id="players"></div>
+<div class="timer" id="timer">20:00</div>
+<div class="controls">
+  <input type="number" id="setMinutes" value="20" min="1" style="width:60px;"> min
+  <button id="startBtn">Iniciar</button>
+  <button id="pauseBtn">Pausar</button>
+  <button id="intervalBtn">Intervalo</button>
+  <button id="resetBtn">Reset</button>
+  <button id="printBtn">📸</button>
+  <button id="themeToggle">🌙</button>
+  <button id="addBtn">➕</button>
+  <button id="removeBtn">➖</button>
+</div>
 
-  <div class="summary">
-    <h3 style="text-align:center;">Resumo do Jogo</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Jogador</th>
-          <th>Tempo Campo</th>
-          <th>Tempo Banco</th>
-          <th>Rotações</th>
-          <th>Média Rotação</th>
-          <th>% Jogo</th>
-          <th>Workload</th>
-        </tr>
-      </thead>
-      <tbody id="summaryBody"></tbody>
-    </table>
-  </div>
+<div class="players" id="players"></div>
+
+<div class="summary">
+  <h3 style="text-align:center;">Resumo do Jogo</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Jogador</th>
+        <th>Tempo Campo</th>
+        <th>Tempo Banco</th>
+        <th>Rotações</th>
+        <th>Média Rotação</th>
+        <th>% Jogo</th>
+        <th>Workload</th>
+      </tr>
+    </thead>
+    <tbody id="summaryBody"></tbody>
+  </table>
+</div>
 <script>
 let duration = 20 * 60;
 let remaining = duration;
 let timerInterval;
 let running = false;
-let firstHalf = true;
+let half = 1;
 let players = [];
-let theme = "dark";
 
-function formatTime(sec) {
-  const s = Math.max(0, Math.abs(sec));
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+function formatTime(sec){
+  const sign = sec<0?'-':'';
+  const s = Math.abs(sec);
+  const m = Math.floor(s/60);
+  const r = s%60;
+  return sign+String(m).padStart(2,'0')+':'+String(r).padStart(2,'0');
 }
 
-function updateTimerDisplay() {
-  document.getElementById("timer").textContent = formatTime(remaining);
+function updateTimer(){
+  document.getElementById('timer').textContent = formatTime(remaining);
 }
 
-function tick() {
+function tick(){
   remaining--;
-  updateTimerDisplay();
-  players.forEach(p => {
-    if (p.active) {
-      p.seconds++;
-      if (firstHalf) p.part1++;
-      else p.part2++;
-    } else {
-      p.secondsOut++;
-    }
+  updateTimer();
+  players.forEach(p=>{
+    if(p.active) p.seconds++;
+    else p.bench++;
+    p.timeDisplay.textContent = formatTime(p.active?p.seconds:p.bench);
   });
   updateSummary();
-  updatePlayersUI();
 }
 
-function startTimer() {
-  if (running) return;
+function startTimer(){
+  if(running) return;
   running = true;
-  timerInterval = setInterval(tick, 1000);
+  timerInterval=setInterval(tick,1000);
 }
-
-function pauseTimer() {
-  running = false;
-  clearInterval(timerInterval);
-}
-
-function resetTimer() {
+function pauseTimer(){running=false;clearInterval(timerInterval);}
+function resetTimer(){
   pauseTimer();
-  const mins = parseInt(document.getElementById("setMinutes").value) || 20;
-  duration = mins * 60;
-  remaining = duration;
-  players.forEach(p => {
-    p.seconds = 0;
-    p.secondsOut = 0;
-    p.part1 = 0;
-    p.part2 = 0;
-    p.rotations = 0;
-    p.lastRotation = 0;
-  });
-  firstHalf = true;
-  updateTimerDisplay();
+  const mins=parseInt(document.getElementById('setMinutes').value)||20;
+  duration=mins*60;remaining=duration;
+  players.forEach(p=>{p.seconds=0;p.bench=0;p.rot=0;p.active=false;});
+  updateTimer();
   updateSummary();
-  updatePlayersUI();
   saveData();
 }
 
-function intervalTimer() {
+function intervalTimer(){
   pauseTimer();
-  firstHalf = false;
-  remaining = parseInt(document.getElementById("setMinutes").value) * 60;
-  updateTimerDisplay();
+  remaining=parseInt(document.getElementById('setMinutes').value||20)*60;
+  half=2;updateTimer();
 }
 
-function togglePlayer(id) {
-  const p = players.find(x => x.id === id);
-  if (!p) return;
-  p.active = !p.active;
-  if (p.active) {
-    p.startTime = Date.now();
-    p.rotations++;
-  } else {
-    const last = Math.floor((Date.now() - p.startTime) / 1000);
-    p.lastRotation = last;
+function togglePlayer(i){
+  const p=players[i];
+  if(p.editing) return;
+  p.active=!p.active;
+  if(p.active){p.rot++;p.div.classList.add('active');p.div.classList.remove('inactive');}
+  else{
+    p.div.classList.remove('active');p.div.classList.add('inactive');
+    p.lastDisplay.textContent='Última: '+formatTime(p.seconds);
   }
-  updatePlayersUI();
-  updateSummary();
   saveData();
 }
 
-function updatePlayersUI() {
-  players.forEach(p => {
-    const div = document.getElementById("player" + p.id);
-    div.className = "player " + (p.active ? "active" : "inactive");
-    div.querySelector(".time").textContent = p.active
-      ? formatTime(p.seconds)
-      : formatTime(p.secondsOut);
-    div.querySelector(".last").textContent =
-      !p.active && p.lastRotation > 0
-        ? "Última rotação: " + formatTime(p.lastRotation)
-        : "";
-  });
-}
-
-function createPlayers(count = 14) {
-  const container = document.getElementById("players");
-  container.innerHTML = "";
-  players = [];
-  for (let i = 1; i <= count; i++) {
-    const p = {
-      id: i,
-      name: "Jogador " + i,
-      active: false,
-      seconds: 0,
-      secondsOut: 0,
-      part1: 0,
-      part2: 0,
-      rotations: 0,
-      lastRotation: 0,
-      startTime: 0,
-    };
+function createPlayers(n=14){
+  const c=document.getElementById('players');c.innerHTML='';
+  players=[];
+  for(let i=0;i<n;i++){
+    const d=document.createElement('div');
+    d.className='player inactive';
+    const s=document.createElement('strong');
+    s.textContent='Jogador '+(i+1);
+    const t=document.createElement('div');
+    t.className='time';t.textContent='00:00';
+    const l=document.createElement('div');
+    l.className='last';
+    d.append(s,t,l);
+    c.appendChild(d);
+    const p={id:i,name:s.textContent,active:false,seconds:0,bench:0,rot:0,div:d,timeDisplay:t,lastDisplay:l,editing:false};
+    d.onclick=()=>togglePlayer(i);
     players.push(p);
-
-    const div = document.createElement("div");
-    div.id = "player" + i;
-    div.className = "player inactive";
-    div.innerHTML = `<strong>${p.name}</strong><div class="time">00:00</div><div class="last"></div>`;
-    div.onclick = () => togglePlayer(i);
-    container.appendChild(div);
   }
-  updatePlayersUI();
 }
 
-function updateSummary() {
-  const tbody = document.getElementById("summaryBody");
-  tbody.innerHTML = "";
-  players.forEach(p => {
-    const total = p.part1 + p.part2;
-    const avg = p.rotations > 0 ? total / p.rotations : 0;
-    const percent = ((total / (duration * (firstHalf ? 1 : 2))) * 100).toFixed(1);
-    const workload = p.seconds - p.secondsOut;
-    const workClass = workload >= 0 ? "work-pos" : "work-neg";
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${p.name}</td>
+function updateSummary(){
+  const tb=document.getElementById('summaryBody');tb.innerHTML='';
+  const total=(half===1?duration:duration*2);
+  players.forEach(p=>{
+    const perc=((p.seconds/total)*100).toFixed(1)+'%';
+    const med=p.rot>0?formatTime(Math.floor(p.seconds/p.rot)):'-';
+    const workload=(p.seconds-p.bench);
+    const workClass=workload>=0?'work-pos':'work-neg';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${p.name}</td>
       <td>${formatTime(p.seconds)}</td>
-      <td>${formatTime(p.secondsOut)}</td>
-      <td>${p.rotations}</td>
-      <td>${formatTime(avg)}</td>
-      <td>${percent}%</td>
-      <td class="${workClass}">${workload >= 0 ? "+" : ""}${(workload / 60).toFixed(1)}m</td>
-    `;
-    tbody.appendChild(tr);
+      <td>${formatTime(p.bench)}</td>
+      <td>${p.rot}</td>
+      <td>${med}</td>
+      <td>${perc}</td>
+      <td class="${workClass}">${workload>=0?'+':''}${workload}</td>`;
+    tb.appendChild(tr);
   });
+  saveData();
 }
 
-function saveData() {
-  const data = {
-    teamA: document.getElementById("teamA").value,
-    teamB: document.getElementById("teamB").value,
-    players,
-    firstHalf,
-    remaining,
-    duration,
-    theme,
-  };
-  localStorage.setItem("gameControlData", JSON.stringify(data));
+function saveData(){
+  const data={players:players.map(p=>({n:p.name,a:p.active,s:p.seconds,b:p.bench,r:p.rot})),
+              teamA:teamA.value,opponent:opponent.value,half,remaining};
+  localStorage.setItem('gamecontrol_v1.2',JSON.stringify(data));
 }
 
-function loadData() {
-  const data = JSON.parse(localStorage.getItem("gameControlData") || "null");
-  if (!data) return createPlayers();
-  document.getElementById("teamA").value = data.teamA || "";
-  document.getElementById("teamB").value = data.teamB || "";
-  duration = data.duration;
-  remaining = data.remaining;
-  firstHalf = data.firstHalf;
-  theme = data.theme || "dark";
-  players = data.players || [];
-  createPlayers(players.length || 14);
-  players.forEach(p => {
-    const ref = document.getElementById("player" + p.id);
-    if (ref) ref.querySelector("strong").textContent = p.name;
+function loadData(){
+  const d=localStorage.getItem('gamecontrol_v1.2');
+  if(!d)return;
+  const data=JSON.parse(d);
+  teamA.value=data.teamA||'';opponent.value=data.opponent||'';
+  half=data.half||1;remaining=data.remaining||duration;
+  createPlayers(data.players.length);
+  data.players.forEach((p,i)=>{
+    const pl=players[i];
+    pl.name=p.n;pl.seconds=p.s;pl.bench=p.b;pl.rot=p.r;pl.active=p.a;
+    pl.div.querySelector('strong').textContent=pl.name;
+    pl.div.classList.toggle('active',pl.active);
+    pl.div.classList.toggle('inactive',!pl.active);
   });
-  if (theme === "light") toggleTheme(false);
+  updateTimer();
   updateSummary();
-  updatePlayersUI();
-  updateTimerDisplay();
 }
 
-function printScreen() {
-  const headerText = `${document.getElementById("teamA").value} vs ${document.getElementById("teamB").value}`;
-  const header = `<h2 style="text-align:center;">Game Control – ${headerText}</h2>`;
-  const table = document.querySelector(".summary").innerHTML;
-  const win = window.open("", "", "width=900,height=700");
-  win.document.write(`<html><head><title>Game Control</title></head><body>${header}${table}</body></html>`);
-  win.document.close();
-  win.print();
+function printTable(){
+  const w=window.open('','PRINT','height=800,width=1000');
+  const teamAName=document.getElementById('teamA').value||'Equipa';
+  const opponentName=document.getElementById('opponent').value||'Adversário';
+  const table=document.querySelector('.summary').innerHTML;
+  w.document.write(`<html><head><title>${teamAName} vs ${opponentName}</title>
+  <style>body{font-family:Arial;background:#fff;color:#000;text-align:center;}
+  table{width:100%;border-collapse:collapse;}th,td{border:1px solid #999;padding:6px;}
+  </style></head><body><h2>${teamAName} vs ${opponentName}</h2>${table}</body></html>`);
+  w.document.close();w.focus();w.print();w.close();
 }
 
-function toggleTheme(save = true) {
-  const body = document.body;
-  const btn = document.getElementById("themeToggle");
-  if (body.classList.contains("light-mode")) {
-    body.classList.remove("light-mode");
-    btn.textContent = "🌙";
-    theme = "dark";
-  } else {
-    body.classList.add("light-mode");
-    btn.textContent = "🌞";
-    theme = "light";
-  }
-  if (save) saveData();
-}
-
-document.getElementById("startBtn").onclick = startTimer;
-document.getElementById("pauseBtn").onclick = pauseTimer;
-document.getElementById("resetBtn").onclick = resetTimer;
-document.getElementById("intervalBtn").onclick = intervalTimer;
-document.getElementById("printBtn").onclick = printScreen;
-document.getElementById("themeToggle").onclick = () => toggleTheme(true);
-document.getElementById("fullscreenBtn").onclick = () => {
-  if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+document.getElementById('startBtn').onclick=startTimer;
+document.getElementById('pauseBtn').onclick=pauseTimer;
+document.getElementById('resetBtn').onclick=resetTimer;
+document.getElementById('intervalBtn').onclick=intervalTimer;
+document.getElementById('printBtn').onclick=printTable;
+document.getElementById('addBtn').onclick=()=>{createPlayers(players.length+1);saveData();};
+document.getElementById('removeBtn').onclick=()=>{if(players.length>1){createPlayers(players.length-1);saveData();}};
+document.getElementById('themeToggle').onclick=()=>{
+  document.body.classList.toggle('light-mode');
+  localStorage.setItem('theme',document.body.classList.contains('light-mode')?'light':'dark');
+};
+document.getElementById('fullscreenBtn').onclick=()=>{
+  if(!document.fullscreenElement)document.documentElement.requestFullscreen();
   else document.exitFullscreen();
 };
-document.getElementById("addBtn").onclick = () => { createPlayers(players.length + 1); saveData(); };
-document.getElementById("removeBtn").onclick = () => { if (players.length > 1) createPlayers(players.length - 1); saveData(); };
+document.getElementById('teamA').oninput=saveData;
+document.getElementById('opponent').oninput=saveData;
 
-setInterval(() => { if (running) saveData(); }, 3000);
-
-window.onload = loadData;
+createPlayers();
+updateTimer();
+loadData();
+if(localStorage.getItem('theme')==='light')document.body.classList.add('light-mode');
+setInterval(()=>{if(running)saveData();},5000);
 </script>
 </body>
 </html>
