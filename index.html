@@ -5,256 +5,316 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game Control</title>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    background-color: #1e1e1e;
-    color: #f5f5f5;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  .light-mode { background-color: #f5f5f5; color: #222; }
-
-  header {
-    width: 100%;
-    background: #333;
-    color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    padding: 10px 0;
-  }
-  header h1 {
-    margin: 0;
-    text-align: center;
-    font-size: 22px;
-  }
-  .top-right-buttons {
-    position: absolute;
-    right: 15px;
-    display: flex;
-    gap: 10px;
-  }
-  .top-right-buttons button {
-    background: transparent;
-    border: none;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-  }
-
-  .team-inputs {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    margin: 10px 0;
-  }
-  .team-inputs input {
-    padding: 5px;
-    font-size: 16px;
-    text-align: center;
-  }
-
-  .timer { font-size: 70px; margin: 20px 0; }
-
-  .controls {
-    margin-top: 10px;
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  .controls button {
-    padding: 8px 14px;
-    font-size: 14px;
-    cursor: pointer;
-    border: none;
-    border-radius: 5px;
-  }
-
-  .players {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    width: 90%;
-    max-width: 1200px;
-    justify-items: center;
-  }
-  .player {
-    background: #2e2e2e;
-    border-radius: 15px;
-    padding: 10px;
-    text-align: center;
-    width: 200px;
-    height: 130px;
-    transition: background-color 0.3s;
-    cursor: pointer;
-  }
-  .player.active { background: #2b6d2b; }
-  .player.inactive { background: #8b2e2e; }
-  .player strong { display: block; margin-bottom: 5px; font-size: 18px; }
-  .time { font-size: 28px; font-weight: bold; }
-  .last { font-size: 12px; margin-top: 5px; color: #ddd; }
-
-  .summary {
-    margin-top: 25px;
-    width: 90%;
-    max-width: 900px;
-    background: #2b2b2b;
-    border-radius: 10px;
-    padding: 10px;
-  }
-  .summary table { width: 100%; border-collapse: collapse; }
-  th, td {
-    padding: 6px;
-    border-bottom: 1px solid #555;
-    text-align: center;
-  }
-  .work-pos { color: #2ecc71; font-weight: bold; }
-  .work-neg { color: #e74c3c; font-weight: bold; }
-
-  /* Painel lateral */
-  #editPanel {
-    position: fixed;
-    right: -400px;
-    top: 25%;
-    width: 350px;
-    height: 50%;
-    background: rgba(20,20,20,0.95);
-    border-left: 2px solid #555;
-    border-radius: 10px 0 0 10px;
-    padding: 15px;
-    box-shadow: -4px 0 8px rgba(0,0,0,0.4);
-    transition: right 0.2s ease-in-out;
-    z-index: 999;
-    overflow-y: auto;
-  }
-  #editPanel.open { right: 0; }
-  #editPanel h3 { text-align: center; margin-top: 0; }
-  #editPanel .close-btn {
-    position: absolute;
-    top: 8px;
-    right: 10px;
-    background: transparent;
-    color: #fff;
-    font-size: 18px;
-    border: none;
-    cursor: pointer;
-  }
-  #editPanel input {
-    width: 100%;
-    padding: 5px;
-    margin-bottom: 8px;
-    border-radius: 5px;
-    border: 1px solid #777;
-  }
-  #editPanel button {
-    width: 100%;
-    padding: 8px;
-    background: #0078d7;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
+body {
+  font-family: Arial, sans-serif;
+  margin: 0; background: #1e1e1e; color: #fff; text-align: center;
+}
+header {
+  display: flex; align-items: center; justify-content: center;
+  background: #2e2e2e; padding: 10px; position: relative;
+}
+header h1 {
+  margin: 0 auto; font-size: 1.5em;
+}
+.controls {
+  display: flex; justify-content: center; flex-wrap: wrap; gap: 6px;
+  background: #2e2e2e; padding: 10px;
+}
+.controls button {
+  padding: 6px 10px; border: none; border-radius: 5px;
+  cursor: pointer; font-size: 14px; background: #444; color: #fff;
+}
+#timer {
+  font-size: 3em; margin: 10px 0;
+}
+#players {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 12px; padding: 10px;
+}
+.player {
+  width: 150px; height: 130px; border-radius: 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-size: 18px; cursor: pointer; transition: all 0.3s;
+}
+.player.active { background: #2ecc71; color: #000; }
+.player.inactive { background: #c0392b; color: #fff; }
+.player .time { font-size: 20px; font-weight: bold; }
+.summary {
+  margin: 15px auto; border-collapse: collapse; width: 90%; max-width: 1000px;
+}
+.summary th, .summary td {
+  border: 1px solid #555; padding: 6px; text-align: center;
+}
+.summary th { background: #333; }
+.work-pos { color: #2ecc71; }
+.work-neg { color: #e74c3c; }
+.light-mode {
+  background: #f4f4f4; color: #000;
+}
+.light-mode header { background: #ddd; }
+.light-mode .controls { background: #ddd; }
+.light-mode .player.active { background: #27ae60; color: #fff; }
+.light-mode .player.inactive { background: #e74c3c; color: #fff; }
+#teamInputs {
+  display: flex; justify-content: center; align-items: center;
+  gap: 10px; margin: 10px;
+}
+#teamInputs input {
+  padding: 5px 10px; border-radius: 5px; border: none;
+  font-size: 16px; text-align: center;
+}
+.top-buttons {
+  position: absolute; right: 10px; top: 10px;
+  display: flex; gap: 8px;
+}
+.top-buttons button {
+  background: none; border: none; font-size: 22px; cursor: pointer; color: inherit;
+}
 </style>
 </head>
 <body>
-  <header>
-    <h1>Game Control</h1>
-    <div class="top-right-buttons">
-      <button id="themeToggle">🌙</button>
-      <button id="fullscreenBtn">⛶</button>
-      <button id="editNamesBtn">👥</button>
-      <button id="printBtn">📸</button>
-    </div>
-  </header>
-
-  <div class="team-inputs">
-    <input type="text" id="teamA" placeholder="Equipa A">
-    <input type="text" id="teamB" placeholder="Adversário">
+<header>
+  <h1>Game Control</h1>
+  <div class="top-buttons">
+    <button id="themeToggle">🌙</button>
+    <button id="fullscreenBtn">⛶</button>
+    <button id="printBtn">📸</button>
   </div>
+</header>
 
-  <div class="timer" id="timer">20:00</div>
+<div id="teamInputs">
+  <input id="teamA" placeholder="Equipa A">
+  <span style="font-weight:bold;">vs</span>
+  <input id="teamB" placeholder="Equipa B">
+</div>
 
-  <div class="controls">
-    <input type="number" id="setMinutes" value="20" min="1" style="width:60px;">
-    <button id="startBtn">Iniciar</button>
-    <button id="pauseBtn">Pausar</button>
-    <button id="intervalBtn">Intervalo</button>
-    <button id="resetBtn">Reset</button>
-    <button id="addBtn">+</button>
-    <button id="removeBtn">−</button>
-  </div>
+<div id="timer">20:00</div>
 
-  <div class="players" id="players"></div>
+<div class="controls">
+  <input id="setMinutes" type="number" value="20" min="1" style="width:60px;">
+  <button id="startBtn">Iniciar</button>
+  <button id="pauseBtn">Pausar</button>
+  <button id="intervalBtn">Intervalo</button>
+  <button id="resetBtn">Reset</button>
+  <button id="addBtn">+</button>
+  <button id="removeBtn">−</button>
+</div>
 
-  <div class="summary">
-    <h3>Resumo de Jogo</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Jogador</th><th>Em Campo</th><th>Fora</th>
-          <th>Rotações</th><th>Média</th><th>% Jogo</th><th>Workload</th>
-        </tr>
-      </thead>
-      <tbody id="summaryBody"></tbody>
-    </table>
-  </div>
+<div id="players"></div>
 
-  <div id="editPanel">
-    <button class="close-btn" id="closePanel">❌</button>
-    <h3>Editar Jogadores</h3>
-    <div id="editList"></div>
-    <button id="saveNamesBtn">Guardar Alterações</button>
-  </div>
+<table class="summary">
+  <thead>
+    <tr>
+      <th>Jogador</th>
+      <th>Tempo em Campo</th>
+      <th>Tempo Fora</th>
+      <th>Rotações</th>
+      <th>Média</th>
+      <th>% Jogo</th>
+      <th>Workload</th>
+    </tr>
+  </thead>
+  <tbody id="summaryBody"></tbody>
+</table>
 
 <script>
-let duration=20*60,remaining=duration,timerInterval,running=false,firstHalf=true,players=[],theme="dark",lastTickTime=null;
+let duration = 20 * 60;
+let remaining = duration;
+let lastSaveTime = Date.now();
+let startTimestamp = null;
+let timerInterval;
+let running = false;
+let firstHalf = true;
+let players = [];
+let theme = "dark";
 
-function formatTime(s){s=Math.max(0,Math.abs(s));const m=Math.floor(s/60),r=s%60;return`${String(m).padStart(2,"0")}:${String(r).padStart(2,"0")}`;}
-function updateTimerDisplay(){document.getElementById("timer").textContent=formatTime(remaining);}
-function tick(){
-  const now=Date.now();
-  if(lastTickTime){const delta=Math.floor((now-lastTickTime)/1000);remaining-=delta;
-    players.forEach(p=>{for(let i=0;i<delta;i++){if(p.active){p.seconds++;if(firstHalf)p.part1++;else p.part2++;}else p.secondsOut++;}});}
-  lastTickTime=now;updateTimerDisplay();updateSummary();updatePlayersUI();saveData();
+function formatTime(sec) {
+  const s = Math.max(0, Math.abs(sec));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${String(m).padStart(2,"0")}:${String(r).padStart(2,"0")}`;
 }
-function startTimer(){if(running)return;running=true;lastTickTime=Date.now();timerInterval=setInterval(tick,1000);}
-function pauseTimer(){running=false;clearInterval(timerInterval);saveData();}
-function resetTimer(){pauseTimer();const mins=parseInt(document.getElementById("setMinutes").value)||20;duration=mins*60;remaining=duration;
-  players.forEach(p=>{p.seconds=p.secondsOut=p.part1=p.part2=p.rotations=p.lastRotation=0;});firstHalf=true;updateTimerDisplay();updateSummary();updatePlayersUI();saveData();}
-function intervalTimer(){pauseTimer();firstHalf=false;remaining=parseInt(document.getElementById("setMinutes").value)*60;updateTimerDisplay();saveData();}
-function togglePlayer(id){const p=players.find(x=>x.id===id);if(!p)return;p.active=!p.active;if(p.active){p.startTime=Date.now();p.rotations++;}else p.lastRotation=Math.floor((Date.now()-p.startTime)/1000);
-  updatePlayersUI();updateSummary();saveData();}
-function createPlayers(c=14){const cont=document.getElementById("players");cont.innerHTML="";players=[];
-  for(let i=1;i<=c;i++){const p={id:i,name:"Jogador "+i,active:false,seconds:0,secondsOut:0,part1:0,part2:0,rotations:0,lastRotation:0,startTime:0};players.push(p);
-    const d=document.createElement("div");d.id="player"+i;d.className="player inactive";
-    d.innerHTML=`<strong>${p.name}</strong><div class="time">00:00</div><div class="last"></div>`;d.onclick=()=>togglePlayer(i);cont.appendChild(d);}
-  updatePlayersUI();}
-function updatePlayersUI(){players.forEach(p=>{const d=document.getElementById("player"+p.id);if(!d)return;d.className="player "+(p.active?"active":"inactive");
-  d.querySelector(".time").textContent=p.active?formatTime(p.seconds):formatTime(p.secondsOut);
-  d.querySelector(".last").textContent=!p.active&&p.lastRotation>0?"Última: "+formatTime(p.lastRotation):"";d.querySelector("strong").textContent=p.name;});}
-function updateSummary(){const tb=document.getElementById("summaryBody");tb.innerHTML="";
-  players.forEach(p=>{const tot=p.part1+p.part2,avg=p.rotations>0?tot/p.rotations:0,perc=((tot/(duration*(firstHalf?1:2)))*100).toFixed(1),w=p.seconds-p.secondsOut,cls=w>=0?"work-pos":"work-neg";
-    const tr=document.createElement("tr");tr.innerHTML=`<td>${p.name}</td><td>${formatTime(p.seconds)}</td><td>${formatTime(p.secondsOut)}</td><td>${p.rotations}</td><td>${formatTime(avg)}</td><td>${perc}%</td><td class="${cls}">${w>=0?"+":""}${(w/60).toFixed(1)}m</td>`;tb.appendChild(tr);});}
-function saveData(){const data={teamA:teamA.value,teamB:teamB.value,players,firstHalf,remaining,duration,theme,running};localStorage.setItem("gameControlData",JSON.stringify(data));}
-function loadData(){const d=JSON.parse(localStorage.getItem("gameControlData")||"null");if(!d)return createPlayers();teamA.value=d.teamA||"";teamB.value=d.teamB||"";duration=d.duration;remaining=d.remaining;firstHalf=d.firstHalf;theme=d.theme||"dark";players=d.players||[];
-  createPlayers(players.length||14);players.forEach(p=>{const r=document.getElementById("player"+p.id);if(r)r.querySelector("strong").textContent=p.name;});
-  if(theme==="light")toggleTheme(false);updateSummary();updatePlayersUI();updateTimerDisplay();if(d.running){startTimer();}}
-document.getElementById("editNamesBtn").onclick=()=>{const list=document.getElementById("editList");list.innerHTML="";players.forEach(p=>{const r=document.createElement("div");r.innerHTML=`<label style='font-size:14px;'>${p.id}. <input type="text" id="nameEdit${p.id}" value="${p.name}"></label>`;list.appendChild(r);});
-  editPanel.classList.add("open");};
-closePanel.onclick=()=>editPanel.classList.remove("open");
-saveNamesBtn.onclick=()=>{players.forEach(p=>{const v=document.getElementById("nameEdit"+p.id).value.trim();if(v)p.name=v;});editPanel.classList.remove("open");updatePlayersUI();updateSummary();saveData();};
-function toggleTheme(save=true){const b=document.body,btn=document.getElementById("themeToggle");if(b.classList.contains("light-mode")){b.classList.remove("light-mode");btn.textContent="🌙";theme="dark";}else{b.classList.add("light-mode");btn.textContent="🌞";theme="light";}if(save)saveData();}
-function printScreen(){const a=teamA.value,b=teamB.value,h=`<h2 style="text-align:center;">${a} vs ${b}</h2>`,t=document.querySelector(".summary").innerHTML,w=window.open("","","width=900,height=700");
-  w.document.write(`<html><head><title>Game Control</title></head><body>${h}${t}</body></html>`);w.document.close();w.print();}
-startBtn.onclick=startTimer;pauseBtn.onclick=pauseTimer;resetBtn.onclick=resetTimer;intervalBtn.onclick=intervalTimer;printBtn.onclick=printScreen;
-themeToggle.onclick=()=>toggleTheme(true);fullscreenBtn.onclick=()=>{if(!document.fullscreenElement){document.documentElement.requestFullscreen();}else{document.exitFullscreen();}};
-addBtn.onclick=()=>{createPlayers(players.length+1);saveData();};removeBtn.onclick=()=>{if(players.length>1)createPlayers(players.length-1);saveData();};
-setInterval(()=>{if(running)saveData();},3000);
+
+function updateTimerDisplay() {
+  document.getElementById("timer").textContent = formatTime(remaining);
+}
+
+function tick() {
+  remaining--;
+  updateTimerDisplay();
+  players.forEach(p => {
+    if (p.active) {
+      p.seconds++;
+      if (firstHalf) p.part1++;
+      else p.part2++;
+    } else {
+      p.secondsOut++;
+    }
+  });
+  updateSummary();
+  updatePlayersUI();
+}
+
+function startTimer() {
+  if (running) return;
+  running = true;
+  startTimestamp = Date.now();
+  timerInterval = setInterval(tick, 1000);
+  saveData();
+}
+
+function pauseTimer() {
+  running = false;
+  clearInterval(timerInterval);
+  saveData();
+}
+
+function resetTimer() {
+  pauseTimer();
+  const mins = parseInt(document.getElementById("setMinutes").value) || 20;
+  duration = mins * 60;
+  remaining = duration;
+  players.forEach(p => {
+    p.seconds = 0; p.secondsOut = 0; p.part1=0; p.part2=0; p.rotations=0; p.lastRotation=0;
+  });
+  firstHalf = true;
+  updateTimerDisplay();
+  updateSummary();
+  updatePlayersUI();
+  saveData();
+}
+
+function intervalTimer() {
+  pauseTimer();
+  firstHalf = false;
+  remaining = parseInt(document.getElementById("setMinutes").value) * 60;
+  updateTimerDisplay();
+  saveData();
+}
+
+function togglePlayer(id) {
+  const p = players.find(x => x.id === id);
+  if (!p) return;
+  p.active = !p.active;
+  if (p.active) { p.startTime = Date.now(); p.rotations++; }
+  else {
+    const last = Math.floor((Date.now() - p.startTime)/1000);
+    p.lastRotation = last;
+  }
+  updatePlayersUI();
+  updateSummary();
+  saveData();
+}
+
+function updatePlayersUI() {
+  players.forEach(p => {
+    const div = document.getElementById("player"+p.id);
+    div.className = "player " + (p.active ? "active" : "inactive");
+    div.querySelector(".time").textContent = p.active ? formatTime(p.seconds) : formatTime(p.secondsOut);
+    div.querySelector(".last").textContent = !p.active && p.lastRotation>0 ? "Última rotação: "+formatTime(p.lastRotation) : "";
+  });
+}
+
+function createPlayers(count=14) {
+  const container = document.getElementById("players");
+  container.innerHTML="";
+  players = [];
+  for (let i=1;i<=count;i++){
+    const p={id:i,name:"Jogador "+i,active:false,seconds:0,secondsOut:0,part1:0,part2:0,rotations:0,lastRotation:0,startTime:0};
+    players.push(p);
+    const div=document.createElement("div");
+    div.id="player"+i;
+    div.className="player inactive";
+    div.innerHTML=`<strong>${p.name}</strong><div class="time">00:00</div><div class="last"></div>`;
+    div.onclick=()=>togglePlayer(i);
+    container.appendChild(div);
+  }
+  updatePlayersUI();
+}
+
+function updateSummary() {
+  const tbody=document.getElementById("summaryBody");
+  tbody.innerHTML="";
+  players.forEach(p=>{
+    const total=p.part1+p.part2;
+    const avg=p.rotations>0?total/p.rotations:0;
+    const percent=((total/(duration*(firstHalf?1:2)))*100).toFixed(1);
+    const workload=p.seconds-p.secondsOut;
+    const workClass=workload>=0?"work-pos":"work-neg";
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${p.name}</td>
+      <td>${formatTime(p.seconds)}</td>
+      <td>${formatTime(p.secondsOut)}</td>
+      <td>${p.rotations}</td>
+      <td>${formatTime(avg)}</td>
+      <td>${percent}%</td>
+      <td class="${workClass}">${workload>=0?"+":""}${(workload/60).toFixed(1)}m</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function saveData() {
+  const data={
+    teamA:document.getElementById("teamA").value,
+    teamB:document.getElementById("teamB").value,
+    players,firstHalf,remaining,duration,theme,running,
+    startTimestamp:running?Date.now():null,
+    lastSaved:Date.now()
+  };
+  localStorage.setItem("gameControlData",JSON.stringify(data));
+}
+
+function loadData() {
+  const data=JSON.parse(localStorage.getItem("gameControlData")||"null");
+  if(!data){createPlayers();return;}
+  document.getElementById("teamA").value=data.teamA||"";
+  document.getElementById("teamB").value=data.teamB||"";
+  duration=data.duration; remaining=data.remaining; firstHalf=data.firstHalf;
+  theme=data.theme||"dark"; running=data.running||false;
+  players=data.players||[]; createPlayers(players.length||14);
+  players.forEach(p=>{const ref=document.getElementById("player"+p.id); if(ref) ref.querySelector("strong").textContent=p.name;});
+  if(theme==="light") toggleTheme(false);
+  updateSummary(); updatePlayersUI(); updateTimerDisplay();
+  if(running){
+    const elapsed=Math.floor((Date.now()-data.lastSaved)/1000);
+    remaining-=elapsed;
+    timerInterval=setInterval(tick,1000);
+  }
+}
+
+function printScreen() {
+  const header=`<h2 style="text-align:center;">${document.getElementById("teamA").value} vs ${document.getElementById("teamB").value}</h2>`;
+  const table=document.querySelector(".summary").outerHTML;
+  const win=window.open("","_blank","width=900,height=700");
+  win.document.write(`<html><head><title>Game Control</title></head><body>${header}${table}</body></html>`);
+  win.document.close(); win.print();
+}
+
+function toggleTheme(save=true){
+  const body=document.body; const btn=document.getElementById("themeToggle");
+  if(body.classList.contains("light-mode")){
+    body.classList.remove("light-mode"); btn.textContent="🌙"; theme="dark";
+  } else {
+    body.classList.add("light-mode"); btn.textContent="🌞"; theme="light";
+  }
+  if(save) saveData();
+}
+
+document.getElementById("startBtn").onclick=startTimer;
+document.getElementById("pauseBtn").onclick=pauseTimer;
+document.getElementById("resetBtn").onclick=resetTimer;
+document.getElementById("intervalBtn").onclick=intervalTimer;
+document.getElementById("printBtn").onclick=printScreen;
+document.getElementById("themeToggle").onclick=()=>toggleTheme(true);
+document.getElementById("fullscreenBtn").onclick=()=>{
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
+};
+document.getElementById("addBtn").onclick=()=>{createPlayers(players.length+1);saveData();};
+document.getElementById("removeBtn").onclick=()=>{if(players.length>1)createPlayers(players.length-1);saveData();};
+
+setInterval(()=>{if(running) saveData();},3000);
 window.onload=loadData;
 </script>
 </body>
