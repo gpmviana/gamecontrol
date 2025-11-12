@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Game Control</title>
 <style>
-  body{font-family:Arial, sans-serif;margin:0;background:#1e1e1e;color:#f5f5f5;text-align:center}
+  :root { --timeline-h: 68px; } /* altura útil da barra da timeline */
+
+  body{font-family:Arial, sans-serif;margin:0;background:#1e1e1e;color:#f5f5f5;text-align:center;
+       padding-bottom: calc(var(--timeline-h) + 10px);}
   header{display:flex;align-items:center;justify-content:center;background:#333;padding:10px 0;position:relative}
   header h1{margin:0;font-size:1.5em;text-align:center}
   .top-buttons{position:absolute;right:10px;top:8px;display:flex;gap:8px}
@@ -28,7 +31,8 @@
   .controls button{padding:6px 10px;border:none;border-radius:6px;background:#444;color:#fff;cursor:pointer}
 
   /* Caixas grandes e máx 5/linha */
-  #players{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px;width:95%;max-width:1300px;margin:12px auto;justify-items:center}
+  #players{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px;width:95%;max-width:1300px;margin:12px auto;
+           justify-items:center; margin-bottom: calc(var(--timeline-h) + 20px);}
   .player{
     width:100%;max-width:260px;height:240px;border-radius:14px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -63,7 +67,7 @@
   @media (max-width:600px){#players{grid-template-columns:repeat(2,minmax(0,1fr));}}
 
   /* Tabela */
-  .summary{width:90%;max-width:1100px;margin:18px auto;padding:0;background:#242424;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden}
+  .summary{width:90%;max-width:1100px;margin:18px auto  calc(var(--timeline-h) + 20px) auto;padding:0;background:#242424;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden}
   .summary h3{margin:0;padding:12px 16px;background:#2f2f2f;border-bottom:1px solid #3a3a3a;text-align:left}
   .summary table{width:100%;border-collapse:separate;border-spacing:0}
   .summary thead th{position:sticky;top:0;background:#303030;z-index:1;text-transform:uppercase;font-size:12px;letter-spacing:.4px;color:#ddd;border-bottom:1px solid #3a3a3a;padding:10px 12px}
@@ -98,7 +102,8 @@
   .hist-actions button{padding:6px 8px;border:none;border-radius:6px;background:#444;color:#fff;cursor:pointer;font-size:12px}
 
   /* Timeline (só botões) */
-  #timelineBar{position:fixed;left:0;right:0;bottom:0;background:#222;border-top:1px solid #333;z-index:900;padding:8px 10px;box-shadow:0 -6px 16px rgba(0,0,0,.25)}
+  #timelineBar{position:fixed;left:0;right:0;bottom:0;background:#222;border-top:1px solid #333;z-index:900;
+               min-height: var(--timeline-h); padding:8px 10px;box-shadow:0 -6px 16px rgba(0,0,0,.25)}
   #timelineBar .tl-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:0}
   #timelineBar .tl-btn{background:#3a3a3a;color:#fff;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px}
   #tlClear{background:#a33;color:#fff;border:none;border-radius:8px;padding:6px 10px;cursor:pointer}
@@ -206,9 +211,12 @@ const STORAGE_KEY="gameControlData_gcStable", HISTORY_KEY="gameControlHistory_v1
 const TL_KEY="gameControlTimeline_v1"; let timeline=[];
 let pendingPlayerEvent=null; // FK_P | YC_P | RC_P
 
-/* NOVO: estado de troca/rotação real */
+/* Troca/rotação real (para não contar sair->entrar o mesmo sem troca) */
 let pendingSub = null;      // { outId, time }
 let pendingSubTimer = null; // timeout para limpar pendência
+
+/* NOVO: contar titulares no arranque de cada parte */
+let startersCounted = false;
 
 /* Fadiga */
 const FATIGUE_K_UP=0.012, FATIGUE_K_DOWN=0.025, RED_THRESHOLD_SEC=180, YELLOW_THRESHOLD_SEC=90;
@@ -282,7 +290,8 @@ function updateSummary(){
     tr.innerHTML=`<td>${p.name}${p.isGK?' 🧤':''}</td>
       <td>${formatTime(p.part1)}</td><td>${formatTime(p.part2)}</td>
       <td>${formatTime(total)}</td><td>${formatTime(p.secondsOut)}</td>
-      <td>${p.rotations}</td><td>${formatTime(avg)}</td><td>${percent}%</td>
+      <td title="Conta titulares no arranque da parte e trocas reais (4→5 com jogador diferente)">${p.rotations}</td>
+      <td>${formatTime(avg)}</td><td>${percent}%</td>
       <td><span class="pill ${cls}">${wlTxt}</span></td>`;
     tb.appendChild(tr);
   });
@@ -310,7 +319,22 @@ function tick(){
     if(remaining<=0) pauseTimer();
   }
 }
-function startTimer(){ if(running) return; running=true; _lastTick=Date.now(); clearInterval(timerInterval); timerInterval=setInterval(tick,250); saveData(); }
+function startTimer(){ 
+  if(running) return; 
+  running=true; 
+  _lastTick=Date.now(); 
+  clearInterval(timerInterval); 
+  timerInterval=setInterval(tick,250); 
+
+  /* Contar 1 rotação para quem já está em campo no arranque da parte (só 1x/parte) */
+  if(!startersCounted){
+    players.forEach(p=>{ if(p.active) p.rotations++; });
+    startersCounted = true;
+    updateSummary();
+  }
+
+  saveData(); 
+}
 function pauseTimer(){ running=false; clearInterval(timerInterval); saveData(); }
 function resetTimer(){
   pauseTimer();
@@ -318,6 +342,7 @@ function resetTimer(){
   players.forEach(p=>{p.seconds=0;p.secondsOut=0;p.part1=0;p.part2=0;p.rotations=0;p.lastRotation=0;p.rotationTime=0;p.rotationOutTime=0;if(!p.isGK)p.fatigue=0;p.plusMinus=0;p.fouls=0;p.yc=false;p.rc=false;});
   timeline=[]; scoreA=0; scoreB=0; updateScoreUI(); tlSave();
   pendingSub=null; if(pendingSubTimer){clearTimeout(pendingSubTimer); pendingSubTimer=null;}
+  startersCounted=false;
   updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
 }
 function intervalTimer(){
@@ -325,6 +350,7 @@ function intervalTimer(){
   const mins=parseInt(setMinutes.value)||20; duration=mins*60; remaining=duration;
   players.forEach(p=>{p.rotationTime=0;p.rotationOutTime=0; if(!p.isGK)p.fatigue=Math.max(0,p.fatigue*0.30);});
   pendingSub=null; if(pendingSubTimer){clearTimeout(pendingSubTimer); pendingSubTimer=null;}
+  startersCounted=false; /* para contar titulares quando carregares Iniciar na 2ª parte */
   updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
 }
 
@@ -403,7 +429,7 @@ function setPending(type){ pendingPlayerEvent=type; updatePlayersUI(); }
 
 /* Persistência */
 function saveData(){
-  const data={teamA:teamA.value||"",teamB:teamB.value||"",duration,remaining,firstHalf,running,theme,players,lastSaved:Date.now(),scoreA,scoreB};
+  const data={teamA:teamA.value||"",teamB:teamB.value||"",duration,remaining,firstHalf,running,theme,players,lastSaved:Date.now(),scoreA,scoreB,startersCounted};
   localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
   tlSave(); updateScoreUI();
 }
@@ -419,6 +445,7 @@ function loadData(){
     running=!!d.running; theme=d.theme||theme;
     scoreA = typeof d.scoreA === "number" ? d.scoreA : 0;
     scoreB = typeof d.scoreB === "number" ? d.scoreB : 0;
+    startersCounted = !!d.startersCounted;
 
     players=(Array.isArray(d.players)?d.players:[]).map((p,i)=>({...PLAYER_DEFAULTS,id:p.id??(i+1),name:p.name||`Jogador ${p.id??(i+1)}`,...p}));
 
@@ -440,7 +467,7 @@ function loadData(){
     if(running && remaining>0){ startTimer(); }
     tlLoad();
   }catch(e){
-    players=[]; ensurePlayerCount(14); updateTimerDisplay(); updateHalfBadge(); updateSummary(); timeline=[]; tlSave(); scoreA=0; scoreB=0; updateScoreUI();
+    players=[]; ensurePlayerCount(14); updateTimerDisplay(); updateHalfBadge(); updateSummary(); timeline=[]; tlSave(); scoreA=0; scoreB=0; startersCounted=false; updateScoreUI();
   }
 }
 window.addEventListener("beforeunload", saveData);
@@ -606,12 +633,12 @@ function renderReportPng(title,headers,rows,events,basename){
   let tx=tlX+innerPad, ty=tlY+innerPad; ctx.font=headFont; ctx.fillStyle="#000"; ctx.textAlign="left"; ctx.textBaseline="middle";
   ctx.fillText("Timeline",tx,ty+24/2);
 
+  const canvasMeasure=document.createElement("canvas").getContext("2d"); canvasMeasure.font=smallFont;
+  const wrap2=(line,maxW)=>{const words=String(line).split(" ");let cur="",out=[];for(const w of words){const t=cur?cur+" "+w:w; if(canvasMeasure.measureText(t).width<=maxW)cur=t; else{if(cur)out.push(cur); cur=w;}} if(cur)out.push(cur); return out;};
+
   ctx.font=smallFont; ctx.fillStyle="#000"; let lY=ty+24+6;
   if(events.length===0){ ctx.fillText("— sem eventos —",tx,lY+20/2); }
-  else {
-    const wrap2=(line,maxW)=>{const words=String(line).split(" ");let cur="",out=[];for(const w of words){const t=cur?cur+" "+w:w; if(canvasMeasure.measureText(t).width<=maxW)cur=t; else{if(cur)out.push(cur); cur=w;}} if(cur)out.push(cur); return out;};
-    events.forEach(line=>{ wrap2(line, tlW-innerPad*2-8).forEach(w=>{ ctx.fillText(w,tx,lY+20/2); lY+=20; }); });
-  }
+  else { events.forEach(line=>{ wrap2(line, tlW-innerPad*2-8).forEach(w=>{ ctx.fillText(w,tx,lY+20/2); lY+=20; }); }); }
 
   const a=document.createElement("a"); const ts=new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
   a.download=`${basename}_${ts}.png`; a.href=c.toDataURL("image/png"); a.click();
@@ -650,6 +677,7 @@ document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
 });
 tlClear.onclick=()=>{if(confirm("Limpar eventos?")){timeline=[];tlSave();}}
 
+/* Histórico botões */
 historyBtn.onclick=()=>{renderHistoryList();historyPanel.classList.add("open");};
 closeHistory.onclick=()=>historyPanel.classList.remove("open");
 saveGameBtn.onclick=saveGameToHistory;
