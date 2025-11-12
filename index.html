@@ -14,7 +14,6 @@
   #teamInputs{display:flex;justify-content:center;align-items:center;gap:10px;margin:10px}
   #teamInputs input{padding:6px 10px;border-radius:6px;border:none;font-size:16px;text-align:center}
 
-  /* Timer + badge da parte */
   .timer-row{display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0 0 0}
   #timer{font-size:3em}
   .half-badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#444;color:#fff;font-size:12px;letter-spacing:.3px}
@@ -22,11 +21,8 @@
   .controls{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;background:#2e2e2e;padding:10px}
   .controls button{padding:6px 10px;border:none;border-radius:6px;background:#444;color:#fff;cursor:pointer}
 
-  /* === CAIXAS GRANDES (260x240) + máx 5 por linha === */
-  #players{
-    display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));
-    gap:18px;width:95%;max-width:1300px;margin:12px auto;justify-items:center
-  }
+  /* Caixas: 260x240, máx 5 por linha */
+  #players{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px;width:95%;max-width:1300px;margin:12px auto;justify-items:center}
   .player{
     width:100%;max-width:260px;height:240px;border-radius:14px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -37,18 +33,12 @@
   .player .time{font-size:40px;font-weight:bold;line-height:1}
   .player .last{font-size:12px;opacity:.9;margin-top:6px}
 
-  /* Escala de fadiga (barra fina no rodapé da caixa) */
-  .fatigue{
-    position:absolute;left:8px;right:8px;bottom:8px;height:8px;border-radius:6px;background:rgba(255,255,255,0.25)
-  }
-  .fatigue-fill{
-    height:100%;border-radius:6px;
-    background:linear-gradient(90deg,#2ecc71 0%,#e67e22 60%,#e74c3c 100%);
-    width:0%
-  }
+  /* Barra de fadiga */
+  .fatigue{position:absolute;left:8px;right:8px;bottom:8px;height:8px;border-radius:6px;background:rgba(255,255,255,0.25)}
+  .fatigue-fill{height:100%;border-radius:6px;width:0%}
 
-  /* feedback quando tenta ultrapassar 5 em campo */
-  .player.limit{outline: 3px solid #ff4d4d;box-shadow:0 0 0 3px rgba(255,77,77,0.35)}
+  /* feedback quando tenta 6º em campo */
+  .player.limit{outline:3px solid #ff4d4d;box-shadow:0 0 0 3px rgba(255,77,77,0.35)}
 
   @media (max-width:1200px){#players{grid-template-columns:repeat(4,minmax(0,1fr));}}
   @media (max-width:900px){#players{grid-template-columns:repeat(3,minmax(0,1fr));}}
@@ -181,18 +171,23 @@ let _lastTick = null;
 const STORAGE_KEY = "gameControlData_gcStable";
 const HISTORY_KEY = "gameControlHistory_v1";
 
-/* Campos padrão (inclui rotação atual e tempo fora atual) */
+/* Fadiga: sobe em campo, desce mais rápido no banco */
+const FATIGUE_K_UP = 0.012;   // por segundo (jogando)
+const FATIGUE_K_DOWN = 0.025; // por segundo (banco) -> recuperação mais rápida
+const RED_THRESHOLD_SEC = 180;   // 3 minutos (a partir daqui cor vermelha quando em campo)
+const YELLOW_THRESHOLD_SEC = 90; // entre 1:30 e 3:00 fica amarelo
+
+/* Campos padrão */
 const PLAYER_DEFAULTS = {
   id: 0, name: "",
   active: false,
-  seconds: 0,        // total em campo (tabela)
-  secondsOut: 0,     // total fora (tabela)
+  seconds: 0, secondsOut: 0,
   part1: 0, part2: 0,
-  rotations: 0,
-  lastRotation: 0,   // duração da última rotação concluída
+  rotations: 0, lastRotation: 0,
   startTime: 0,
   rotationTime: 0,   // tempo da rotação atual (em campo)
-  rotationOutTime: 0 // tempo fora atual desde que saiu
+  rotationOutTime: 0,// tempo fora atual
+  fatigue: 0         // 0..1
 };
 
 /* ===== UTIL ===== */
@@ -201,17 +196,18 @@ function formatTime(sec){sec=Math.max(0,Math.floor(sec));return `${pad(Math.floo
 function updateTimerDisplay(){document.getElementById("timer").textContent = formatTime(remaining);}
 function updateHalfBadge(){document.getElementById("halfBadge").textContent = firstHalf ? "1ª Parte" : "2ª Parte";}
 
-/* ===== FADIGA (0..1) -> barra interna =====
-   Combina tempo total jogado (vs jogo inteiro) e comprimento da rotação atual.
-   - peso total: 0.6 do total do jogo; 0.4 da rotação em curso (ideal ~3min)
-*/
-function computeFatigue(p){
-  const fullMatch = duration*2 || 2400; // jogo inteiro em segundos
-  const partTotal = Math.min(1, p.seconds / Math.max(1, fullMatch)); // 0..1
-  const idealStint = 180; // 3 min
-  const stint = Math.min(1, p.rotationTime / idealStint);
-  const f = 0.6*partTotal + 0.4*stint;
-  return Math.max(0, Math.min(1, f));
+/* Cor da fadiga: em jogo depende da rotação atual; no banco depende do nível de fadiga */
+function fatigueColor(p){
+  if(p.active){
+    if(p.rotationTime >= RED_THRESHOLD_SEC) return "#e74c3c";           // vermelho
+    if(p.rotationTime >= YELLOW_THRESHOLD_SEC) return "#e6b800";        // amarelo
+    return "#2ecc71";                                                   // verde
+  }else{
+    // Banco: cor reflete a % de fadiga atual
+    if(p.fatigue >= 0.66) return "#e74c3c";
+    if(p.fatigue >= 0.33) return "#e6b800";
+    return "#2ecc71";
+  }
 }
 
 /* ===== RENDER CAIXAS ===== */
@@ -222,7 +218,7 @@ function buildPlayersDOM(){
     const d=document.createElement("div");
     d.id="player"+p.id;
     d.className="player "+(p.active?"active":"inactive");
-    const displaySec = p.active ? p.rotationTime : p.rotationOutTime; // rotação atual OU tempo fora atual
+    const displaySec = p.active ? p.rotationTime : p.rotationOutTime;
     d.innerHTML=`<strong>${p.name}</strong>
                  <div class="time">${formatTime(displaySec)}</div>
                  <div class="last">${!p.active&&p.lastRotation>0?"Últ. rotação: "+formatTime(p.lastRotation):""}</div>
@@ -240,12 +236,16 @@ function updatePlayersUI(){
     d.querySelector(".time").textContent = formatTime(displaySec);
     d.querySelector(".last").textContent = (!p.active && p.lastRotation>0) ? ("Últ. rotação: "+formatTime(p.lastRotation)) : "";
     d.querySelector("strong").textContent = p.name;
+
     const ff=document.getElementById("fatigue"+p.id);
-    if(ff){ ff.style.width = Math.round(computeFatigue(p)*100) + "%"; }
+    if(ff){
+      ff.style.width = Math.round((p.fatigue||0)*100) + "%";
+      ff.style.background = fatigueColor(p);
+    }
   });
 }
 
-/* ===== LIMITE/CONTAGEM DE JOGADORES (sem perder estado) ===== */
+/* ===== LIMITE/CONTAGEM DE JOGADORES ===== */
 function ensurePlayerCount(n){
   while(players.length < n){
     const id = players.length ? Math.max(...players.map(x=>x.id))+1 : 1;
@@ -276,7 +276,7 @@ function updateSummary(){
   });
 }
 
-/* ===== CONTAGEM ATIVOS E FEEDBACK LIMITE (máx 5 em campo) ===== */
+/* ===== CONTAGEM ATIVOS (máx 5) ===== */
 function activeCount(){ return players.reduce((n,p)=> n + (p.active?1:0), 0); }
 function flashLimit(id){
   const d = document.getElementById("player"+id);
@@ -285,7 +285,7 @@ function flashLimit(id){
   setTimeout(()=>d.classList.remove("limit"), 600);
 }
 
-/* ===== CRONÓMETRO (conta rotação atual ou tempo fora atual) ===== */
+/* ===== CRONÓMETRO ===== */
 function tick(){
   const now=Date.now(); if(_lastTick===null)_lastTick=now;
   const delta=Math.max(0,Math.floor((now-_lastTick)/1000));
@@ -294,12 +294,15 @@ function tick(){
     for(let i=0;i<delta;i++){
       players.forEach(p=>{
         if(p.active){
-          p.seconds++;                // total em campo (tabela)
-          p.rotationTime++;           // rotação atual (caixa)
-          if(firstHalf) p.part1++; else p.part2++;
+          p.seconds++; p.rotationTime++; if(firstHalf) p.part1++; else p.part2++;
+          // Fadiga: sobe sempre enquanto joga (assíntota a 1)
+          p.fatigue += FATIGUE_K_UP * (1 - p.fatigue);
+          if(p.fatigue>1) p.fatigue=1;
         }else{
-          p.secondsOut++;             // total fora (tabela)
-          p.rotationOutTime++;        // fora atual (caixa)
+          p.secondsOut++; p.rotationOutTime++;
+          // Fadiga: desce mais rápido no banco
+          p.fatigue -= FATIGUE_K_DOWN * p.fatigue;
+          if(p.fatigue<0) p.fatigue=0;
         }
       });
     }
@@ -316,26 +319,33 @@ function resetTimer(){
   duration=m*60; remaining=duration; firstHalf=true;
   players.forEach(p=>{
     p.seconds=0; p.secondsOut=0; p.part1=0; p.part2=0; p.rotations=0; p.lastRotation=0;
-    p.rotationTime=0; p.rotationOutTime=0;
+    p.rotationTime=0; p.rotationOutTime=0; p.fatigue=0;
   });
   updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
 }
 
-/* ===== INTERVALO (pausa, 2.ª parte, zera tempos das caixas, mantém totais) ===== */
+/* ===== INTERVALO ===== */
 function intervalTimer() {
   pauseTimer();
   firstHalf = false;
   const mins = parseInt(document.getElementById("setMinutes").value) || 20;
   duration = mins * 60;
   remaining = duration;
-  players.forEach(p => { p.rotationTime = 0; p.rotationOutTime = 0; });
+
+  players.forEach(p => {
+    p.rotationTime = 0;
+    p.rotationOutTime = 0;
+    // Redução significativa de fadiga no intervalo (ex.: mantém só 30%)
+    p.fatigue = Math.max(0, p.fatigue * 0.30);
+  });
+
   updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
 }
 
 /* ===== INTERAÇÃO JOGADOR (limit 5) ===== */
 function togglePlayer(id){
   const p=players.find(x=>x.id===id); if(!p) return;
-  if(!p.active && activeCount() >= 5){ flashLimit(id); return; } // bloqueia 6.º
+  if(!p.active && activeCount() >= 5){ flashLimit(id); return; }
   p.active=!p.active;
   if(p.active){
     p.rotations++; p.startTime=Date.now(); p.rotationTime=0; p.rotationOutTime=0;
@@ -373,8 +383,13 @@ function loadData(){
     if(e>0){
       remaining=Math.max(0,remaining-e);
       players.forEach(p=>{
-        if(p.active){ p.seconds+=e; p.rotationTime+=e; if(firstHalf) p.part1+=e; else p.part2+=e; }
-        else{ p.secondsOut+=e; p.rotationOutTime+=e; }
+        if(p.active){ p.seconds+=e; p.rotationTime+=e; if(firstHalf) p.part1+=e; else p.part2+=e;
+          p.fatigue += FATIGUE_K_UP * (1 - p.fatigue) * e;
+          if(p.fatigue>1) p.fatigue=1;
+        }else{ p.secondsOut+=e; p.rotationOutTime+=e;
+          p.fatigue -= FATIGUE_K_DOWN * p.fatigue * e;
+          if(p.fatigue<0) p.fatigue=0;
+        }
       });
     }
   }
@@ -393,7 +408,7 @@ function saveGameToHistory(){
     when: new Date().toISOString(),
     teamA: (teamA.value||"").trim(),
     teamB: (teamB.value||"").trim(),
-    duration, // por parte
+    duration,
     totals: players.map(p=>({
       id:p.id, name:p.name, seconds:p.seconds, secondsOut:p.secondsOut,
       rotations:p.rotations, part1:p.part1, part2:p.part2,
@@ -425,9 +440,7 @@ function renderHistoryList(){
     list.appendChild(div);
   });
 }
-function deleteHistoryItem(i){
-  const hist=getHistory(); hist.splice(i,1); setHistory(hist); renderHistoryList();
-}
+function deleteHistoryItem(i){ const hist=getHistory(); hist.splice(i,1); setHistory(hist); renderHistoryList(); }
 function clearHistory(){ setHistory([]); renderHistoryList(); }
 function exportCsv(index){
   const h=getHistory()[index]; if(!h) return;
@@ -443,10 +456,8 @@ function exportCsv(index){
   a.click();
 }
 
-/* ===== PRINT → PNG (canvas) – atual ou histórico ===== */
-function printScreen(){
-  exportPngFromCurrent();
-}
+/* ===== PRINT → PNG (canvas) ===== */
+function printScreen(){ exportPngFromCurrent(); }
 function exportPngFromCurrent(){
   const nameA=(document.getElementById("teamA").value || "Equipa A").trim();
   const nameB=(document.getElementById("teamB").value || "Equipa B").trim();
@@ -473,10 +484,7 @@ function exportPngFromHistory(index){
 }
 function renderTablePng(nameA,nameB,headers,rows, basename){
   const title = `${nameA} vs ${nameB}`;
-  const colWidths = headers.map((h,i)=>{
-    // largura base aproximada por coluna
-    return [280,150,150,90,100,90,140][i] || 120;
-  });
+  const colWidths = headers.map((h,i)=>[280,150,150,90,100,90,140][i]||120);
   const tableWidth = colWidths.reduce((a,b)=>a+b, 0);
   const margin=20, titleFont="bold 20px Arial, sans-serif", headFont="bold 14px Arial, sans-serif", rowFont="14px Arial, sans-serif";
   const rowH=34, headerH=36, titleH=28, innerPad=10;
@@ -575,12 +583,9 @@ document.getElementById("exportAllCsvBtn").onclick=()=>{
   hist.forEach(h=>{
     const d=new Date(h.when).toISOString();
     h.totals.forEach(t=>{
-      csv += [
-        d, JSON.stringify(h.teamA||""), JSON.stringify(h.teamB||""),
-        JSON.stringify(t.name), formatTime(t.seconds), formatTime(t.secondsOut),
-        t.rotations, formatTime(t.part1), formatTime(t.part2),
-        (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m"
-      ].join(",") + "\n";
+      csv += [d, JSON.stringify(h.teamA||""), JSON.stringify(h.teamB||""), JSON.stringify(t.name),
+        formatTime(t.seconds), formatTime(t.secondsOut), t.rotations, formatTime(t.part1), formatTime(t.part2),
+        (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m"].join(",") + "\n";
     });
   });
   const a=document.createElement("a"); a.download="historico_gamecontrol.csv";
