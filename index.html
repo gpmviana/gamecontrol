@@ -206,6 +206,10 @@ const STORAGE_KEY="gameControlData_gcStable", HISTORY_KEY="gameControlHistory_v1
 const TL_KEY="gameControlTimeline_v1"; let timeline=[];
 let pendingPlayerEvent=null; // FK_P | YC_P | RC_P
 
+/* NOVO: estado de troca/rotação real */
+let pendingSub = null;      // { outId, time }
+let pendingSubTimer = null; // timeout para limpar pendência
+
 /* Fadiga */
 const FATIGUE_K_UP=0.012, FATIGUE_K_DOWN=0.025, RED_THRESHOLD_SEC=180, YELLOW_THRESHOLD_SEC=90;
 
@@ -313,25 +317,80 @@ function resetTimer(){
   const m=parseInt(setMinutes.value)||20; duration=m*60; remaining=duration; firstHalf=true;
   players.forEach(p=>{p.seconds=0;p.secondsOut=0;p.part1=0;p.part2=0;p.rotations=0;p.lastRotation=0;p.rotationTime=0;p.rotationOutTime=0;if(!p.isGK)p.fatigue=0;p.plusMinus=0;p.fouls=0;p.yc=false;p.rc=false;});
   timeline=[]; scoreA=0; scoreB=0; updateScoreUI(); tlSave();
+  pendingSub=null; if(pendingSubTimer){clearTimeout(pendingSubTimer); pendingSubTimer=null;}
   updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
 }
 function intervalTimer(){
   pauseTimer(); firstHalf=false;
   const mins=parseInt(setMinutes.value)||20; duration=mins*60; remaining=duration;
   players.forEach(p=>{p.rotationTime=0;p.rotationOutTime=0; if(!p.isGK)p.fatigue=Math.max(0,p.fatigue*0.30);});
+  pendingSub=null; if(pendingSubTimer){clearTimeout(pendingSubTimer); pendingSubTimer=null;}
   updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
 }
 
 /* Interação jogador + eventos individuais */
 function onPlayerClick(id){
-  if(pendingPlayerEvent){ addPlayerEvent(pendingPlayerEvent,id); pendingPlayerEvent=null; updatePlayersUI(); return; }
-  const p=players.find(x=>x.id===id); if(!p) return;
-  if(!p.active && activeCount()>=5){flashLimit(id); return;}
-  p.active=!p.active;
-  if(p.active){p.rotations++; p.startTime=Date.now(); p.rotationTime=0; p.rotationOutTime=0;}
-  else{p.lastRotation=p.rotationTime; p.rotationTime=0; p.rotationOutTime=0;}
-  updatePlayersUI(); updateSummary(); saveData();
+  if(pendingPlayerEvent){ 
+    addPlayerEvent(pendingPlayerEvent,id); 
+    pendingPlayerEvent=null; 
+    updatePlayersUI(); 
+    return; 
+  }
+
+  const p = players.find(x => x.id === id);
+  if(!p) return;
+
+  const beforeActive = activeCount();
+
+  if(p.active){
+    // Jogador sai
+    const was5 = (beforeActive === 5);
+    p.active = false;
+    p.lastRotation = p.rotationTime;
+    p.rotationTime = 0;
+    p.rotationOutTime = 0;
+
+    if(was5){
+      pendingSub = { outId: p.id, time: Date.now() };
+      if(pendingSubTimer) clearTimeout(pendingSubTimer);
+      pendingSubTimer = setTimeout(()=>{ pendingSub = null; }, 15000);
+    } else {
+      pendingSub = null;
+      if(pendingSubTimer) { clearTimeout(pendingSubTimer); pendingSubTimer = null; }
+    }
+
+  } else {
+    // Jogador entra
+    if(beforeActive >= 5){
+      flashLimit(id);
+      return;
+    }
+
+    p.active = true;
+    p.startTime = Date.now();
+    p.rotationTime = 0;
+    p.rotationOutTime = 0;
+
+    // Contar rotação só se repõe 4->5 e NÃO é o mesmo que saiu
+    const isSwap = pendingSub && pendingSub.outId !== id && beforeActive === 4;
+    if(isSwap){
+      p.rotations++;
+      pendingSub = null;
+      if(pendingSubTimer) { clearTimeout(pendingSubTimer); pendingSubTimer = null; }
+    } else {
+      if(pendingSub && pendingSub.outId === id){
+        // Saiu e entrou o mesmo: não conta, limpa pendência
+        pendingSub = null;
+        if(pendingSubTimer) { clearTimeout(pendingSubTimer); pendingSubTimer = null; }
+      }
+    }
+  }
+
+  updatePlayersUI();
+  updateSummary();
+  saveData();
 }
+
 function addPlayerEvent(type, playerId){
   const p=players.find(x=>x.id===playerId); if(!p) return;
   if(type==="FK_P") p.fouls++;
