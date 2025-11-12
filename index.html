@@ -274,10 +274,32 @@ function resetTimer(){
   });
   updateTimerDisplay(); updatePlayersUI(); updateSummary(); saveData();
 }
-function intervalTimer(){
-  pauseTimer(); firstHalf=false;
-  remaining=(parseInt(document.getElementById("setMinutes").value)||20)*60;
-  updateTimerDisplay(); saveData();
+
+/* ===== INTERVALO (pausa, 2.ª parte, zera tempos das caixas, mantém totais) ===== */
+function intervalTimer() {
+  // ⏸️ pausa o cronómetro
+  pauseTimer();
+
+  // Marca segunda parte
+  firstHalf = false;
+
+  // Repõe o tempo do cronómetro para a 2.ª parte
+  const mins = parseInt(document.getElementById("setMinutes").value) || 20;
+  duration = mins * 60;
+  remaining = duration;
+
+  // 🔁 Zera apenas os tempos que aparecem nas caixas
+  players.forEach(p => {
+    p.rotationTime = 0;     // tempo da rotação atual (em campo)
+    p.rotationOutTime = 0;  // tempo fora atual (no banco)
+    // mantém p.seconds / p.secondsOut / part1 / part2 / rotations / lastRotation
+  });
+
+  // Atualiza tudo e deixa pronto para carregar "Iniciar"
+  updateTimerDisplay();
+  updatePlayersUI();
+  updateSummary();
+  saveData();
 }
 
 /* ===== INTERAÇÃO JOGADOR ===== */
@@ -398,7 +420,7 @@ pauseBtn.onclick=pauseTimer;
 resetBtn.onclick=resetTimer;
 intervalBtn.onclick=intervalTimer;
 addBtn.onclick=()=>ensurePlayerCount(players.length+1);
-removeBtn.onclick=()=>{if(players.length>1){players.pop();buildPlayersDOM();updatePlayersUI();updateSummary();saveData();}};
+removeBtn.onclick=()=>{if(players.length>1){players.pop();buildPlayersDOM();updatePlayersUI();updateSummary();saveData();}}
 printBtn.onclick=printScreen;
 themeToggle.onclick=toggleTheme;
 fullscreenBtn.onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();};
