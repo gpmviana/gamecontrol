@@ -15,53 +15,40 @@
   #teamInputs input{padding:6px 10px;border-radius:6px;border:none;font-size:16px;text-align:center}
 
   /* Timer + badge da parte */
-  .timer-row{
-    display:flex;align-items:center;justify-content:center;gap:10px;
-    margin:10px 0 0 0;
-  }
+  .timer-row{display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0 0 0}
   #timer{font-size:3em}
-  .half-badge{
-    display:inline-block; padding:4px 10px; border-radius:999px;
-    background:#444; color:#fff; font-size:12px; letter-spacing:.3px;
-  }
+  .half-badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#444;color:#fff;font-size:12px;letter-spacing:.3px}
 
   .controls{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;background:#2e2e2e;padding:10px}
   .controls button{padding:6px 10px;border:none;border-radius:6px;background:#444;color:#fff;cursor:pointer}
 
-  /* === CAIXAS GRANDES (260x230) + máx 5 por linha === */
+  /* === CAIXAS GRANDES (260x240) + máx 5 por linha === */
   #players{
-    display:grid;
-    grid-template-columns:repeat(5, minmax(0, 1fr));
-    gap:18px;
-    width:95%;
-    max-width:1300px;
-    margin:12px auto;
-    justify-items:center;
+    display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));
+    gap:18px;width:95%;max-width:1300px;margin:12px auto;justify-items:center
   }
   .player{
-    width:100%;
-    max-width:260px;
-    height:230px;
-    border-radius:14px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    transition:.2s;
-    background:#c0392b; /* fora */
-    color:#fff;
+    width:100%;max-width:260px;height:240px;border-radius:14px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    cursor:pointer;transition:.2s;background:#c0392b;color:#fff;position:relative;overflow:hidden
   }
-  .player.active{background:#2ecc71;color:#000} /* dentro */
+  .player.active{background:#2ecc71;color:#000}
   .player strong{font-size:20px;margin-bottom:8px}
   .player .time{font-size:40px;font-weight:bold;line-height:1}
   .player .last{font-size:12px;opacity:.9;margin-top:6px}
 
-  /* efeito visual quando tenta exceder 5 em campo */
-  .player.limit{
-    outline: 3px solid #ff4d4d;
-    box-shadow: 0 0 0 3px rgba(255,77,77,0.35);
+  /* Escala de fadiga (barra fina no rodapé da caixa) */
+  .fatigue{
+    position:absolute;left:8px;right:8px;bottom:8px;height:8px;border-radius:6px;background:rgba(255,255,255,0.25)
   }
+  .fatigue-fill{
+    height:100%;border-radius:6px;
+    background:linear-gradient(90deg,#2ecc71 0%,#e67e22 60%,#e74c3c 100%);
+    width:0%
+  }
+
+  /* feedback quando tenta ultrapassar 5 em campo */
+  .player.limit{outline: 3px solid #ff4d4d;box-shadow:0 0 0 3px rgba(255,77,77,0.35)}
 
   @media (max-width:1200px){#players{grid-template-columns:repeat(4,minmax(0,1fr));}}
   @media (max-width:900px){#players{grid-template-columns:repeat(3,minmax(0,1fr));}}
@@ -78,40 +65,44 @@
   .light-mode .controls{background:#ddd}
   .light-mode .player.active{background:#27ae60;color:#fff}
   .light-mode .player.inactive{background:#e74c3c;color:#fff}
+  .light-mode .fatigue{background:rgba(0,0,0,0.15)}
 
-  /* Painel lateral para editar nomes */
+  /* Painel lateral editar nomes (direita) */
   #editPanel{
-    position:fixed; right:-380px; top:25%;
-    width:340px; height:50%;
-    background:rgba(0,0,0,0.92);
-    border-left:2px solid #555; border-radius:10px 0 0 10px;
-    padding:15px; box-shadow:-4px 0 8px rgba(0,0,0,.4);
-    transition:right .2s ease-in-out; z-index:999; overflow-y:auto;
+    position:fixed; right:-380px; top:25%; width:340px; height:50%;
+    background:rgba(0,0,0,0.92); border-left:2px solid #555; border-radius:10px 0 0 10px;
+    padding:15px; box-shadow:-4px 0 8px rgba(0,0,0,.4); transition:right .2s; z-index:999; overflow-y:auto
   }
   #editPanel.open{ right:0; }
   #editPanel h3{ margin:0 0 10px 0; }
-  #editPanel .close-btn{
-    position:absolute; top:6px; right:8px; background:transparent; border:none;
-    color:#fff; font-size:18px; cursor:pointer;
+  #editPanel .close-btn{position:absolute; top:6px; right:8px; background:transparent; border:none; color:#fff; font-size:18px; cursor:pointer}
+  #editPanel input{width:100%; padding:6px; margin-bottom:8px; border-radius:6px; border:1px solid #777; background:#1f1f1f; color:#fff}
+  #editPanel .save-btn{width:100%; padding:8px; border:none; border-radius:6px; background:#0078d7; color:#fff; cursor:pointer; margin-top:8px}
+
+  /* Painel Histórico (esquerda) */
+  #historyPanel{
+    position:fixed; left:-420px; top:10%; width:380px; height:80%;
+    background:rgba(0,0,0,0.92); border-right:2px solid #555; border-radius:0 10px 10px 0;
+    padding:15px; box-shadow:4px 0 8px rgba(0,0,0,.4); transition:left .2s; z-index:999; overflow-y:auto
   }
-  #editPanel input{
-    width:100%; padding:6px; margin-bottom:8px; border-radius:6px; border:1px solid #777;
-    background:#1f1f1f; color:#fff;
-  }
-  #editPanel .save-btn{
-    width:100%; padding:8px; border:none; border-radius:6px;
-    background:#0078d7; color:#fff; cursor:pointer; margin-top:8px;
-  }
+  #historyPanel.open{ left:0; }
+  #historyPanel h3{ margin:0 0 10px 0; }
+  #historyPanel .close-btn{position:absolute; top:6px; right:8px; background:transparent; border:none; color:#fff; font-size:18px; cursor:pointer}
+  .hist-item{background:#1f1f1f;border:1px solid #444;border-radius:8px;padding:8px;margin-bottom:8px;text-align:left}
+  .hist-item .row{display:flex;justify-content:space-between;gap:8px;align-items:center}
+  .hist-item .meta{font-size:12px;opacity:.9}
+  .hist-actions{display:flex;gap:6px;margin-top:6px}
+  .hist-actions button{padding:6px 8px;border:none;border-radius:6px;background:#444;color:#fff;cursor:pointer;font-size:12px}
 </style>
 </head>
 <body>
 <header>
   <h1>Game Control</h1>
   <div class="top-buttons">
-    <button id="themeToggle">🌙</button>
-    <button id="fullscreenBtn">⛶</button>
-    <button id="editNamesBtn">👥</button>
-    <button id="printBtn">📸</button>
+    <button id="themeToggle" title="Tema">🌙</button>
+    <button id="fullscreenBtn" title="Fullscreen">⛶</button>
+    <button id="editNamesBtn" title="Editar nomes">👥</button>
+    <button id="printBtn" title="Exportar PNG">📸</button>
   </div>
 </header>
 
@@ -134,6 +125,8 @@
   <button id="resetBtn">Reset</button>
   <button id="addBtn">+</button>
   <button id="removeBtn">−</button>
+  <button id="saveGameBtn">Guardar Jogo</button>
+  <button id="historyBtn">Histórico</button>
 </div>
 
 <div id="players"></div>
@@ -164,6 +157,17 @@
   <button class="save-btn" id="saveNamesBtn">Guardar Alterações</button>
 </div>
 
+<!-- Painel Histórico -->
+<div id="historyPanel">
+  <button class="close-btn" id="closeHistory">❌</button>
+  <h3>Histórico de Jogos</h3>
+  <div id="historyList"></div>
+  <div style="margin-top:8px;display:flex;gap:8px">
+    <button id="exportAllCsvBtn">Exportar CSV (tudo)</button>
+    <button id="clearHistoryBtn" style="background:#a33">Apagar Histórico</button>
+  </div>
+</div>
+
 <script>
 /* ===== ESTADO ===== */
 let duration = 20*60;
@@ -175,6 +179,7 @@ let theme = "dark";
 let timerInterval = null;
 let _lastTick = null;
 const STORAGE_KEY = "gameControlData_gcStable";
+const HISTORY_KEY = "gameControlHistory_v1";
 
 /* Campos padrão (inclui rotação atual e tempo fora atual) */
 const PLAYER_DEFAULTS = {
@@ -194,9 +199,19 @@ const PLAYER_DEFAULTS = {
 const pad = n => String(n).padStart(2,"0");
 function formatTime(sec){sec=Math.max(0,Math.floor(sec));return `${pad(Math.floor(sec/60))}:${pad(sec%60)}`;}
 function updateTimerDisplay(){document.getElementById("timer").textContent = formatTime(remaining);}
-function updateHalfBadge(){
-  const el=document.getElementById("halfBadge");
-  el.textContent = firstHalf ? "1ª Parte" : "2ª Parte";
+function updateHalfBadge(){document.getElementById("halfBadge").textContent = firstHalf ? "1ª Parte" : "2ª Parte";}
+
+/* ===== FADIGA (0..1) -> barra interna =====
+   Combina tempo total jogado (vs jogo inteiro) e comprimento da rotação atual.
+   - peso total: 0.6 do total do jogo; 0.4 da rotação em curso (ideal ~3min)
+*/
+function computeFatigue(p){
+  const fullMatch = duration*2 || 2400; // jogo inteiro em segundos
+  const partTotal = Math.min(1, p.seconds / Math.max(1, fullMatch)); // 0..1
+  const idealStint = 180; // 3 min
+  const stint = Math.min(1, p.rotationTime / idealStint);
+  const f = 0.6*partTotal + 0.4*stint;
+  return Math.max(0, Math.min(1, f));
 }
 
 /* ===== RENDER CAIXAS ===== */
@@ -210,7 +225,8 @@ function buildPlayersDOM(){
     const displaySec = p.active ? p.rotationTime : p.rotationOutTime; // rotação atual OU tempo fora atual
     d.innerHTML=`<strong>${p.name}</strong>
                  <div class="time">${formatTime(displaySec)}</div>
-                 <div class="last">${!p.active&&p.lastRotation>0?"Últ. rotação: "+formatTime(p.lastRotation):""}</div>`;
+                 <div class="last">${!p.active&&p.lastRotation>0?"Últ. rotação: "+formatTime(p.lastRotation):""}</div>
+                 <div class="fatigue"><div class="fatigue-fill" id="fatigue${p.id}" style="width:0%"></div></div>`;
     d.onclick=()=>togglePlayer(p.id);
     pDiv.appendChild(d);
   });
@@ -224,6 +240,8 @@ function updatePlayersUI(){
     d.querySelector(".time").textContent = formatTime(displaySec);
     d.querySelector(".last").textContent = (!p.active && p.lastRotation>0) ? ("Últ. rotação: "+formatTime(p.lastRotation)) : "";
     d.querySelector("strong").textContent = p.name;
+    const ff=document.getElementById("fatigue"+p.id);
+    if(ff){ ff.style.width = Math.round(computeFatigue(p)*100) + "%"; }
   });
 }
 
@@ -231,10 +249,7 @@ function updatePlayersUI(){
 function ensurePlayerCount(n){
   while(players.length < n){
     const id = players.length ? Math.max(...players.map(x=>x.id))+1 : 1;
-    players.push({
-      ...PLAYER_DEFAULTS,
-      id, name:"Jogador "+id
-    });
+    players.push({...PLAYER_DEFAULTS, id, name:"Jogador "+id});
   }
   while(players.length > n){ players.pop(); }
   buildPlayersDOM(); updatePlayersUI(); updateSummary(); saveData();
@@ -261,10 +276,8 @@ function updateSummary(){
   });
 }
 
-/* ===== CONTAGEM ATIVOS E FEEDBACK LIMITE ===== */
-function activeCount(){
-  return players.reduce((n,p)=> n + (p.active?1:0), 0);
-}
+/* ===== CONTAGEM ATIVOS E FEEDBACK LIMITE (máx 5 em campo) ===== */
+function activeCount(){ return players.reduce((n,p)=> n + (p.active?1:0), 0); }
 function flashLimit(id){
   const d = document.getElementById("player"+id);
   if(!d) return;
@@ -315,39 +328,19 @@ function intervalTimer() {
   const mins = parseInt(document.getElementById("setMinutes").value) || 20;
   duration = mins * 60;
   remaining = duration;
-
-  players.forEach(p => {
-    p.rotationTime = 0;     // tempo da rotação atual (em campo)
-    p.rotationOutTime = 0;  // tempo fora atual (no banco)
-  });
-
-  updateTimerDisplay();
-  updateHalfBadge();
-  updatePlayersUI();
-  updateSummary();
-  saveData();
+  players.forEach(p => { p.rotationTime = 0; p.rotationOutTime = 0; });
+  updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
 }
 
-/* ===== INTERAÇÃO JOGADOR (bloqueio máx 5 ativos) ===== */
+/* ===== INTERAÇÃO JOGADOR (limit 5) ===== */
 function togglePlayer(id){
   const p=players.find(x=>x.id===id); if(!p) return;
-
-  // se for tentar entrar e já existem 5 ativos, bloqueia
-  if(!p.active && activeCount() >= 5){
-    flashLimit(id);
-    return;
-  }
-
+  if(!p.active && activeCount() >= 5){ flashLimit(id); return; } // bloqueia 6.º
   p.active=!p.active;
   if(p.active){
-    p.rotations++;
-    p.startTime=Date.now();
-    p.rotationTime=0;      // começa do zero a rotação atual
-    p.rotationOutTime=0;   // pára contagem do tempo fora
+    p.rotations++; p.startTime=Date.now(); p.rotationTime=0; p.rotationOutTime=0;
   }else{
-    p.lastRotation=p.rotationTime;
-    p.rotationTime=0;
-    p.rotationOutTime=0;   // começa a contar tempo fora atual do zero
+    p.lastRotation=p.rotationTime; p.rotationTime=0; p.rotationOutTime=0;
   }
   updatePlayersUI(); updateSummary(); saveData();
 }
@@ -355,19 +348,15 @@ function togglePlayer(id){
 /* ===== PERSISTÊNCIA ===== */
 function saveData(){
   const data = {
-    teamA: teamA.value||"",
-    teamB: teamB.value||"",
+    teamA: teamA.value||"", teamB: teamB.value||"",
     duration, remaining, firstHalf, running, theme,
-    players,               // inclui rotationTime e rotationOutTime
-    lastSaved: Date.now()
+    players, lastSaved: Date.now()
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 function loadData(){
   const raw=localStorage.getItem(STORAGE_KEY);
-  if(!raw){
-    players=[]; ensurePlayerCount(14); updateTimerDisplay(); updateHalfBadge(); updateSummary(); return;
-  }
+  if(!raw){ players=[]; ensurePlayerCount(14); updateTimerDisplay(); updateHalfBadge(); updateSummary(); return; }
   const d=JSON.parse(raw);
   teamA.value=d.teamA||""; teamB.value=d.teamB||"";
   duration  = typeof d.duration  === "number" ? d.duration  : duration;
@@ -376,12 +365,7 @@ function loadData(){
   running   = !!d.running;
   theme     = d.theme || theme;
 
-  players = (Array.isArray(d.players)?d.players:[]).map((p,i)=>({
-    ...PLAYER_DEFAULTS,
-    id: p.id ?? (i+1),
-    name: p.name || `Jogador ${p.id ?? (i+1)}`,
-    ...p
-  }));
+  players = (Array.isArray(d.players)?d.players:[]).map((p,i)=>({...PLAYER_DEFAULTS,id:p.id ?? (i+1),name:p.name || `Jogador ${p.id ?? (i+1)}`,...p}));
 
   const lastSaved = typeof d.lastSaved === "number" ? d.lastSaved : Date.now();
   if(running){
@@ -389,16 +373,11 @@ function loadData(){
     if(e>0){
       remaining=Math.max(0,remaining-e);
       players.forEach(p=>{
-        if(p.active){
-          p.seconds+=e; p.rotationTime+=e;
-          if(firstHalf) p.part1+=e; else p.part2+=e;
-        }else{
-          p.secondsOut+=e; p.rotationOutTime+=e;
-        }
+        if(p.active){ p.seconds+=e; p.rotationTime+=e; if(firstHalf) p.part1+=e; else p.part2+=e; }
+        else{ p.secondsOut+=e; p.rotationOutTime+=e; }
       });
     }
   }
-
   if(players.length===0) ensurePlayerCount(14); else buildPlayersDOM();
   updatePlayersUI(); updateSummary(); updateTimerDisplay(); updateHalfBadge();
   if(running && remaining>0) startTimer();
@@ -406,179 +385,151 @@ function loadData(){
 window.addEventListener("beforeunload", saveData);
 setInterval(saveData, 3000);
 
-/* ===== PRINT → PNG (canvas) ===== */
-function printScreen() {
-  // --- Dados base ---
-  const nameA = (document.getElementById("teamA").value || "Equipa A").trim();
-  const nameB = (document.getElementById("teamB").value || "Equipa B").trim();
-  const title = `${nameA} vs ${nameB}`;
+/* ===== HISTÓRICO LOCAL ===== */
+function getHistory(){ return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); }
+function setHistory(arr){ localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); }
+function saveGameToHistory(){
+  const snapshot = {
+    when: new Date().toISOString(),
+    teamA: (teamA.value||"").trim(),
+    teamB: (teamB.value||"").trim(),
+    duration, // por parte
+    totals: players.map(p=>({
+      id:p.id, name:p.name, seconds:p.seconds, secondsOut:p.secondsOut,
+      rotations:p.rotations, part1:p.part1, part2:p.part2,
+      workload:p.seconds - p.secondsOut
+    }))
+  };
+  const hist=getHistory(); hist.unshift(snapshot); setHistory(hist);
+  renderHistoryList();
+}
+function renderHistoryList(){
+  const list=document.getElementById("historyList");
+  const hist=getHistory();
+  if(hist.length===0){ list.innerHTML='<div class="hist-item">Sem jogos guardados.</div>'; return; }
+  list.innerHTML="";
+  hist.forEach((h,idx)=>{
+    const div=document.createElement("div");
+    const d=new Date(h.when);
+    const title=`${h.teamA||'Equipa A'} vs ${h.teamB||'Equipa B'}`;
+    div.className="hist-item";
+    div.innerHTML=`<div class="row"><div>
+        <div><strong>${title}</strong></div>
+        <div class="meta">${d.toLocaleString()}</div>
+      </div></div>
+      <div class="hist-actions">
+        <button onclick="exportCsv(${idx})">CSV</button>
+        <button onclick="exportPngFromHistory(${idx})">PNG</button>
+        <button onclick="deleteHistoryItem(${idx})" style="background:#a33">Apagar</button>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+function deleteHistoryItem(i){
+  const hist=getHistory(); hist.splice(i,1); setHistory(hist); renderHistoryList();
+}
+function clearHistory(){ setHistory([]); renderHistoryList(); }
+function exportCsv(index){
+  const h=getHistory()[index]; if(!h) return;
+  const rows=[["Jogador","Tempo em Campo","Tempo Fora","Rotações","Parte 1","Parte 2","Workload"]];
+  h.totals.forEach(t=>{
+    rows.push([t.name,formatTime(t.seconds),formatTime(t.secondsOut),t.rotations,formatTime(t.part1),formatTime(t.part2),(t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m"]);
+  });
+  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const a=document.createElement("a");
+  const ts=new Date(h.when).toISOString().slice(0,19).replace(/[:T]/g,"-");
+  a.download=`Resumo_${(h.teamA||'EquipaA')}_vs_${(h.teamB||'EquipaB')}_${ts}.csv`;
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.click();
+}
 
-  // Construir dados da tabela a partir do estado atual
-  const headers = ["Jogador","Tempo em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
-  const rows = players.map(p => {
+/* ===== PRINT → PNG (canvas) – atual ou histórico ===== */
+function printScreen(){
+  exportPngFromCurrent();
+}
+function exportPngFromCurrent(){
+  const nameA=(document.getElementById("teamA").value || "Equipa A").trim();
+  const nameB=(document.getElementById("teamB").value || "Equipa B").trim();
+  const headers=["Jogador","Tempo em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
+  const rows = players.map(p=>{
     const total = p.part1 + p.part2;
     const avg = p.rotations > 0 ? Math.floor(total / p.rotations) : 0;
     const percent = ((total / (duration * (firstHalf ? 1 : 2))) * 100).toFixed(1) + "%";
     const workload = p.seconds - p.secondsOut;
     const workloadText = `${workload >= 0 ? "+" : ""}${(workload/60).toFixed(1)}m`;
-    return [
-      p.name,
-      formatTime(p.seconds),
-      formatTime(p.secondsOut),
-      String(p.rotations),
-      formatTime(avg),
-      percent,
-      workloadText
-    ];
+    return [p.name,formatTime(p.seconds),formatTime(p.secondsOut),String(p.rotations),formatTime(avg),percent,workloadText];
   });
-
-  // --- Layout do PNG ---
-  const colWidths = [280, 150, 150, 90, 100, 90, 140];
+  renderTablePng(nameA,nameB,headers,rows, `Resumo_${nameA}_vs_${nameB}`);
+}
+function exportPngFromHistory(index){
+  const h=getHistory()[index]; if(!h) return;
+  const nameA=h.teamA||"Equipa A", nameB=h.teamB||"Equipa B";
+  const headers=["Jogador","Tempo em Campo","Tempo Fora","Rotações","Parte 1","Parte 2","Workload"];
+  const rows = h.totals.map(t=>[
+    t.name,formatTime(t.seconds),formatTime(t.secondsOut),String(t.rotations),
+    formatTime(t.part1),formatTime(t.part2),(t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m"
+  ]);
+  renderTablePng(nameA,nameB,headers,rows, `Resumo_${nameA}_vs_${nameB}`);
+}
+function renderTablePng(nameA,nameB,headers,rows, basename){
+  const title = `${nameA} vs ${nameB}`;
+  const colWidths = headers.map((h,i)=>{
+    // largura base aproximada por coluna
+    return [280,150,150,90,100,90,140][i] || 120;
+  });
   const tableWidth = colWidths.reduce((a,b)=>a+b, 0);
-
-  const margin = 20;
-  const titleFont = "bold 20px Arial, sans-serif";
-  const headFont  = "bold 14px Arial, sans-serif";
-  const rowFont   = "14px Arial, sans-serif";
-  const rowH = 34;
-  const headerH = 36;
-
-  const titleH = 28;
-  const innerPad = 10;
+  const margin=20, titleFont="bold 20px Arial, sans-serif", headFont="bold 14px Arial, sans-serif", rowFont="14px Arial, sans-serif";
+  const rowH=34, headerH=36, titleH=28, innerPad=10;
   const contentWidth = tableWidth + innerPad*2;
-
   const canvasWidth = Math.max(contentWidth + margin*2, 700);
-  const canvasHeight =
-    margin + titleH + 8 +
-    innerPad + headerH + rows.length * rowH + innerPad +
-    margin;
+  const canvasHeight = margin + titleH + 8 + innerPad + headerH + rows.length*rowH + innerPad + margin;
 
-  const canvas = document.createElement("canvas");
-  canvas.width = canvasWidth;
-  canvas.height = canvasHeight;
-  const ctx = canvas.getContext("2d");
+  const canvas=document.createElement("canvas");
+  canvas.width=canvasWidth; canvas.height=canvasHeight;
+  const ctx=canvas.getContext("2d");
 
-  // Fundo branco
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-  // Título
-  ctx.fillStyle = "#000000";
-  ctx.font = titleFont;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,canvasWidth,canvasHeight);
+  ctx.fillStyle="#000"; ctx.font=titleFont; ctx.textAlign="center"; ctx.textBaseline="middle";
   ctx.fillText(title, canvasWidth/2, margin + titleH/2);
 
-  // Cartão/tabela
-  const cardX = (canvasWidth - contentWidth)/2;
-  const cardY = margin + titleH + 8;
-  const cardW = contentWidth;
-  const cardH = innerPad + headerH + rows.length*rowH + innerPad;
+  const cardX=(canvasWidth - contentWidth)/2, cardY=margin + titleH + 8, cardW=contentWidth, cardH=innerPad + headerH + rows.length*rowH + innerPad;
+  ctx.fillStyle="#fff"; ctx.strokeStyle="#ccc"; ctx.lineWidth=1;
+  const r=10; ctx.beginPath();
+  ctx.moveTo(cardX + r, cardY); ctx.lineTo(cardX + cardW - r, cardY); ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + r);
+  ctx.lineTo(cardX + cardW, cardY + cardH - r); ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - r, cardY + cardH);
+  ctx.lineTo(cardX + r, cardY + cardH); ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - r);
+  ctx.lineTo(cardX, cardY + r); ctx.quadraticCurveTo(cardX, cardY, cardX + r, cardY); ctx.closePath(); ctx.fill(); ctx.stroke();
 
-  ctx.fillStyle = "#ffffff";
-  ctx.strokeStyle = "#cccccc";
-  ctx.lineWidth = 1;
-  const r = 10;
-  ctx.beginPath();
-  ctx.moveTo(cardX + r, cardY);
-  ctx.lineTo(cardX + cardW - r, cardY);
-  ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + r);
-  ctx.lineTo(cardX + cardW, cardY + cardH - r);
-  ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - r, cardY + cardH);
-  ctx.lineTo(cardX + r, cardY + cardH);
-  ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - r);
-  ctx.lineTo(cardX, cardY + r);
-  ctx.quadraticCurveTo(cardX, cardY, cardX + r, cardY);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
+  let x=cardX + innerPad, y=cardY + innerPad;
+  ctx.fillStyle="#eee"; ctx.fillRect(x - 1, y, tableWidth + 2, headerH);
+  ctx.fillStyle="#000"; ctx.font=headFont; ctx.textAlign="left"; ctx.textBaseline="middle";
+  let colX=x; headers.forEach((h,i)=>{ ctx.fillText(h, colX + 8, y + headerH/2); colX += colWidths[i]; });
 
-  // Cabeçalho
-  let x = cardX + innerPad;
-  let y = cardY + innerPad;
+  ctx.strokeStyle="#999"; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x + tableWidth, y); ctx.moveTo(x,y + headerH); ctx.lineTo(x + tableWidth, y + headerH); ctx.stroke();
 
-  ctx.fillStyle = "#eeeeee";
-  ctx.fillRect(x - 1, y, tableWidth + 2, headerH);
-
-  ctx.fillStyle = "#000000";
-  ctx.font = headFont;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  let colX = x;
-  headers.forEach((h, i) => {
-    ctx.fillText(h, colX + 8, y + headerH/2);
-    colX += colWidths[i];
-  });
-
-  // Linhas entre header e corpo
-  ctx.strokeStyle = "#999999";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(x + tableWidth, y);
-  ctx.moveTo(x, y + headerH);
-  ctx.lineTo(x + tableWidth, y + headerH);
-  ctx.stroke();
-
-  // Corpo
-  ctx.font = rowFont;
-  let rowY = y + headerH;
-  for (let r = 0; r < rows.length; r++) {
-    const row = rows[r];
-    // grade horizontal
-    ctx.strokeStyle = "#dddddd";
-    ctx.beginPath();
-    ctx.moveTo(x, rowY + rowH);
-    ctx.lineTo(x + tableWidth, rowY + rowH);
-    ctx.stroke();
-
-    // células
-    let cx = x;
-    for (let c = 0; c < row.length; c++) {
-      const cell = String(row[c] ?? "");
-      const maxW = colWidths[c] - 14;
-      ctx.fillStyle = "#000000";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.save();
-      let text = cell;
-      while (ctx.measureText(text).width > maxW) {
-        if (text.length <= 1) break;
-        text = text.slice(0, -1);
-      }
-      if (text !== cell) text = text.slice(0, -1) + "…";
-      ctx.fillText(text, cx + 7, rowY + rowH/2);
-      ctx.restore();
-
-      // linhas verticais
-      ctx.strokeStyle = "#dddddd";
-      ctx.beginPath();
-      ctx.moveTo(cx, rowY);
-      ctx.lineTo(cx, rowY + rowH);
-      ctx.stroke();
-
+  ctx.font=rowFont; let rowY=y + headerH;
+  for(let rI=0;rI<rows.length;rI++){
+    const row=rows[rI];
+    ctx.strokeStyle="#ddd"; ctx.beginPath(); ctx.moveTo(x, rowY + rowH); ctx.lineTo(x + tableWidth, rowY + rowH); ctx.stroke();
+    let cx=x;
+    for(let c=0;c<row.length;c++){
+      const cell=String(row[c] ?? ""); const maxW = colWidths[c] - 14;
+      ctx.fillStyle="#000"; ctx.textAlign="left"; ctx.textBaseline="middle";
+      ctx.save(); let text=cell;
+      while(ctx.measureText(text).width > maxW){ if(text.length<=1) break; text = text.slice(0,-1); }
+      if(text !== cell) text = text.slice(0,-1) + "…";
+      ctx.fillText(text, cx + 7, rowY + rowH/2); ctx.restore();
+      ctx.strokeStyle="#ddd"; ctx.beginPath(); ctx.moveTo(cx, rowY); ctx.lineTo(cx, rowY + rowH); ctx.stroke();
       cx += colWidths[c];
     }
-    // borda vertical final
-    ctx.beginPath();
-    ctx.moveTo(x + tableWidth, rowY);
-    ctx.lineTo(x + tableWidth, rowY + rowH);
-    ctx.stroke();
-
+    ctx.beginPath(); ctx.moveTo(x + tableWidth, rowY); ctx.lineTo(x + tableWidth, rowY + rowH); ctx.stroke();
     rowY += rowH;
   }
+  ctx.strokeStyle="#999"; ctx.lineWidth=1; ctx.strokeRect(x - 1, y, tableWidth + 2, headerH + rows.length*rowH);
 
-  // Borda externa
-  ctx.strokeStyle = "#999999";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x - 1, y, tableWidth + 2, headerH + rows.length*rowH);
-
-  // Download PNG
-  const a = document.createElement("a");
-  const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
-  a.download = `Resumo_${nameA}_vs_${nameB}_${ts}.png`;
-  a.href = canvas.toDataURL("image/png");
-  a.click();
+  const a=document.createElement("a");
+  const ts=new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+  a.download=`${basename}_${ts}.png`; a.href=canvas.toDataURL("image/png"); a.click();
 }
 
 /* ===== TEMA / FULLSCREEN ===== */
@@ -612,16 +563,40 @@ saveNamesBtn.onclick=()=>{
   updatePlayersUI(); updateSummary(); saveData();
 };
 
+/* ===== HISTÓRICO UI ===== */
+const historyPanel=document.getElementById("historyPanel");
+document.getElementById("historyBtn").onclick=()=>{ renderHistoryList(); historyPanel.classList.add("open"); };
+document.getElementById("closeHistory").onclick=()=>historyPanel.classList.remove("open");
+document.getElementById("saveGameBtn").onclick=saveGameToHistory;
+document.getElementById("clearHistoryBtn").onclick=clearHistory;
+document.getElementById("exportAllCsvBtn").onclick=()=>{
+  const hist=getHistory(); if(hist.length===0) return;
+  let csv="Data,EquipaA,EquipaB,Jogador,TempoCampo,TempoFora,Rotacoes,Parte1,Parte2,Workload\n";
+  hist.forEach(h=>{
+    const d=new Date(h.when).toISOString();
+    h.totals.forEach(t=>{
+      csv += [
+        d, JSON.stringify(h.teamA||""), JSON.stringify(h.teamB||""),
+        JSON.stringify(t.name), formatTime(t.seconds), formatTime(t.secondsOut),
+        t.rotations, formatTime(t.part1), formatTime(t.part2),
+        (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m"
+      ].join(",") + "\n";
+    });
+  });
+  const a=document.createElement("a"); a.download="historico_gamecontrol.csv";
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.click();
+};
+
 /* ===== BOTÕES ===== */
-startBtn.onclick=startTimer;
-pauseBtn.onclick=pauseTimer;
-resetBtn.onclick=resetTimer;
-intervalBtn.onclick=intervalTimer;
-addBtn.onclick=()=>ensurePlayerCount(players.length+1);
-removeBtn.onclick=()=>{if(players.length>1){players.pop();buildPlayersDOM();updatePlayersUI();updateSummary();saveData();}}
-printBtn.onclick=printScreen;
-themeToggle.onclick=toggleTheme;
-fullscreenBtn.onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();};
+document.getElementById("startBtn").onclick=startTimer;
+document.getElementById("pauseBtn").onclick=pauseTimer;
+document.getElementById("resetBtn").onclick=resetTimer;
+document.getElementById("intervalBtn").onclick=intervalTimer;
+document.getElementById("addBtn").onclick=()=>ensurePlayerCount(players.length+1);
+document.getElementById("removeBtn").onclick=()=>{if(players.length>1){players.pop();buildPlayersDOM();updatePlayersUI();updateSummary();saveData();}}
+document.getElementById("printBtn").onclick=printScreen;
+document.getElementById("themeToggle").onclick=toggleTheme;
+document.getElementById("fullscreenBtn").onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();};
 
 /* ===== START ===== */
 updateTimerDisplay();
