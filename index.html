@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Game Control</title>
 <style>
   body{font-family:Arial, sans-serif;margin:0;background:#1e1e1e;color:#f5f5f5;text-align:center}
@@ -40,10 +40,10 @@
     justify-content:center;
     cursor:pointer;
     transition:.2s;
-    background:#c0392b;
+    background:#c0392b; /* fora */
     color:#fff;
   }
-  .player.active{background:#2ecc71;color:#000}
+  .player.active{background:#2ecc71;color:#000} /* dentro */
   .player strong{font-size:20px;margin-bottom:8px}
   .player .time{font-size:40px;font-weight:bold;line-height:1}
   .player .last{font-size:12px;opacity:.9;margin-top:6px}
@@ -101,9 +101,9 @@
 </header>
 
 <div id="teamInputs">
-  <input id="teamA" placeholder="Equipa A">
+  <input id="teamA" placeholder="Equipa A" />
   <span style="font-weight:bold;">vs</span>
-  <input id="teamB" placeholder="Equipa B">
+  <input id="teamB" placeholder="Equipa B" />
 </div>
 
 <div id="timer">20:00</div>
@@ -147,14 +147,37 @@
 </div>
 
 <script>
-let duration = 20*60, remaining = duration, running = false, firstHalf = true, players = [], theme="dark";
-let timerInterval=null, _lastTick=null;
-const STORAGE_KEY="gameControlData_gcStable";
+/* ===== ESTADO ===== */
+let duration = 20*60;
+let remaining = duration;
+let running = false;
+let firstHalf = true;
+let players = [];
+let theme = "dark";
+let timerInterval = null;
+let _lastTick = null;
+const STORAGE_KEY = "gameControlData_gcStable";
 
-const pad=n=>String(n).padStart(2,"0");
-const formatTime=s=>`${pad(Math.floor(s/60))}:${pad(s%60)}`;
-const updateTimerDisplay=()=>document.getElementById("timer").textContent=formatTime(remaining);
+/* Campos padrão (inclui rotação atual e tempo fora atual) */
+const PLAYER_DEFAULTS = {
+  id: 0, name: "",
+  active: false,
+  seconds: 0,        // total em campo (tabela)
+  secondsOut: 0,     // total fora (tabela)
+  part1: 0, part2: 0,
+  rotations: 0,
+  lastRotation: 0,   // duração da última rotação concluída
+  startTime: 0,
+  rotationTime: 0,   // tempo da rotação atual (em campo)
+  rotationOutTime: 0 // tempo fora atual desde que saiu
+};
 
+/* ===== UTIL ===== */
+const pad = n => String(n).padStart(2,"0");
+function formatTime(sec){sec=Math.max(0,Math.floor(sec));return `${pad(Math.floor(sec/60))}:${pad(sec%60)}`;}
+function updateTimerDisplay(){document.getElementById("timer").textContent = formatTime(remaining);}
+
+/* ===== RENDER CAIXAS ===== */
 function buildPlayersDOM(){
   const pDiv=document.getElementById("players");
   pDiv.innerHTML="";
@@ -162,114 +185,182 @@ function buildPlayersDOM(){
     const d=document.createElement("div");
     d.id="player"+p.id;
     d.className="player "+(p.active?"active":"inactive");
-    d.innerHTML=`<strong>${p.name}</strong><div class="time">${formatTime(p.active?p.seconds:p.secondsOut)}</div><div class="last">${!p.active&&p.lastRotation>0?"Última rotação: "+formatTime(p.lastRotation):""}</div>`;
+    const displaySec = p.active ? p.rotationTime : p.rotationOutTime; // rotação atual OU tempo fora atual
+    d.innerHTML=`<strong>${p.name}</strong>
+                 <div class="time">${formatTime(displaySec)}</div>
+                 <div class="last">${!p.active&&p.lastRotation>0?"Últ. rotação: "+formatTime(p.lastRotation):""}</div>`;
     d.onclick=()=>togglePlayer(p.id);
     pDiv.appendChild(d);
   });
 }
-
 function updatePlayersUI(){
   players.forEach(p=>{
     const d=document.getElementById("player"+p.id);
-    if(!d)return;
+    if(!d) return;
     d.className="player "+(p.active?"active":"inactive");
-    d.querySelector(".time").textContent=formatTime(p.active?p.seconds:p.secondsOut);
-    d.querySelector(".last").textContent=!p.active&&p.lastRotation>0?"Última rotação: "+formatTime(p.lastRotation):"";
-    d.querySelector("strong").textContent=p.name;
+    const displaySec = p.active ? p.rotationTime : p.rotationOutTime;
+    d.querySelector(".time").textContent = formatTime(displaySec);
+    d.querySelector(".last").textContent = (!p.active && p.lastRotation>0) ? ("Últ. rotação: "+formatTime(p.lastRotation)) : "";
+    d.querySelector("strong").textContent = p.name;
   });
 }
 
+/* ===== LIMITE/CONTAGEM DE JOGADORES (sem perder estado) ===== */
 function ensurePlayerCount(n){
-  while(players.length<n){
-    const id=players.length?Math.max(...players.map(x=>x.id))+1:1;
-    players.push({id,name:"Jogador "+id,active:false,seconds:0,secondsOut:0,part1:0,part2:0,rotations:0,lastRotation:0,startTime:0});
+  while(players.length < n){
+    const id = players.length ? Math.max(...players.map(x=>x.id))+1 : 1;
+    players.push({
+      ...PLAYER_DEFAULTS,
+      id, name:"Jogador "+id
+    });
   }
-  while(players.length>n)players.pop();
-  buildPlayersDOM();updatePlayersUI();updateSummary();saveData();
+  while(players.length > n){ players.pop(); }
+  buildPlayersDOM(); updatePlayersUI(); updateSummary(); saveData();
 }
 
+/* ===== TABELA ===== */
 function updateSummary(){
-  const tb=document.getElementById("summaryBody");tb.innerHTML="";
+  const tb=document.getElementById("summaryBody"); tb.innerHTML="";
   players.forEach(p=>{
     const total=p.part1+p.part2;
-    const avg=p.rotations>0?Math.floor(total/p.rotations):0;
+    const avg=p.rotations>0 ? Math.floor(total/p.rotations) : 0;
     const percent=((total/(duration*(firstHalf?1:2)))*100).toFixed(1);
     const workload=p.seconds-p.secondsOut;
     const cls=workload>=0?"work-pos":"work-neg";
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${p.name}</td><td>${formatTime(p.seconds)}</td><td>${formatTime(p.secondsOut)}</td><td>${p.rotations}</td><td>${formatTime(avg)}</td><td>${percent}%</td><td class="${cls}">${workload>=0?"+":""}${(workload/60).toFixed(1)}m</td>`;
+    tr.innerHTML=`<td>${p.name}</td>
+      <td>${formatTime(p.seconds)}</td>
+      <td>${formatTime(p.secondsOut)}</td>
+      <td>${p.rotations}</td>
+      <td>${formatTime(avg)}</td>
+      <td>${percent}%</td>
+      <td class="${cls}">${workload>=0?"+":""}${(workload/60).toFixed(1)}m</td>`;
     tb.appendChild(tr);
   });
 }
 
+/* ===== CRONÓMETRO (conta rotação atual ou tempo fora atual) ===== */
 function tick(){
-  const now=Date.now();if(_lastTick===null)_lastTick=now;
+  const now=Date.now(); if(_lastTick===null)_lastTick=now;
   const delta=Math.max(0,Math.floor((now-_lastTick)/1000));
   if(delta>0){
     remaining=Math.max(0,remaining-delta);
     for(let i=0;i<delta;i++){
       players.forEach(p=>{
-        if(p.active){p.seconds++;if(firstHalf)p.part1++;else p.part2++;}
-        else p.secondsOut++;
+        if(p.active){
+          p.seconds++;                // total em campo (tabela)
+          p.rotationTime++;           // rotação atual (caixa)
+          if(firstHalf) p.part1++; else p.part2++;
+        }else{
+          p.secondsOut++;             // total fora (tabela)
+          p.rotationOutTime++;        // fora atual (caixa)
+        }
       });
     }
-    _lastTick=now;updateTimerDisplay();updatePlayersUI();updateSummary();saveData();
-    if(remaining<=0)pauseTimer();
+    _lastTick=now;
+    updateTimerDisplay(); updatePlayersUI(); updateSummary(); saveData();
+    if(remaining<=0) pauseTimer();
   }
 }
-
-function startTimer(){if(running)return;running=true;_lastTick=Date.now();clearInterval(timerInterval);timerInterval=setInterval(tick,250);saveData();}
-function pauseTimer(){running=false;clearInterval(timerInterval);saveData();}
+function startTimer(){ if(running) return; running=true; _lastTick=Date.now(); clearInterval(timerInterval); timerInterval=setInterval(tick,250); saveData(); }
+function pauseTimer(){ running=false; clearInterval(timerInterval); saveData(); }
 function resetTimer(){
   pauseTimer();
   const m=parseInt(document.getElementById("setMinutes").value)||20;
-  duration=m*60;remaining=duration;firstHalf=true;
-  players.forEach(p=>{p.seconds=0;p.secondsOut=0;p.part1=0;p.part2=0;p.rotations=0;p.lastRotation=0;});
-  updateTimerDisplay();updatePlayersUI();updateSummary();saveData();
+  duration=m*60; remaining=duration; firstHalf=true;
+  players.forEach(p=>{
+    p.seconds=0; p.secondsOut=0; p.part1=0; p.part2=0; p.rotations=0; p.lastRotation=0;
+    p.rotationTime=0; p.rotationOutTime=0;
+  });
+  updateTimerDisplay(); updatePlayersUI(); updateSummary(); saveData();
 }
 function intervalTimer(){
-  pauseTimer();firstHalf=false;
+  pauseTimer(); firstHalf=false;
   remaining=(parseInt(document.getElementById("setMinutes").value)||20)*60;
-  updateTimerDisplay();saveData();
+  updateTimerDisplay(); saveData();
 }
 
+/* ===== INTERAÇÃO JOGADOR ===== */
 function togglePlayer(id){
-  const p=players.find(x=>x.id===id);if(!p)return;
+  const p=players.find(x=>x.id===id); if(!p) return;
   p.active=!p.active;
-  if(p.active){p.startTime=Date.now();p.rotations++;}
-  else{p.lastRotation=Math.max(0,Math.floor((Date.now()-(p.startTime||Date.now()))/1000));}
-  updatePlayersUI();updateSummary();saveData();
+  if(p.active){
+    // Entrou: nova rotação
+    p.rotations++;
+    p.startTime=Date.now();
+    p.rotationTime=0;      // começa do zero a rotação atual
+    p.rotationOutTime=0;   // para contagem do tempo fora
+  }else{
+    // Saiu: fecha rotação e começa a contar tempo fora atual
+    p.lastRotation=p.rotationTime;
+    p.rotationTime=0;
+    p.rotationOutTime=0;   // conta do zero o tempo fora
+  }
+  updatePlayersUI(); updateSummary(); saveData();
 }
 
+/* ===== PERSISTÊNCIA ===== */
 function saveData(){
-  const data={teamA:teamA.value||"",teamB:teamB.value||"",duration,remaining,firstHalf,running,theme,players,lastSaved:Date.now()};
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  const data = {
+    teamA: teamA.value||"",
+    teamB: teamB.value||"",
+    duration, remaining, firstHalf, running, theme,
+    players,               // inclui rotationTime e rotationOutTime
+    lastSaved: Date.now()
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 function loadData(){
   const raw=localStorage.getItem(STORAGE_KEY);
-  if(!raw){players=[];ensurePlayerCount(14);updateTimerDisplay();updateSummary();return;}
+  if(!raw){
+    players=[]; ensurePlayerCount(14); updateTimerDisplay(); updateSummary(); return;
+  }
   const d=JSON.parse(raw);
-  teamA.value=d.teamA||"";teamB.value=d.teamB||"";
-  duration=d.duration||duration;remaining=d.remaining||remaining;firstHalf=d.firstHalf||firstHalf;
-  running=!!d.running;theme=d.theme||theme;players=d.players||[];
-  const lastSaved=d.lastSaved||Date.now();
-  if(running){const e=Math.max(0,Math.floor((Date.now()-lastSaved)/1000));
-    if(e>0){remaining=Math.max(0,remaining-e);
-      players.forEach(p=>{if(p.active){p.seconds+=e;if(firstHalf)p.part1+=e;else p.part2+=e;}else p.secondsOut+=e;});
+  teamA.value=d.teamA||""; teamB.value=d.teamB||"";
+  duration  = typeof d.duration  === "number" ? d.duration  : duration;
+  remaining = typeof d.remaining === "number" ? d.remaining : remaining;
+  firstHalf = typeof d.firstHalf === "boolean" ? d.firstHalf : firstHalf;
+  running   = !!d.running;
+  theme     = d.theme || theme;
+
+  // Normaliza jogadores com novos campos sem perder dados
+  players = (Array.isArray(d.players)?d.players:[]).map((p,i)=>({
+    ...PLAYER_DEFAULTS,
+    id: p.id ?? (i+1),
+    name: p.name || `Jogador ${p.id ?? (i+1)}`,
+    ...p
+  }));
+
+  const lastSaved = typeof d.lastSaved === "number" ? d.lastSaved : Date.now();
+  if(running){
+    const e=Math.max(0,Math.floor((Date.now()-lastSaved)/1000));
+    if(e>0){
+      remaining=Math.max(0,remaining-e);
+      players.forEach(p=>{
+        if(p.active){
+          p.seconds+=e; p.rotationTime+=e;
+          if(firstHalf) p.part1+=e; else p.part2+=e;
+        }else{
+          p.secondsOut+=e; p.rotationOutTime+=e;
+        }
+      });
     }
   }
-  if(players.length===0)ensurePlayerCount(14);else buildPlayersDOM();
-  updatePlayersUI();updateSummary();updateTimerDisplay();
-  if(running&&remaining>0)startTimer();
-}
-window.addEventListener("beforeunload",saveData);
-setInterval(saveData,3000);
 
+  if(players.length===0) ensurePlayerCount(14); else buildPlayersDOM();
+  updatePlayersUI(); updateSummary(); updateTimerDisplay();
+  if(running && remaining>0) startTimer();
+}
+window.addEventListener("beforeunload", saveData);
+setInterval(saveData, 3000);
+
+/* ===== PRINT / TEMA / FULLSCREEN ===== */
 function printScreen(){
   const h=`<h2 style="text-align:center;">${teamA.value} vs ${teamB.value}</h2>`;
   const t=document.querySelector(".summary").outerHTML;
   const w=window.open("","_blank","width=900,height=700");
-  w.document.write(`<html><head><title>Game Control</title></head><body style="background:#fff;color:#000">${h}${t}</body></html>`);w.document.close();w.print();
+  w.document.write(`<html><head><title>Game Control</title></head><body style="background:#fff;color:#000">${h}${t}</body></html>`);
+  w.document.close(); w.print();
 }
 function toggleTheme(){
   const btn=themeToggle;
@@ -279,12 +370,14 @@ function toggleTheme(){
   saveData();
 }
 
-const editPanel=document.getElementById("editPanel"),editList=document.getElementById("editList");
+/* ===== PAINEL DE NOMES ===== */
+const editPanel=document.getElementById("editPanel"), editList=document.getElementById("editList");
 editNamesBtn.onclick=()=>{
   editList.innerHTML="";
   players.forEach(p=>{
     const row=document.createElement("div");
-    row.innerHTML=`<label style="font-size:14px;display:block;text-align:left;margin:4px 0">${p.id}. <input type="text" id="nameEdit${p.id}" value="${p.name}"></label>`;
+    row.innerHTML=`<label style="font-size:14px;display:block;text-align:left;margin:4px 0">
+      ${p.id}. <input type="text" id="nameEdit${p.id}" value="${p.name}"></label>`;
     editList.appendChild(row);
   });
   editPanel.classList.add("open");
@@ -293,12 +386,13 @@ closePanel.onclick=()=>editPanel.classList.remove("open");
 saveNamesBtn.onclick=()=>{
   players.forEach(p=>{
     const v=document.getElementById("nameEdit"+p.id).value.trim();
-    if(v)p.name=v;
+    if(v) p.name=v;
   });
   editPanel.classList.remove("open");
-  updatePlayersUI();updateSummary();saveData();
+  updatePlayersUI(); updateSummary(); saveData();
 };
 
+/* ===== BOTÕES ===== */
 startBtn.onclick=startTimer;
 pauseBtn.onclick=pauseTimer;
 resetBtn.onclick=resetTimer;
@@ -309,6 +403,7 @@ printBtn.onclick=printScreen;
 themeToggle.onclick=toggleTheme;
 fullscreenBtn.onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();};
 
+/* ===== START ===== */
 updateTimerDisplay();
 loadData();
 </script>
