@@ -142,6 +142,32 @@
   .hist-item .meta{font-size:12px;opacity:.9}
   .hist-actions{display:flex;gap:6px;margin-top:6px}
   .hist-actions button{padding:6px 8px;border:none;border-radius:6px;background:#444;color:#fff;cursor:pointer;font-size:12px}
+
+  /* ===== TIMELINE ===== */
+  #timelineBar{
+    position:fixed; left:0; right:0; bottom:0;
+    background:#222; border-top:1px solid #333; z-index:900;
+    padding:8px 10px; box-shadow:0 -6px 16px rgba(0,0,0,.25);
+  }
+  #timelineBar .tl-actions{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-bottom:6px; }
+  #timelineBar .tl-btn{ background:#3a3a3a; color:#fff; border:none; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:13px }
+  #timelineBar #tlClear{ background:#a33; color:#fff; border:none; border-radius:8px; padding:6px 10px; cursor:pointer; }
+  #timelineFeed{ max-height:120px; overflow:auto; display:flex; gap:8px; flex-wrap:wrap; justify-content:center }
+  .tl-chip{
+    background:#2b2b2b; border:1px solid #444; color:#eee;
+    padding:4px 8px; border-radius:999px; font-size:12px; white-space:nowrap
+  }
+  .tl-gf{ border-color:rgba(46,204,113,.5); color:#2ecc71; }
+  .tl-ga{ border-color:rgba(231,76,60,.6); color:#e74c3c; }
+  .tl-fk{ border-color:rgba(241,196,15,.5); color:#f1c40f; }
+  .tl-yc{ border-color:rgba(241,196,15,.5); color:#f1c40f; }
+  .tl-rc{ border-color:rgba(231,76,60,.6); color:#e74c3c; }
+  .tl-to{ border-color:rgba(52,152,219,.6); color:#3498db; }
+
+  .light-mode #timelineBar{ background:#fafafa; border-top:1px solid #e5e5e5 }
+  .light-mode .tl-btn{ background:#e9e9e9; color:#111 }
+  .light-mode #tlClear{ background:#d9534f }
+  .light-mode .tl-chip{ background:#fff; border-color:#ddd; color:#333 }
 </style>
 </head>
 <body>
@@ -219,6 +245,26 @@
   </div>
 </div>
 
+<!-- TIMELINE -->
+<div id="timelineBar">
+  <div class="tl-actions">
+    <button class="tl-btn" data-type="GF_A" title="Golo Equipa A">⚽ A+</button>
+    <button class="tl-btn" data-type="GF_B" title="Golo Equipa B">⚽ B+</button>
+    <button class="tl-btn" data-type="GA_A" title="Golo Sofrido A">⚽ A−</button>
+    <button class="tl-btn" data-type="GA_B" title="Golo Sofrido B">⚽ B−</button>
+    <button class="tl-btn" data-type="FK_A" title="Falta A">🛑 A</button>
+    <button class="tl-btn" data-type="FK_B" title="Falta B">🛑 B</button>
+    <button class="tl-btn" data-type="YC_A" title="Amarelo A">🟨 A</button>
+    <button class="tl-btn" data-type="YC_B" title="Amarelo B">🟨 B</button>
+    <button class="tl-btn" data-type="RC_A" title="Vermelho A">🟥 A</button>
+    <button class="tl-btn" data-type="RC_B" title="Vermelho B">🟥 B</button>
+    <button class="tl-btn" data-type="TO_A" title="Time-out A">⏱️ A</button>
+    <button class="tl-btn" data-type="TO_B" title="Time-out B">⏱️ B</button>
+    <button id="tlClear" title="Limpar timeline">🧹</button>
+  </div>
+  <div id="timelineFeed"></div>
+</div>
+
 <script>
 /* ===== ESTADO ===== */
 let duration = 20*60;
@@ -231,6 +277,10 @@ let timerInterval = null;
 let _lastTick = null;
 const STORAGE_KEY = "gameControlData_gcStable";
 const HISTORY_KEY = "gameControlHistory_v1";
+
+/* Timeline */
+const TL_KEY = "gameControlTimeline_v1";
+let timeline = []; // {t, clock, type, activeIds:[...], activeNames:[...]}
 
 /* Fadiga: jogadores de campo (GR sem fadiga visual) */
 const FATIGUE_K_UP = 0.012;     // por segundo (campo) – a subir
@@ -249,7 +299,8 @@ const PLAYER_DEFAULTS = {
   startTime: 0,
   rotationTime: 0,   // tempo da rotação atual (em campo)
   rotationOutTime: 0,// tempo fora atual
-  fatigue: 0         // 0..1 (não usado se isGK=true)
+  fatigue: 0,        // 0..1 (não usado se isGK=true)
+  plusMinus: 0       // saldo de golos quando estava em campo (usado na timeline, não mostrado na tabela)
 };
 
 /* ===== UTIL ===== */
@@ -257,13 +308,11 @@ const pad = n => String(n).padStart(2,"0");
 function formatTime(sec){sec=Math.max(0,Math.floor(sec));return `${pad(Math.floor(sec/60))}:${pad(sec%60)}`;}
 function updateTimerDisplay(){document.getElementById("timer").textContent = formatTime(remaining);}
 function updateHalfBadge(){document.getElementById("halfBadge").textContent = firstHalf ? "1ª Parte" : "2ª Parte";}
-
-/* Cor da fadiga (campo apenas) */
 function fatigueColor(p){
   if(p.active){
-    if(p.rotationTime >= RED_THRESHOLD_SEC) return "#e74c3c";    // vermelho
-    if(p.rotationTime >= YELLOW_THRESHOLD_SEC) return "#e6b800"; // amarelo
-    return "#2ecc71";                                            // verde
+    if(p.rotationTime >= RED_THRESHOLD_SEC) return "#e74c3c";
+    if(p.rotationTime >= YELLOW_THRESHOLD_SEC) return "#e6b800";
+    return "#2ecc71";
   }else{
     if(p.fatigue >= 0.66) return "#e74c3c";
     if(p.fatigue >= 0.33) return "#e6b800";
@@ -336,6 +385,13 @@ function ensurePlayerCount(n){
   while(players.length > n){ players.pop(); }
   buildPlayersDOM(); updatePlayersUI(); updateSummary(); saveData();
 }
+function activeCount(){ return players.reduce((n,p)=> n + (p.active?1:0), 0); }
+function flashLimit(id){
+  const d = document.getElementById("player"+id);
+  if(!d) return;
+  d.classList.add("limit");
+  setTimeout(()=>d.classList.remove("limit"), 600);
+}
 
 /* ===== TABELA ===== */
 function updateSummary(){
@@ -363,15 +419,6 @@ function updateSummary(){
     `;
     tb.appendChild(tr);
   });
-}
-
-/* ===== CONTAGEM ATIVOS (máx 5) ===== */
-function activeCount(){ return players.reduce((n,p)=> n + (p.active?1:0), 0); }
-function flashLimit(id){
-  const d = document.getElementById("player"+id);
-  if(!d) return;
-  d.classList.add("limit");
-  setTimeout(()=>d.classList.remove("limit"), 600);
 }
 
 /* ===== CRONÓMETRO ===== */
@@ -411,7 +458,9 @@ function resetTimer(){
   players.forEach(p=>{
     p.seconds=0; p.secondsOut=0; p.part1=0; p.part2=0; p.rotations=0; p.lastRotation=0;
     p.rotationTime=0; p.rotationOutTime=0; if(!p.isGK) p.fatigue=0;
+    p.plusMinus=0;
   });
+  timeline = []; tlSave(); tlRender();
   updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
 }
 
@@ -426,7 +475,7 @@ function intervalTimer() {
   players.forEach(p => {
     p.rotationTime = 0;
     p.rotationOutTime = 0;
-    if(!p.isGK) p.fatigue = Math.max(0, p.fatigue * 0.30); // recuperação forte no intervalo
+    if(!p.isGK) p.fatigue = Math.max(0, p.fatigue * 0.30);
   });
 
   updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
@@ -453,10 +502,11 @@ function saveData(){
     players, lastSaved: Date.now()
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  tlSave();
 }
 function loadData(){
   const raw=localStorage.getItem(STORAGE_KEY);
-  if(!raw){ players=[]; ensurePlayerCount(14); updateTimerDisplay(); updateHalfBadge(); updateSummary(); return; }
+  if(!raw){ players=[]; ensurePlayerCount(14); updateTimerDisplay(); updateHalfBadge(); updateSummary(); tlLoad(); return; }
   const d=JSON.parse(raw);
   teamA.value=d.teamA||""; teamB.value=d.teamB||"";
   duration  = typeof d.duration  === "number" ? d.duration  : duration;
@@ -497,6 +547,8 @@ function loadData(){
   if(players.length===0) ensurePlayerCount(14); else buildPlayersDOM();
   updatePlayersUI(); updateSummary(); updateTimerDisplay(); updateHalfBadge();
   if(running && remaining>0) startTimer();
+
+  tlLoad();
 }
 window.addEventListener("beforeunload", saveData);
 setInterval(saveData, 3000);
@@ -514,8 +566,10 @@ function saveGameToHistory(){
       id:p.id, name:p.name, isGK: !!p.isGK,
       seconds:p.seconds, secondsOut:p.secondsOut,
       rotations:p.rotations, part1:p.part1, part2:p.part2,
-      workload:p.seconds - p.secondsOut
-    }))
+      workload:p.seconds - p.secondsOut,
+      plusMinus:p.plusMinus||0
+    })),
+    events: timeline.slice(0, 300) // guarda últimos 300 eventos
   };
   const hist=getHistory(); hist.unshift(snapshot); setHistory(hist);
   renderHistoryList();
@@ -546,7 +600,7 @@ function deleteHistoryItem(i){ const hist=getHistory(); hist.splice(i,1); setHis
 function clearHistory(){ setHistory([]); renderHistoryList(); }
 function exportCsv(index){
   const h=getHistory()[index]; if(!h) return;
-  const rows=[["Jogador","GR","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"]];
+  const rows=[["Jogador","GR","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload","+/-","Eventos"]];
   h.totals.forEach(t=>{
     const total = t.part1 + t.part2;
     const avg = t.rotations > 0 ? Math.floor(total / t.rotations) : 0;
@@ -556,7 +610,8 @@ function exportCsv(index){
       formatTime(t.part1), formatTime(t.part2),
       formatTime(total), formatTime(t.secondsOut),
       t.rotations, formatTime(avg), percent,
-      (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m"
+      (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m",
+      t.plusMinus
     ]);
   });
   const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
@@ -697,8 +752,72 @@ saveNamesBtn.onclick=()=>{
     if(p.isGK){ p.fatigue=0; }
   });
   editPanel.classList.remove("open");
-  buildPlayersDOM(); // recria DOM p/ adicionar/remover barra consoante isGK
+  buildPlayersDOM();
   updatePlayersUI(); updateSummary(); saveData();
+};
+
+/* ===== TIMELINE ===== */
+function tlSave(){ localStorage.setItem(TL_KEY, JSON.stringify(timeline)); }
+function tlLoad(){
+  timeline = JSON.parse(localStorage.getItem(TL_KEY) || "[]");
+  tlRender();
+}
+function gameClockString(){ return formatTime(remaining); }
+function tlLabel(type){
+  const map = {
+    GF_A: "Golo A", GF_B: "Golo B",
+    GA_A: "Golo Sofrido A", GA_B: "Golo Sofrido B",
+    FK_A: "Falta A", FK_B: "Falta B",
+    YC_A: "Amarelo A", YC_B: "Amarelo B",
+    RC_A: "Vermelho A", RC_B: "Vermelho B",
+    TO_A: "Time-out A", TO_B: "Time-out B",
+  }; return map[type] || type;
+}
+function tlClass(type){
+  if(type==="GF_A"||type==="GF_B") return "tl-gf";
+  if(type==="GA_A"||type==="GA_B") return "tl-ga";
+  if(type.startsWith("FK_")) return "tl-fk";
+  if(type.startsWith("YC_")) return "tl-yc";
+  if(type.startsWith("RC_")) return "tl-rc";
+  if(type.startsWith("TO_")) return "tl-to";
+  return "";
+}
+function tlAdd(type){
+  // captura jogadores ativos no momento (para golos/qualquer evento)
+  const active = players.filter(p=>p.active).map(p=>({id:p.id, name:p.name, isGK:!!p.isGK}));
+  const ev = { t: Date.now(), clock: gameClockString(), type, activeIds: active.map(a=>a.id), activeNames: active.map(a=>a.name + (a.isGK?' 🧤':'')) };
+
+  // Atualiza +/- se for golo a favor/contra da Equipa A (podes ajustar à tua lógica)
+  if(type==="GF_A"){ players.forEach(p=>{ if(p.active) p.plusMinus = (p.plusMinus||0) + 1; }); }
+  if(type==="GA_A"){ players.forEach(p=>{ if(p.active) p.plusMinus = (p.plusMinus||0) - 1; }); }
+  // Para Equipa B, se quiseres também somar/subtrair, adapta aqui:
+  // if(type==="GF_B"){ ... } if(type==="GA_B"){ ... }
+
+  timeline.unshift(ev);
+  tlSave(); tlRender();
+  saveData();
+}
+function tlRender(){
+  const feed = document.getElementById("timelineFeed");
+  if(!feed) return;
+  feed.innerHTML = "";
+  timeline.forEach(ev=>{
+    const chip = document.createElement("div");
+    chip.className = "tl-chip " + tlClass(ev.type);
+    chip.textContent = `${ev.clock} • ${tlLabel(ev.type)}`;
+    if(ev.activeNames && ev.activeNames.length){
+      chip.title = "Em campo: " + ev.activeNames.join(", ");
+      chip.onclick = ()=> alert(`${tlLabel(ev.type)} @ ${ev.clock}\n\nEm campo:\n- ${ev.activeNames.join("\n- ")}`);
+    }
+    feed.appendChild(chip);
+  });
+}
+// Liga botões
+document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=> tlAdd(btn.dataset.type));
+});
+document.getElementById("tlClear").onclick = ()=>{
+  if(confirm("Limpar timeline?")){ timeline = []; tlSave(); tlRender(); }
 };
 
 /* ===== HISTÓRICO UI ===== */
@@ -709,7 +828,7 @@ document.getElementById("saveGameBtn").onclick=saveGameToHistory;
 document.getElementById("clearHistoryBtn").onclick=clearHistory;
 document.getElementById("exportAllCsvBtn").onclick=()=>{
   const hist=getHistory(); if(hist.length===0) return;
-  let csv="Data,EquipaA,EquipaB,Jogador,GR,1aParte,2aParte,Total,TempoFora,Rotacoes,Media,Percent,Workload\n";
+  let csv="Data,EquipaA,EquipaB,Jogador,GR,1aParte,2aParte,Total,TempoFora,Rotacoes,Media,Percent,Workload,PlusMinus\n";
   hist.forEach(h=>{
     const d=new Date(h.when).toISOString();
     h.totals.forEach(t=>{
@@ -722,7 +841,8 @@ document.getElementById("exportAllCsvBtn").onclick=()=>{
         formatTime(t.part1), formatTime(t.part2),
         formatTime(total), formatTime(t.secondsOut),
         t.rotations, formatTime(avg), percent,
-        (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m"
+        (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m",
+        t.plusMinus||0
       ].join(",") + "\n";
     });
   });
