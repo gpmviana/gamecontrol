@@ -57,6 +57,12 @@
   .player .time{font-size:40px;font-weight:bold;line-height:1}
   .player .last{font-size:12px;opacity:.9;margin-top:6px}
 
+  /* efeito visual quando tenta exceder 5 em campo */
+  .player.limit{
+    outline: 3px solid #ff4d4d;
+    box-shadow: 0 0 0 3px rgba(255,77,77,0.35);
+  }
+
   @media (max-width:1200px){#players{grid-template-columns:repeat(4,minmax(0,1fr));}}
   @media (max-width:900px){#players{grid-template-columns:repeat(3,minmax(0,1fr));}}
   @media (max-width:600px){#players{grid-template-columns:repeat(2,minmax(0,1fr));}}
@@ -255,6 +261,17 @@ function updateSummary(){
   });
 }
 
+/* ===== CONTAGEM ATIVOS E FEEDBACK LIMITE ===== */
+function activeCount(){
+  return players.reduce((n,p)=> n + (p.active?1:0), 0);
+}
+function flashLimit(id){
+  const d = document.getElementById("player"+id);
+  if(!d) return;
+  d.classList.add("limit");
+  setTimeout(()=>d.classList.remove("limit"), 600);
+}
+
 /* ===== CRONÓMETRO (conta rotação atual ou tempo fora atual) ===== */
 function tick(){
   const now=Date.now(); if(_lastTick===null)_lastTick=now;
@@ -311,9 +328,16 @@ function intervalTimer() {
   saveData();
 }
 
-/* ===== INTERAÇÃO JOGADOR ===== */
+/* ===== INTERAÇÃO JOGADOR (bloqueio máx 5 ativos) ===== */
 function togglePlayer(id){
   const p=players.find(x=>x.id===id); if(!p) return;
+
+  // se for tentar entrar e já existem 5 ativos, bloqueia
+  if(!p.active && activeCount() >= 5){
+    flashLimit(id);
+    return;
+  }
+
   p.active=!p.active;
   if(p.active){
     p.rotations++;
