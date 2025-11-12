@@ -33,14 +33,21 @@
   .player .time{font-size:40px;font-weight:bold;line-height:1}
   .player .last{font-size:12px;opacity:.9;margin-top:6px}
 
-  /* Badge GR (emoji luva) */
+  /* Badges no cartão */
   .gk-badge{
-    position:absolute;top:8px;left:8px;
-    width:28px;height:28px;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    background:rgba(0,0,0,0.35);backdrop-filter:saturate(120%) blur(2px);
-    font-size:16px;line-height:1
+    position:absolute;top:8px;left:8px;width:28px;height:28px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);
+    backdrop-filter:saturate(120%) blur(2px);font-size:16px;line-height:1
   }
+  .card-badges{
+    position:absolute;top:8px;right:8px;display:flex;gap:6px;align-items:center
+  }
+  .badge-fouls{min-width:22px;height:22px;border-radius:999px;background:#444;color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;padding:0 6px}
+  .badge-yc,.badge-rc{
+    width:16px;height:22px;border-radius:3px;border:1px solid rgba(0,0,0,.35)
+  }
+  .badge-yc{background:#f1c40f}
+  .badge-rc{background:#e74c3c}
 
   /* Barra de fadiga (só jogadores de campo) */
   .fatigue{position:absolute;left:8px;right:8px;bottom:8px;height:8px;border-radius:6px;background:rgba(255,255,255,0.25)}
@@ -49,54 +56,32 @@
   /* feedback quando tenta 6º em campo */
   .player.limit{outline:3px solid #ff4d4d;box-shadow:0 0 0 3px rgba(255,77,77,0.35)}
 
+  /* destaque quando está em modo de selecionar jogador para evento */
+  .selectable{outline:3px dashed #fff; outline-offset:-4px}
+
   @media (max-width:1200px){#players{grid-template-columns:repeat(4,minmax(0,1fr));}}
   @media (max-width:900px){#players{grid-template-columns:repeat(3,minmax(0,1fr));}}
   @media (max-width:600px){#players{grid-template-columns:repeat(2,minmax(0,1fr));}}
 
   /* ——— TABELA | Visual polido ——— */
   .summary{
-    width: 90%;
-    max-width: 1100px;
-    margin: 18px auto;
-    padding: 0;
-    background: #242424;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,.35);
-    overflow: hidden;
+    width:90%;max-width:1100px;margin:18px auto;padding:0;background:#242424;border-radius:12px;
+    box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden
   }
-  .summary h3{
-    margin: 0;
-    padding: 12px 16px;
-    background: #2f2f2f;
-    border-bottom: 1px solid #3a3a3a;
-    text-align: left;
-  }
-  .summary table{width: 100%; border-collapse: separate; border-spacing: 0;}
+  .summary h3{margin:0;padding:12px 16px;background:#2f2f2f;border-bottom:1px solid #3a3a3a;text-align:left}
+  .summary table{width:100%;border-collapse:separate;border-spacing:0}
   .summary thead th{
-    position: sticky; top: 0;
-    background: #303030; z-index: 1;
-    text-transform: uppercase; font-size: 12px; letter-spacing: .4px; color: #ddd;
-    border-bottom: 1px solid #3a3a3a; padding: 10px 12px;
+    position:sticky;top:0;background:#303030;z-index:1;text-transform:uppercase;font-size:12px;letter-spacing:.4px;color:#ddd;
+    border-bottom:1px solid #3a3a3a;padding:10px 12px
   }
-  .summary tbody td{padding: 10px 12px; border-bottom: 1px solid #333;}
-  .summary tbody tr:nth-child(even){ background: rgba(255,255,255,0.03); }
-  .summary tbody tr:hover{ background: rgba(255,255,255,0.06); }
-  .summary td:nth-child(1){ text-align: left; font-weight: 600; }
-  .summary td:nth-child(4),
-  .summary td:nth-child(5),
-  .summary td:nth-child(6),
-  .summary td:nth-child(7){ font-variant-numeric: tabular-nums; }
-
-  /* Pílulas para Workload (+/-) */
-  .pill{
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-  }
-  .pill.work-pos{ color:#2ecc71; background: rgba(46,204,113,.12); border: 1px solid rgba(46,204,113,.35); }
-  .pill.work-neg{ color:#e74c3c; background: rgba(231,76,60,.12); border: 1px solid rgba(231,76,60,.35); }
+  .summary tbody td{padding:10px 12px;border-bottom:1px solid #333}
+  .summary tbody tr:nth-child(even){background:rgba(255,255,255,0.03)}
+  .summary tbody tr:hover{background:rgba(255,255,255,0.06)}
+  .summary td:nth-child(1){text-align:left;font-weight:600}
+  .summary td:nth-child(4),.summary td:nth-child(5),.summary td:nth-child(6),.summary td:nth-child(7){font-variant-numeric:tabular-nums}
+  .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700;font-variant-numeric:tabular-nums}
+  .pill.work-pos{color:#2ecc71;background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.35)}
+  .pill.work-neg{color:#e74c3c;background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.35)}
 
   /* Modo claro */
   .light-mode{background:#f4f4f4;color:#000}
@@ -248,18 +233,15 @@
 <!-- TIMELINE -->
 <div id="timelineBar">
   <div class="tl-actions">
+    <!-- Equipa A: golos -->
     <button class="tl-btn" data-type="GF_A" title="Golo Equipa A">⚽ A+</button>
-    <button class="tl-btn" data-type="GF_B" title="Golo Equipa B">⚽ B+</button>
     <button class="tl-btn" data-type="GA_A" title="Golo Sofrido A">⚽ A−</button>
-    <button class="tl-btn" data-type="GA_B" title="Golo Sofrido B">⚽ B−</button>
-    <button class="tl-btn" data-type="FK_A" title="Falta A">🛑 A</button>
-    <button class="tl-btn" data-type="FK_B" title="Falta B">🛑 B</button>
-    <button class="tl-btn" data-type="YC_A" title="Amarelo A">🟨 A</button>
-    <button class="tl-btn" data-type="YC_B" title="Amarelo B">🟨 B</button>
-    <button class="tl-btn" data-type="RC_A" title="Vermelho A">🟥 A</button>
-    <button class="tl-btn" data-type="RC_B" title="Vermelho B">🟥 B</button>
+    <!-- Eventos por jogador (selecionar e depois tocar no jogador) -->
+    <button class="tl-btn tl-player" data-type="FK_P" title="Falta (seleciona jogador)">❌ Falta</button>
+    <button class="tl-btn tl-player" data-type="YC_P" title="Amarelo (seleciona jogador)">🟨 Amarelo</button>
+    <button class="tl-btn tl-player" data-type="RC_P" title="Vermelho (seleciona jogador)">🟥 Vermelho</button>
+    <!-- Time-out Equipa A -->
     <button class="tl-btn" data-type="TO_A" title="Time-out A">⏱️ A</button>
-    <button class="tl-btn" data-type="TO_B" title="Time-out B">⏱️ B</button>
     <button id="tlClear" title="Limpar timeline">🧹</button>
   </div>
   <div id="timelineFeed"></div>
@@ -280,7 +262,10 @@ const HISTORY_KEY = "gameControlHistory_v1";
 
 /* Timeline */
 const TL_KEY = "gameControlTimeline_v1";
-let timeline = []; // {t, clock, type, activeIds:[...], activeNames:[...]}
+let timeline = []; // {t, clock, type, activeIds:[...], playerId?}
+
+/* Seleção de evento por jogador */
+let pendingPlayerEvent = null; // "FK_P" | "YC_P" | "RC_P"
 
 /* Fadiga: jogadores de campo (GR sem fadiga visual) */
 const FATIGUE_K_UP = 0.012;     // por segundo (campo) – a subir
@@ -300,7 +285,10 @@ const PLAYER_DEFAULTS = {
   rotationTime: 0,   // tempo da rotação atual (em campo)
   rotationOutTime: 0,// tempo fora atual
   fatigue: 0,        // 0..1 (não usado se isGK=true)
-  plusMinus: 0       // saldo de golos quando estava em campo (usado na timeline, não mostrado na tabela)
+  plusMinus: 0,      // saldo golos quando estava em campo
+  fouls: 0,          // faltas pessoais
+  yc: false,         // amarelo
+  rc: false          // vermelho
 };
 
 /* ===== UTIL ===== */
@@ -334,12 +322,17 @@ function buildPlayersDOM(){
     const fatigueBar = p.isGK ? '' :
       `<div class="fatigue"><div class="fatigue-fill" id="fatigue${p.id}" style="width:0%"></div></div>`;
 
+    const ycEl = p.yc ? '<span class="badge-yc" title="Amarelo"></span>' : '';
+    const rcEl = p.rc ? '<span class="badge-rc" title="Vermelho"></span>' : '';
+    const foulEl = p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : '';
+
     d.innerHTML=`${gkBadge}
+                 <div class="card-badges">${foulEl}${ycEl}${rcEl}</div>
                  <strong>${p.name}</strong>
                  <div class="time">${formatTime(displaySec)}</div>
                  <div class="last">${!p.active&&p.lastRotation>0?"Últ. rotação: "+formatTime(p.lastRotation):""}</div>
                  ${fatigueBar}`;
-    d.onclick=()=>togglePlayer(p.id);
+    d.onclick=()=>onPlayerClick(p.id);
     pDiv.appendChild(d);
   });
 }
@@ -347,11 +340,17 @@ function updatePlayersUI(){
   players.forEach(p=>{
     const d=document.getElementById("player"+p.id);
     if(!d) return;
-    d.className="player "+(p.active?"active":"inactive");
+    d.className="player "+(p.active?"active":"inactive") + (pendingPlayerEvent? " selectable" : "");
     const displaySec = p.active ? p.rotationTime : p.rotationOutTime;
     d.querySelector(".time").textContent = formatTime(displaySec);
     d.querySelector(".last").textContent = (!p.active && p.lastRotation>0) ? ("Últ. rotação: "+formatTime(p.lastRotation)) : "";
     d.querySelector("strong").textContent = p.name;
+
+    // (re)desenhar badges
+    const badges = d.querySelector(".card-badges");
+    badges.innerHTML = (p.fouls>0? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : '')
+                     + (p.yc? '<span class="badge-yc" title="Amarelo"></span>' : '')
+                     + (p.rc? '<span class="badge-rc" title="Vermelho"></span>' : '');
 
     // Badge 🧤
     let badge = d.querySelector(".gk-badge");
@@ -458,7 +457,7 @@ function resetTimer(){
   players.forEach(p=>{
     p.seconds=0; p.secondsOut=0; p.part1=0; p.part2=0; p.rotations=0; p.lastRotation=0;
     p.rotationTime=0; p.rotationOutTime=0; if(!p.isGK) p.fatigue=0;
-    p.plusMinus=0;
+    p.plusMinus=0; p.fouls=0; p.yc=false; p.rc=false;
   });
   timeline = []; tlSave(); tlRender();
   updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
@@ -481,8 +480,15 @@ function intervalTimer() {
   updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
 }
 
-/* ===== INTERAÇÃO JOGADOR (limit 5) ===== */
-function togglePlayer(id){
+/* ===== INTERAÇÃO JOGADOR (limit 5 + eventos) ===== */
+function onPlayerClick(id){
+  if(pendingPlayerEvent){
+    addPlayerEvent(pendingPlayerEvent, id);
+    pendingPlayerEvent = null;
+    updatePlayersUI();
+    return;
+  }
+  // comportamento normal: entrar/sair
   const p=players.find(x=>x.id===id); if(!p) return;
   if(!p.active && activeCount() >= 5){ flashLimit(id); return; }
   p.active=!p.active;
@@ -492,6 +498,23 @@ function togglePlayer(id){
     p.lastRotation=p.rotationTime; p.rotationTime=0; p.rotationOutTime=0;
   }
   updatePlayersUI(); updateSummary(); saveData();
+}
+
+function addPlayerEvent(type, playerId){
+  const p = players.find(x=>x.id===playerId); if(!p) return;
+  // Atualiza estado do jogador
+  if(type==="FK_P") p.fouls++;
+  if(type==="YC_P") p.yc = true;
+  if(type==="RC_P") p.rc = true;
+
+  // Guarda evento (só playerId; o nome é resolvido dinamicamente)
+  timeline.unshift({ t: Date.now(), clock: formatTime(remaining), type, playerId });
+  tlSave(); tlRender(); updatePlayersUI(); saveData();
+}
+
+function setPending(type){
+  pendingPlayerEvent = type; // ativa modo de seleção
+  updatePlayersUI();
 }
 
 /* ===== PERSISTÊNCIA ===== */
@@ -567,7 +590,7 @@ function saveGameToHistory(){
       seconds:p.seconds, secondsOut:p.secondsOut,
       rotations:p.rotations, part1:p.part1, part2:p.part2,
       workload:p.seconds - p.secondsOut,
-      plusMinus:p.plusMinus||0
+      plusMinus:p.plusMinus||0, fouls:p.fouls||0, yc:!!p.yc, rc:!!p.rc
     })),
     events: timeline.slice(0, 300) // guarda últimos 300 eventos
   };
@@ -600,7 +623,7 @@ function deleteHistoryItem(i){ const hist=getHistory(); hist.splice(i,1); setHis
 function clearHistory(){ setHistory([]); renderHistoryList(); }
 function exportCsv(index){
   const h=getHistory()[index]; if(!h) return;
-  const rows=[["Jogador","GR","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload","+/-","Eventos"]];
+  const rows=[["Jogador","GR","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload","+/-","Faltas","YC","RC"]];
   h.totals.forEach(t=>{
     const total = t.part1 + t.part2;
     const avg = t.rotations > 0 ? Math.floor(total / t.rotations) : 0;
@@ -611,7 +634,7 @@ function exportCsv(index){
       formatTime(total), formatTime(t.secondsOut),
       t.rotations, formatTime(avg), percent,
       (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m",
-      t.plusMinus
+      t.plusMinus||0, t.fouls||0, t.yc?"Sim":"Não", t.rc?"Sim":"Não"
     ]);
   });
   const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
@@ -622,8 +645,9 @@ function exportCsv(index){
   a.click();
 }
 
-/* ===== PRINT → PNG (canvas) ===== */
+/* ===== PRINT → PNG (tabela + timeline) ===== */
 function printScreen(){ exportPngFromCurrent(); }
+
 function exportPngFromCurrent(){
   const nameA=(document.getElementById("teamA").value || "Equipa A").trim();
   const nameB=(document.getElementById("teamB").value || "Equipa B").trim();
@@ -640,8 +664,26 @@ function exportPngFromCurrent(){
       String(p.rotations), formatTime(avg), percent, workloadText
     ];
   });
-  renderTablePng(nameA,nameB,headers,rows, `Resumo_${nameA}_vs_${nameB}`);
+
+  // timeline -> linhas de texto, com nomes dinâmicos
+  const events = (timeline || []).map(ev=>{
+    const base = `${ev.clock} • ${tlLabel(ev.type)}`;
+    if(ev.type==="GF_A" || ev.type==="GA_A"){
+      const names = (ev.activeIds||[]).map(id => (players.find(p=>p.id===id)?.name || `#${id}`) + (players.find(p=>p.id===id)?.isGK?' 🧤':''));
+      const extra = names.length ? ` — Em campo: ${names.join(", ")}` : "";
+      return base + extra;
+    }
+    if(ev.type.endsWith("_P")){
+      const p = players.find(x=>x.id===ev.playerId);
+      const nm = p ? p.name + (p.isGK?' 🧤':'') : `#${ev.playerId||'?'}`;
+      return `${ev.clock} • ${tlLabel(ev.type)} — ${nm}`;
+    }
+    return base;
+  });
+
+  renderReportPng(`${nameA} vs ${nameB}`, headers, rows, events, `Resumo_${nameA}_vs_${nameB}`);
 }
+
 function exportPngFromHistory(index){
   const h=getHistory()[index]; if(!h) return;
   const nameA=h.teamA||"Equipa A", nameB=h.teamB||"Equipa B";
@@ -657,64 +699,212 @@ function exportPngFromHistory(index){
       String(t.rotations), formatTime(avg), percent, workloadText
     ];
   });
-  renderTablePng(nameA,nameB,headers,rows, `Resumo_${nameA}_vs_${nameB}`);
+
+  const events = (h.events || []).map(ev=>{
+    const base = `${ev.clock} • ${tlLabel(ev.type)}`;
+    if(ev.type==="GF_A" || ev.type==="GA_A"){
+      const names = (ev.activeIds||[]).map(id => {
+        const t = h.totals.find(x=>x.id===id);
+        return (t ? t.name : `#${id}`) + ((t&&t.isGK)?' 🧤':'');
+      });
+      const extra = names.length ? ` — Em campo: ${names.join(", ")}` : "";
+      return base + extra;
+    }
+    if(ev.type.endsWith("_P")){
+      const t = h.totals.find(x=>x.id===ev.playerId);
+      const nm = t ? t.name + (t.isGK?' 🧤':'') : `#${ev.playerId||'?'}`;
+      return `${ev.clock} • ${tlLabel(ev.type)} — ${nm}`;
+    }
+    return base;
+  });
+
+  renderReportPng(`${nameA} vs ${nameB}`, headers, rows, events, `Resumo_${nameA}_vs_${nameB}`);
 }
-function renderTablePng(nameA,nameB,headers,rows, basename){
-  const title = `${nameA} vs ${nameB}`;
-  const colWidths = headers.map((h,i)=>[280,120,120,150,150,90,100,90,140][i]||120);
+
+function renderReportPng(title, headers, rows, events, basename){
+  // —— Layout base
+  const colWidths = [280,120,120,150,150,90,100,90,140]; // por coluna
   const tableWidth = colWidths.reduce((a,b)=>a+b, 0);
-  const margin=20, titleFont="bold 20px Arial, sans-serif", headFont="bold 14px Arial, sans-serif", rowFont="14px Arial, sans-serif";
-  const rowH=34, headerH=36, titleH=28, innerPad=10;
-  const contentWidth = tableWidth + innerPad*2;
-  const canvasWidth = Math.max(contentWidth + margin*2, 700);
-  const canvasHeight = margin + titleH + 8 + innerPad + headerH + rows.length*rowH + innerPad + margin;
+  const margin=20, innerPad=12;
+  const titleFont="bold 20px Arial, sans-serif";
+  const headFont="bold 14px Arial, sans-serif";
+  const rowFont="14px Arial, sans-serif";
+  const smallFont="13px Arial, sans-serif";
+  const rowH=34, headerH=36, titleH=28;
+
+  // —— Medir altura da tabela
+  const tableCardW = tableWidth + innerPad*2;
+  const tableCardH = innerPad + headerH + rows.length*rowH + innerPad;
+
+  // —— Preparar linhas da Timeline (com word-wrap)
+  const timelineTitleH = 24;
+  const timelineCardW = Math.max(tableCardW, 700);
+  const timelineInnerW = timelineCardW - innerPad*2;
+  const wrapLines = [];
+  const canvasMeasure = document.createElement("canvas").getContext("2d");
+  canvasMeasure.font = smallFont;
+
+  function wrapTextToLines(text, maxWidth, ctx){
+    const words = text.split(" ");
+    let line="", out=[];
+    for(const w of words){
+      const test = line ? line + " " + w : w;
+      if(ctx.measureText(test).width <= maxWidth){
+        line = test;
+      }else{
+        if(line) out.push(line);
+        line = w;
+      }
+    }
+    if(line) out.push(line);
+    return out;
+  }
+
+  const maxEvents = Math.min(events.length, 200);
+  for(let i=0;i<maxEvents;i++){
+    const ev = events[i];
+    const lines = wrapTextToLines(ev, timelineInnerW - 8, canvasMeasure);
+    wrapLines.push(...lines);
+  }
+
+  const lineH = 20;
+  const timelineBodyH = wrapLines.length * lineH;
+  const timelineCardH = innerPad + timelineTitleH + 6 + timelineBodyH + innerPad;
+
+  // —— Altura total do canvas
+  const contentWidth = Math.max(tableCardW, timelineCardW);
+  const canvasWidth = Math.max(contentWidth + margin*2, 900);
+  const totalHeight = margin + titleH + 8
+                    + innerPad + tableCardH + 16
+                    + timelineCardH + margin;
 
   const canvas=document.createElement("canvas");
-  canvas.width=canvasWidth; canvas.height=canvasHeight;
+  canvas.width=canvasWidth; canvas.height=totalHeight;
   const ctx=canvas.getContext("2d");
 
-  ctx.fillStyle="#fff"; ctx.fillRect(0,0,canvasWidth,canvasHeight);
+  // —— Fundo
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,canvasWidth,totalHeight);
+
+  // —— Título
   ctx.fillStyle="#000"; ctx.font=titleFont; ctx.textAlign="center"; ctx.textBaseline="middle";
   ctx.fillText(title, canvasWidth/2, margin + titleH/2);
 
-  const cardX=(canvasWidth - contentWidth)/2, cardY=margin + titleH + 8, cardW=contentWidth, cardH=innerPad + headerH + rows.length*rowH + innerPad;
+  // —— Cartão Tabela
+  let cardX=(canvasWidth - tableCardW)/2, cardY=margin + titleH + 8;
   ctx.fillStyle="#fff"; ctx.strokeStyle="#ccc"; ctx.lineWidth=1;
-  const r=10; ctx.beginPath();
-  ctx.moveTo(cardX + r, cardY); ctx.lineTo(cardX + cardW - r, cardY); ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + r);
-  ctx.lineTo(cardX + cardW, cardY + cardH - r); ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - r, cardY + cardH);
-  ctx.lineTo(cardX + r, cardY + cardH); ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - r);
-  ctx.lineTo(cardX, cardY + r); ctx.quadraticCurveTo(cardX, cardY, cardX + r, cardY); ctx.closePath(); ctx.fill(); ctx.stroke();
+  const r=10;
+  ctx.beginPath();
+  ctx.moveTo(cardX + r, cardY);
+  ctx.lineTo(cardX + tableCardW - r, cardY);
+  ctx.quadraticCurveTo(cardX + tableCardW, cardY, cardX + tableCardW, cardY + r);
+  ctx.lineTo(cardX + tableCardW, cardY + tableCardH - r);
+  ctx.quadraticCurveTo(cardX + tableCardW, cardY + tableCardH, cardX + tableCardW - r, cardY + tableCardH);
+  ctx.lineTo(cardX + r, cardY + tableCardH);
+  ctx.quadraticCurveTo(cardX, cardY + tableCardH, cardX, cardY + tableCardH - r);
+  ctx.lineTo(cardX, cardY + r);
+  ctx.quadraticCurveTo(cardX, cardY, cardX + r, cardY);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
 
+  // —— Cabeçalho da tabela
   let x=cardX + innerPad, y=cardY + innerPad;
   ctx.fillStyle="#eee"; ctx.fillRect(x - 1, y, tableWidth + 2, headerH);
   ctx.fillStyle="#000"; ctx.font=headFont; ctx.textAlign="left"; ctx.textBaseline="middle";
   let colX=x; headers.forEach((h,i)=>{ ctx.fillText(h, colX + 8, y + headerH/2); colX += colWidths[i]; });
 
-  ctx.strokeStyle="#999"; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x + tableWidth, y); ctx.moveTo(x,y + headerH); ctx.lineTo(x + tableWidth, y + headerH); ctx.stroke();
+  // linhas horizontais topo/abaixo do header
+  ctx.strokeStyle="#999"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x + tableWidth, y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x,y + headerH); ctx.lineTo(x + tableWidth, y + headerH); ctx.stroke();
 
+  // —— Linhas da tabela
   ctx.font=rowFont; let rowY=y + headerH;
   for(let rI=0;rI<rows.length;rI++){
     const row=rows[rI];
     ctx.strokeStyle="#ddd"; ctx.beginPath(); ctx.moveTo(x, rowY + rowH); ctx.lineTo(x + tableWidth, rowY + rowH); ctx.stroke();
     let cx=x;
     for(let c=0;c<row.length;c++){
-      const cell=String(row[c] ?? ""); const maxW = colWidths[c] - 14;
+      const cell=String(row[c] ?? "");
+      const maxW = colWidths[c] - 14;
       ctx.fillStyle="#000"; ctx.textAlign="left"; ctx.textBaseline="middle";
       ctx.save(); let text=cell;
       while(ctx.measureText(text).width > maxW){ if(text.length<=1) break; text = text.slice(0,-1); }
       if(text !== cell) text = text.slice(0,-1) + "…";
       ctx.fillText(text, cx + 7, rowY + rowH/2); ctx.restore();
-      ctx.strokeStyle="#ddd"; ctx.beginPath(); ctx.moveTo(cx, rowY); ctx.lineTo(cx, rowY + rowH); ctx.stroke();
+      // linhas verticais
+      ctx.strokeStyle="#eee"; ctx.beginPath(); ctx.moveTo(cx, rowY); ctx.lineTo(cx, rowY + rowH); ctx.stroke();
       cx += colWidths[c];
     }
     ctx.beginPath(); ctx.moveTo(x + tableWidth, rowY); ctx.lineTo(x + tableWidth, rowY + rowH); ctx.stroke();
     rowY += rowH;
   }
+  // moldura exterior
   ctx.strokeStyle="#999"; ctx.lineWidth=1; ctx.strokeRect(x - 1, y, tableWidth + 2, headerH + rows.length*rowH);
 
+  // —— Cartão Timeline (abaixo da tabela)
+  const timelineTitleH = 24;
+  const tlCardX = (canvasWidth - Math.max(tableCardW, 700))/2;
+  const tlCardW = Math.max(tableCardW, 700);
+  const tlCardY = cardY + tableCardH + 16;
+  // medir altura já calculada acima: usamos wrapLines
+  const canvasMeasure2 = document.createElement("canvas").getContext("2d");
+  canvasMeasure2.font = smallFont;
+  const wrapLines = [];
+  const timelineInnerW = tlCardW - innerPad*2;
+  function wrapTextToLines2(text){ // rewrap com o novo W
+    const words = text.split(" ");
+    let line="", out=[];
+    for(const w of words){
+      const test = line ? line + " " + w : w;
+      if(canvasMeasure2.measureText(test).width <= timelineInnerW - 8){ line = test; }
+      else { if(line) out.push(line); line = w; }
+    }
+    if(line) out.push(line);
+    return out;
+  }
+  const maxEvents = Math.min(events.length, 200);
+  for(let i=0;i<maxEvents;i++){ wrapLines.push(...wrapTextToLines2(events[i])); }
+  const lineH = 20;
+  const tlBodyH = wrapLines.length * lineH;
+  const tlCardH = innerPad + timelineTitleH + 6 + tlBodyH + innerPad;
+
+  // cartão
+  ctx.fillStyle="#fff"; ctx.strokeStyle="#ccc"; ctx.lineWidth=1;
+  const r2=10;
+  ctx.beginPath();
+  ctx.moveTo(tlCardX + r2, tlCardY);
+  ctx.lineTo(tlCardX + tlCardW - r2, tlCardY);
+  ctx.quadraticCurveTo(tlCardX + tlCardW, tlCardY, tlCardX + tlCardW, tlCardY + r2);
+  ctx.lineTo(tlCardX + tlCardW, tlCardY + tlCardH - r2);
+  ctx.quadraticCurveTo(tlCardX + tlCardW, tlCardY + tlCardH, tlCardX + tlCardW - r2, tlCardY + tlCardH);
+  ctx.lineTo(tlCardX + r2, tlCardY + tlCardH);
+  ctx.quadraticCurveTo(tlCardX, tlCardY + tlCardH, tlCardX, tlCardY + tlCardH - r2);
+  ctx.lineTo(tlCardX, tlCardY + r2);
+  ctx.quadraticCurveTo(tlCardX, tlCardY, tlCardX + r2, tlCardY);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // título "Timeline"
+  let tx = tlCardX + innerPad, ty = tlCardY + innerPad;
+  ctx.font = headFont; ctx.fillStyle="#000"; ctx.textAlign="left"; ctx.textBaseline="middle";
+  ctx.fillText("Timeline", tx, ty + timelineTitleH/2);
+
+  // linhas dos eventos
+  ctx.font = smallFont; ctx.fillStyle="#000";
+  let lineY = ty + timelineTitleH + 6;
+  if(wrapLines.length === 0){
+    ctx.fillText("— sem eventos —", tx, lineY + lineH/2);
+  }else{
+    wrapLines.forEach(line=>{
+      ctx.fillText(line, tx, lineY + lineH/2);
+      lineY += lineH;
+    });
+  }
+
+  // —— Export
   const a=document.createElement("a");
   const ts=new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
-  a.download=`${basename}_${ts}.png`; a.href=canvas.toDataURL("image/png"); a.click();
+  a.download=`${basename}_${ts}.png`;
+  a.href=canvas.toDataURL("image/png");
+  a.click();
 }
 
 /* ===== TEMA / FULLSCREEN ===== */
@@ -762,40 +952,30 @@ function tlLoad(){
   timeline = JSON.parse(localStorage.getItem(TL_KEY) || "[]");
   tlRender();
 }
-function gameClockString(){ return formatTime(remaining); }
 function tlLabel(type){
   const map = {
-    GF_A: "Golo A", GF_B: "Golo B",
-    GA_A: "Golo Sofrido A", GA_B: "Golo Sofrido B",
-    FK_A: "Falta A", FK_B: "Falta B",
-    YC_A: "Amarelo A", YC_B: "Amarelo B",
-    RC_A: "Vermelho A", RC_B: "Vermelho B",
-    TO_A: "Time-out A", TO_B: "Time-out B",
+    GF_A: "Golo A", GA_A: "Golo Sofrido A",
+    FK_P: "Falta", YC_P: "Amarelo", RC_P: "Vermelho",
+    TO_A: "Time-out A"
   }; return map[type] || type;
 }
 function tlClass(type){
-  if(type==="GF_A"||type==="GF_B") return "tl-gf";
-  if(type==="GA_A"||type==="GA_B") return "tl-ga";
-  if(type.startsWith("FK_")) return "tl-fk";
-  if(type.startsWith("YC_")) return "tl-yc";
-  if(type.startsWith("RC_")) return "tl-rc";
-  if(type.startsWith("TO_")) return "tl-to";
+  if(type==="GF_A") return "tl-gf";
+  if(type==="GA_A") return "tl-ga";
+  if(type==="FK_P") return "tl-fk";
+  if(type==="YC_P") return "tl-yc";
+  if(type==="RC_P") return "tl-rc";
+  if(type==="TO_A") return "tl-to";
   return "";
 }
-function tlAdd(type){
-  // captura jogadores ativos no momento (para golos/qualquer evento)
-  const active = players.filter(p=>p.active).map(p=>({id:p.id, name:p.name, isGK:!!p.isGK}));
-  const ev = { t: Date.now(), clock: gameClockString(), type, activeIds: active.map(a=>a.id), activeNames: active.map(a=>a.name + (a.isGK?' 🧤':'')) };
-
-  // Atualiza +/- se for golo a favor/contra da Equipa A (podes ajustar à tua lógica)
+function tlAddTeam(type){
+  // captura jogadores ativos (para golos)
+  const activeIds = players.filter(p=>p.active).map(p=>p.id);
+  // Atualiza +/- dos 5 em campo
   if(type==="GF_A"){ players.forEach(p=>{ if(p.active) p.plusMinus = (p.plusMinus||0) + 1; }); }
   if(type==="GA_A"){ players.forEach(p=>{ if(p.active) p.plusMinus = (p.plusMinus||0) - 1; }); }
-  // Para Equipa B, se quiseres também somar/subtrair, adapta aqui:
-  // if(type==="GF_B"){ ... } if(type==="GA_B"){ ... }
-
-  timeline.unshift(ev);
-  tlSave(); tlRender();
-  saveData();
+  timeline.unshift({ t: Date.now(), clock: formatTime(remaining), type, activeIds });
+  tlSave(); tlRender(); updateSummary(); saveData();
 }
 function tlRender(){
   const feed = document.getElementById("timelineFeed");
@@ -804,17 +984,28 @@ function tlRender(){
   timeline.forEach(ev=>{
     const chip = document.createElement("div");
     chip.className = "tl-chip " + tlClass(ev.type);
-    chip.textContent = `${ev.clock} • ${tlLabel(ev.type)}`;
-    if(ev.activeNames && ev.activeNames.length){
-      chip.title = "Em campo: " + ev.activeNames.join(", ");
-      chip.onclick = ()=> alert(`${tlLabel(ev.type)} @ ${ev.clock}\n\nEm campo:\n- ${ev.activeNames.join("\n- ")}`);
+    let text = `${ev.clock} • ${tlLabel(ev.type)}`;
+    if(ev.type==="GF_A" || ev.type==="GA_A"){
+      const names = (ev.activeIds||[]).map(id => (players.find(p=>p.id===id)?.name || `#${id}`) + (players.find(p=>p.id===id)?.isGK?' 🧤':''));
+      if(names.length) chip.title = "Em campo: " + names.join(", ");
     }
+    if(ev.type.endsWith("_P") && ev.playerId){
+      const p = players.find(x=>x.id===ev.playerId);
+      const nm = p ? p.name + (p.isGK?' 🧤':'') : `#${ev.playerId}`;
+      text += ` — ${nm}`;
+    }
+    chip.textContent = text;
     feed.appendChild(chip);
   });
 }
-// Liga botões
+
+/* Liga botões timeline */
 document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
-  btn.addEventListener("click", ()=> tlAdd(btn.dataset.type));
+  if(btn.classList.contains("tl-player")){
+    btn.addEventListener("click", ()=> setPending(btn.dataset.type));
+  }else{
+    btn.addEventListener("click", ()=> tlAddTeam(btn.dataset.type));
+  }
 });
 document.getElementById("tlClear").onclick = ()=>{
   if(confirm("Limpar timeline?")){ timeline = []; tlSave(); tlRender(); }
@@ -828,7 +1019,7 @@ document.getElementById("saveGameBtn").onclick=saveGameToHistory;
 document.getElementById("clearHistoryBtn").onclick=clearHistory;
 document.getElementById("exportAllCsvBtn").onclick=()=>{
   const hist=getHistory(); if(hist.length===0) return;
-  let csv="Data,EquipaA,EquipaB,Jogador,GR,1aParte,2aParte,Total,TempoFora,Rotacoes,Media,Percent,Workload,PlusMinus\n";
+  let csv="Data,EquipaA,EquipaB,Jogador,GR,1aParte,2aParte,Total,TempoFora,Rotacoes,Media,Percent,Workload,PlusMinus,Faltas,YC,RC\n";
   hist.forEach(h=>{
     const d=new Date(h.when).toISOString();
     h.totals.forEach(t=>{
@@ -842,7 +1033,7 @@ document.getElementById("exportAllCsvBtn").onclick=()=>{
         formatTime(total), formatTime(t.secondsOut),
         t.rotations, formatTime(avg), percent,
         (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m",
-        t.plusMinus||0
+        t.plusMinus||0, t.fouls||0, t.yc?"Sim":"Não", t.rc?"Sim":"Não"
       ].join(",") + "\n";
     });
   });
@@ -862,6 +1053,7 @@ document.getElementById("themeToggle").onclick=toggleTheme;
 document.getElementById("fullscreenBtn").onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();};
 
 /* ===== START ===== */
+buildPlayersDOM();
 updateTimerDisplay();
 updateHalfBadge();
 loadData();
