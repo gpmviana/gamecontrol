@@ -21,7 +21,7 @@
   .controls{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;background:#2e2e2e;padding:10px}
   .controls button{padding:6px 10px;border:none;border-radius:6px;background:#444;color:#fff;cursor:pointer}
 
-  /* Caixas: 260x240, máx 5 por linha */
+  /* Caixas grandes e máx 5/linha */
   #players{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px;width:95%;max-width:1300px;margin:12px auto;justify-items:center}
   .player{
     width:100%;max-width:260px;height:240px;border-radius:14px;
@@ -33,126 +33,77 @@
   .player .time{font-size:40px;font-weight:bold;line-height:1}
   .player .last{font-size:12px;opacity:.9;margin-top:6px}
 
-  /* Badges no cartão */
+  /* Badges */
   .gk-badge{
     position:absolute;top:8px;left:8px;width:28px;height:28px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);
     backdrop-filter:saturate(120%) blur(2px);font-size:16px;line-height:1
   }
-  .card-badges{
-    position:absolute;top:8px;right:8px;display:flex;gap:6px;align-items:center
-  }
+  .card-badges{position:absolute;top:8px;right:8px;display:flex;gap:6px;align-items:center}
   .badge-fouls{min-width:22px;height:22px;border-radius:999px;background:#444;color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;padding:0 6px}
-  .badge-yc,.badge-rc{
-    width:16px;height:22px;border-radius:3px;border:1px solid rgba(0,0,0,.35)
-  }
+  .badge-yc,.badge-rc{width:16px;height:22px;border-radius:3px;border:1px solid rgba(0,0,0,.35)}
   .badge-yc{background:#f1c40f}
   .badge-rc{background:#e74c3c}
 
-  /* Barra de fadiga (só jogadores de campo) */
+  /* Fadiga (não para GR) */
   .fatigue{position:absolute;left:8px;right:8px;bottom:8px;height:8px;border-radius:6px;background:rgba(255,255,255,0.25)}
   .fatigue-fill{height:100%;border-radius:6px;width:0%}
 
-  /* feedback quando tenta 6º em campo */
   .player.limit{outline:3px solid #ff4d4d;box-shadow:0 0 0 3px rgba(255,77,77,0.35)}
-
-  /* destaque quando está em modo de selecionar jogador para evento */
   .selectable{outline:3px dashed #fff; outline-offset:-4px}
 
   @media (max-width:1200px){#players{grid-template-columns:repeat(4,minmax(0,1fr));}}
   @media (max-width:900px){#players{grid-template-columns:repeat(3,minmax(0,1fr));}}
   @media (max-width:600px){#players{grid-template-columns:repeat(2,minmax(0,1fr));}}
 
-  /* ——— TABELA | Visual polido ——— */
-  .summary{
-    width:90%;max-width:1100px;margin:18px auto;padding:0;background:#242424;border-radius:12px;
-    box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden
-  }
+  /* Tabela */
+  .summary{width:90%;max-width:1100px;margin:18px auto;padding:0;background:#242424;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden}
   .summary h3{margin:0;padding:12px 16px;background:#2f2f2f;border-bottom:1px solid #3a3a3a;text-align:left}
   .summary table{width:100%;border-collapse:separate;border-spacing:0}
-  .summary thead th{
-    position:sticky;top:0;background:#303030;z-index:1;text-transform:uppercase;font-size:12px;letter-spacing:.4px;color:#ddd;
-    border-bottom:1px solid #3a3a3a;padding:10px 12px
-  }
+  .summary thead th{position:sticky;top:0;background:#303030;z-index:1;text-transform:uppercase;font-size:12px;letter-spacing:.4px;color:#ddd;border-bottom:1px solid #3a3a3a;padding:10px 12px}
   .summary tbody td{padding:10px 12px;border-bottom:1px solid #333}
   .summary tbody tr:nth-child(even){background:rgba(255,255,255,0.03)}
   .summary tbody tr:hover{background:rgba(255,255,255,0.06)}
   .summary td:nth-child(1){text-align:left;font-weight:600}
-  .summary td:nth-child(4),.summary td:nth-child(5),.summary td:nth-child(6),.summary td:nth-child(7){font-variant-numeric:tabular-nums}
-  .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700;font-variant-numeric:tabular-nums}
+  .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700}
   .pill.work-pos{color:#2ecc71;background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.35)}
   .pill.work-neg{color:#e74c3c;background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.35)}
 
-  /* Modo claro */
-  .light-mode{background:#f4f4f4;color:#000}
-  .light-mode header{background:#ddd}
-  .light-mode .controls{background:#ddd}
-  .light-mode .player.active{background:#27ae60;color:#fff}
-  .light-mode .player.inactive{background:#e74c3c;color:#fff}
-  .light-mode .fatigue{background:rgba(0,0,0,0.15)}
-  .light-mode .summary{ background:#ffffff; box-shadow:0 8px 24px rgba(0,0,0,.10); }
-  .light-mode .summary h3{ background:#f0f0f0; border-bottom:1px solid #e5e5e5; }
-  .light-mode .summary thead th{ background:#f7f7f7; color:#333; border-bottom:1px solid #e5e5e5; }
-  .light-mode .summary tbody td{ border-bottom:1px solid #eee; }
-  .light-mode .summary tbody tr:nth-child(even){ background:#fafafa; }
-  .light-mode .summary tbody tr:hover{ background:#f2f2f2; }
-  .light-mode .pill.work-pos{ background:rgba(39,174,96,.10); border-color:rgba(39,174,96,.30); color:#1e824c; }
-  .light-mode .pill.work-neg{ background:rgba(231,76,60,.10); border-color:rgba(231,76,60,.30); color:#b3392e; }
-
-  /* Painel lateral editar nomes (direita) */
-  #editPanel{
-    position:fixed; right:-420px; top:20%; width:380px; height:60%;
+  /* Editar nomes (direita) */
+  #editPanel{position:fixed; right:-420px; top:20%; width:380px; height:60%;
     background:rgba(0,0,0,0.92); border-left:2px solid #555; border-radius:10px 0 0 10px;
-    padding:15px; box-shadow:-4px 0 8px rgba(0,0,0,.4); transition:right .2s; z-index:999; overflow-y:auto
-  }
+    padding:15px; box-shadow:-4px 0 8px rgba(0,0,0,.4); transition:right .2s; z-index:999; overflow-y:auto}
   #editPanel.open{ right:0; }
-  #editPanel h3{ margin:0 0 10px 0; }
   #editPanel .close-btn{position:absolute; top:6px; right:8px; background:transparent; border:none; color:#fff; font-size:18px; cursor:pointer}
   #editPanel .row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
   #editPanel .row input[type="text"]{flex:1;padding:6px;border-radius:6px;border:1px solid #777;background:#1f1f1f;color:#fff}
   #editPanel .row label{display:flex;align-items:center;gap:6px;color:#ddd;font-size:13px;white-space:nowrap}
   #editPanel .save-btn{width:100%; padding:8px; border:none; border-radius:6px; background:#0078d7; color:#fff; cursor:pointer; margin-top:8px}
+  #editPanel h3{ margin:0 0 10px 0; }
 
-  /* Painel Histórico (esquerda) */
-  #historyPanel{
-    position:fixed; left:-420px; top:10%; width:380px; height:80%;
+  /* Histórico (esquerda) */
+  #historyPanel{position:fixed; left:-420px; top:10%; width:380px; height:80%;
     background:rgba(0,0,0,0.92); border-right:2px solid #555; border-radius:0 10px 10px 0;
-    padding:15px; box-shadow:4px 0 8px rgba(0,0,0,.4); transition:left .2s; z-index:999; overflow-y:auto
-  }
+    padding:15px; box-shadow:4px 0 8px rgba(0,0,0,.4); transition:left .2s; z-index:999; overflow-y:auto}
   #historyPanel.open{ left:0; }
-  #historyPanel h3{ margin:0 0 10px 0; }
   #historyPanel .close-btn{position:absolute; top:6px; right:8px; background:transparent; border:none; color:#fff; font-size:18px; cursor:pointer}
   .hist-item{background:#1f1f1f;border:1px solid #444;border-radius:8px;padding:8px;margin-bottom:8px;text-align:left}
-  .hist-item .row{display:flex;justify-content:space-between;gap:8px;align-items:center}
-  .hist-item .meta{font-size:12px;opacity:.9}
   .hist-actions{display:flex;gap:6px;margin-top:6px}
   .hist-actions button{padding:6px 8px;border:none;border-radius:6px;background:#444;color:#fff;cursor:pointer;font-size:12px}
 
-  /* ===== TIMELINE ===== */
-  #timelineBar{
-    position:fixed; left:0; right:0; bottom:0;
-    background:#222; border-top:1px solid #333; z-index:900;
-    padding:8px 10px; box-shadow:0 -6px 16px rgba(0,0,0,.25);
-  }
-  #timelineBar .tl-actions{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-bottom:6px; }
-  #timelineBar .tl-btn{ background:#3a3a3a; color:#fff; border:none; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:13px }
-  #timelineBar #tlClear{ background:#a33; color:#fff; border:none; border-radius:8px; padding:6px 10px; cursor:pointer; }
-  #timelineFeed{ max-height:120px; overflow:auto; display:flex; gap:8px; flex-wrap:wrap; justify-content:center }
-  .tl-chip{
-    background:#2b2b2b; border:1px solid #444; color:#eee;
-    padding:4px 8px; border-radius:999px; font-size:12px; white-space:nowrap
-  }
-  .tl-gf{ border-color:rgba(46,204,113,.5); color:#2ecc71; }
-  .tl-ga{ border-color:rgba(231,76,60,.6); color:#e74c3c; }
-  .tl-fk{ border-color:rgba(241,196,15,.5); color:#f1c40f; }
-  .tl-yc{ border-color:rgba(241,196,15,.5); color:#f1c40f; }
-  .tl-rc{ border-color:rgba(231,76,60,.6); color:#e74c3c; }
-  .tl-to{ border-color:rgba(52,152,219,.6); color:#3498db; }
-
-  .light-mode #timelineBar{ background:#fafafa; border-top:1px solid #e5e5e5 }
-  .light-mode .tl-btn{ background:#e9e9e9; color:#111 }
-  .light-mode #tlClear{ background:#d9534f }
-  .light-mode .tl-chip{ background:#fff; border-color:#ddd; color:#333 }
+  /* Timeline */
+  #timelineBar{position:fixed;left:0;right:0;bottom:0;background:#222;border-top:1px solid #333;z-index:900;padding:8px 10px;box-shadow:0 -6px 16px rgba(0,0,0,.25)}
+  #timelineBar .tl-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:6px}
+  #timelineBar .tl-btn{background:#3a3a3a;color:#fff;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px}
+  #tlClear{background:#a33;color:#fff;border:none;border-radius:8px;padding:6px 10px;cursor:pointer}
+  #timelineFeed{max-height:120px;overflow:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .tl-chip{background:#2b2b2b;border:1px solid #444;color:#eee;padding:4px 8px;border-radius:999px;font-size:12px;white-space:nowrap}
+  .tl-gf{border-color:rgba(46,204,113,.5);color:#2ecc71}
+  .tl-ga{border-color:rgba(231,76,60,.6);color:#e74c3c}
+  .tl-fk{border-color:rgba(241,196,15,.5);color:#f1c40f}
+  .tl-yc{border-color:rgba(241,196,15,.5);color:#f1c40f}
+  .tl-rc{border-color:rgba(231,76,60,.6);color:#e74c3c}
+  .tl-to{border-color:rgba(52,152,219,.6);color:#3498db}
 </style>
 </head>
 <body>
@@ -211,7 +162,7 @@
   </table>
 </div>
 
-<!-- Painel de edição de nomes -->
+<!-- Painel editar nomes -->
 <div id="editPanel">
   <button class="close-btn" id="closePanel">❌</button>
   <h3>Editar Jogadores</h3>
@@ -219,28 +170,25 @@
   <button class="save-btn" id="saveNamesBtn">Guardar Alterações</button>
 </div>
 
-<!-- Painel Histórico -->
+<!-- Histórico -->
 <div id="historyPanel">
   <button class="close-btn" id="closeHistory">❌</button>
   <h3>Histórico de Jogos</h3>
   <div id="historyList"></div>
-  <div style="margin-top:8px;display:flex;gap:8px">
+  <div style="margin-top:8px;display:flex;gap:6px;justify-content:center">
     <button id="exportAllCsvBtn">Exportar CSV (tudo)</button>
     <button id="clearHistoryBtn" style="background:#a33">Apagar Histórico</button>
   </div>
 </div>
 
-<!-- TIMELINE -->
+<!-- Timeline -->
 <div id="timelineBar">
   <div class="tl-actions">
-    <!-- Equipa A: golos -->
     <button class="tl-btn" data-type="GF_A" title="Golo Equipa A">⚽ A+</button>
     <button class="tl-btn" data-type="GA_A" title="Golo Sofrido A">⚽ A−</button>
-    <!-- Eventos por jogador (selecionar e depois tocar no jogador) -->
     <button class="tl-btn tl-player" data-type="FK_P" title="Falta (seleciona jogador)">❌ Falta</button>
     <button class="tl-btn tl-player" data-type="YC_P" title="Amarelo (seleciona jogador)">🟨 Amarelo</button>
     <button class="tl-btn tl-player" data-type="RC_P" title="Vermelho (seleciona jogador)">🟥 Vermelho</button>
-    <!-- Time-out Equipa A -->
     <button class="tl-btn" data-type="TO_A" title="Time-out A">⏱️ A</button>
     <button id="tlClear" title="Limpar timeline">🧹</button>
   </div>
@@ -248,179 +196,91 @@
 </div>
 
 <script>
-/* ===== ESTADO ===== */
-let duration = 20*60;
-let remaining = duration;
-let running = false;
-let firstHalf = true;
-let players = [];
-let theme = "dark";
-let timerInterval = null;
-let _lastTick = null;
-const STORAGE_KEY = "gameControlData_gcStable";
-const HISTORY_KEY = "gameControlHistory_v1";
+/* ===== Estado base ===== */
+let duration = 20*60, remaining = duration, running = false, firstHalf = true;
+let players = [], theme = "dark", timerInterval=null, _lastTick=null;
+const STORAGE_KEY="gameControlData_gcStable", HISTORY_KEY="gameControlHistory_v1";
+const TL_KEY="gameControlTimeline_v1"; let timeline=[];
+let pendingPlayerEvent=null; // FK_P | YC_P | RC_P
 
-/* Timeline */
-const TL_KEY = "gameControlTimeline_v1";
-let timeline = []; // {t, clock, type, activeIds:[...], playerId?}
+/* Fadiga */
+const FATIGUE_K_UP=0.012, FATIGUE_K_DOWN=0.025, RED_THRESHOLD_SEC=180, YELLOW_THRESHOLD_SEC=90;
 
-/* Seleção de evento por jogador */
-let pendingPlayerEvent = null; // "FK_P" | "YC_P" | "RC_P"
+/* Modelo jogador */
+const PLAYER_DEFAULTS={id:0,name:"",active:false,isGK:false,seconds:0,secondsOut:0,part1:0,part2:0,rotations:0,lastRotation:0,startTime:0,rotationTime:0,rotationOutTime:0,fatigue:0,plusMinus:0,fouls:0,yc:false,rc:false};
 
-/* Fadiga: jogadores de campo (GR sem fadiga visual) */
-const FATIGUE_K_UP = 0.012;     // por segundo (campo) – a subir
-const FATIGUE_K_DOWN = 0.025;   // por segundo (campo) – a descer (banco)
-const RED_THRESHOLD_SEC = 180;   // >= 3:00 → vermelho (em jogo)
-const YELLOW_THRESHOLD_SEC = 90; // >= 1:30 → amarelo (em jogo)
-
-/* Campos padrão */
-const PLAYER_DEFAULTS = {
-  id: 0, name: "",
-  active: false,
-  isGK: false,           // Guarda-Redes?
-  seconds: 0, secondsOut: 0,
-  part1: 0, part2: 0,
-  rotations: 0, lastRotation: 0,
-  startTime: 0,
-  rotationTime: 0,   // tempo da rotação atual (em campo)
-  rotationOutTime: 0,// tempo fora atual
-  fatigue: 0,        // 0..1 (não usado se isGK=true)
-  plusMinus: 0,      // saldo golos quando estava em campo
-  fouls: 0,          // faltas pessoais
-  yc: false,         // amarelo
-  rc: false          // vermelho
-};
-
-/* ===== UTIL ===== */
-const pad = n => String(n).padStart(2,"0");
+/* Utils */
+const pad=n=>String(n).padStart(2,"0");
 function formatTime(sec){sec=Math.max(0,Math.floor(sec));return `${pad(Math.floor(sec/60))}:${pad(sec%60)}`;}
-function updateTimerDisplay(){document.getElementById("timer").textContent = formatTime(remaining);}
-function updateHalfBadge(){document.getElementById("halfBadge").textContent = firstHalf ? "1ª Parte" : "2ª Parte";}
-function fatigueColor(p){
-  if(p.active){
-    if(p.rotationTime >= RED_THRESHOLD_SEC) return "#e74c3c";
-    if(p.rotationTime >= YELLOW_THRESHOLD_SEC) return "#e6b800";
-    return "#2ecc71";
-  }else{
-    if(p.fatigue >= 0.66) return "#e74c3c";
-    if(p.fatigue >= 0.33) return "#e6b800";
-    return "#2ecc71";
-  }
-}
+function updateTimerDisplay(){timer.textContent=formatTime(remaining);}
+function updateHalfBadge(){halfBadge.textContent=firstHalf?"1ª Parte":"2ª Parte";}
+function fatigueColor(p){if(p.active){if(p.rotationTime>=RED_THRESHOLD_SEC)return"#e74c3c";if(p.rotationTime>=YELLOW_THRESHOLD_SEC)return"#e6b800";return"#2ecc71";}else{if(p.fatigue>=0.66)return"#e74c3c";if(p.fatigue>=0.33)return"#e6b800";return"#2ecc71";}}
 
-/* ===== RENDER CAIXAS ===== */
+/* DOM jogadores */
 function buildPlayersDOM(){
-  const pDiv=document.getElementById("players");
-  pDiv.innerHTML="";
+  const pDiv=document.getElementById("players"); pDiv.innerHTML="";
   players.forEach(p=>{
     const d=document.createElement("div");
-    d.id="player"+p.id;
-    d.className="player "+(p.active?"active":"inactive");
-    const displaySec = p.active ? p.rotationTime : p.rotationOutTime;
-
-    const gkBadge = p.isGK ? '<span class="gk-badge">🧤</span>' : '';
-    const fatigueBar = p.isGK ? '' :
-      `<div class="fatigue"><div class="fatigue-fill" id="fatigue${p.id}" style="width:0%"></div></div>`;
-
-    const ycEl = p.yc ? '<span class="badge-yc" title="Amarelo"></span>' : '';
-    const rcEl = p.rc ? '<span class="badge-rc" title="Vermelho"></span>' : '';
-    const foulEl = p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : '';
-
-    d.innerHTML=`${gkBadge}
-                 <div class="card-badges">${foulEl}${ycEl}${rcEl}</div>
-                 <strong>${p.name}</strong>
-                 <div class="time">${formatTime(displaySec)}</div>
-                 <div class="last">${!p.active&&p.lastRotation>0?"Últ. rotação: "+formatTime(p.lastRotation):""}</div>
-                 ${fatigueBar}`;
+    d.id="player"+p.id; d.className="player "+(p.active?"active":"inactive");
+    const ds=p.active?p.rotationTime:p.rotationOutTime;
+    const gk=p.isGK?'<span class="gk-badge">🧤</span>':'';
+    const fat=p.isGK?'':`<div class="fatigue"><div class="fatigue-fill" id="fatigue${p.id}" style="width:0%"></div></div>`;
+    const yc=p.yc?'<span class="badge-yc" title="Amarelo"></span>':'';
+    const rc=p.rc?'<span class="badge-rc" title="Vermelho"></span>':'';
+    const fl=p.fouls>0?`<span class="badge-fouls" title="Faltas">${p.fouls}</span>`:'';
+    d.innerHTML=`${gk}<div class="card-badges">${fl}${yc}${rc}</div>
+      <strong>${p.name}</strong>
+      <div class="time">${formatTime(ds)}</div>
+      <div class="last">${!p.active&&p.lastRotation>0?"Últ. rotação: "+formatTime(p.lastRotation):""}</div>
+      ${fat}`;
     d.onclick=()=>onPlayerClick(p.id);
     pDiv.appendChild(d);
   });
 }
 function updatePlayersUI(){
   players.forEach(p=>{
-    const d=document.getElementById("player"+p.id);
-    if(!d) return;
-    d.className="player "+(p.active?"active":"inactive") + (pendingPlayerEvent? " selectable" : "");
-    const displaySec = p.active ? p.rotationTime : p.rotationOutTime;
-    d.querySelector(".time").textContent = formatTime(displaySec);
-    d.querySelector(".last").textContent = (!p.active && p.lastRotation>0) ? ("Últ. rotação: "+formatTime(p.lastRotation)) : "";
-    d.querySelector("strong").textContent = p.name;
-
-    // (re)desenhar badges
-    const badges = d.querySelector(".card-badges");
-    badges.innerHTML = (p.fouls>0? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : '')
-                     + (p.yc? '<span class="badge-yc" title="Amarelo"></span>' : '')
-                     + (p.rc? '<span class="badge-rc" title="Vermelho"></span>' : '');
-
-    // Badge 🧤
-    let badge = d.querySelector(".gk-badge");
-    if(p.isGK){
-      if(!badge){
-        badge = document.createElement("span");
-        badge.className="gk-badge"; badge.textContent="🧤";
-        d.prepend(badge);
-      }
-    }else if(badge){
-      badge.remove();
-    }
-
-    // Barra de fadiga só para jogadores de campo
-    if(!p.isGK){
-      const ff=document.getElementById("fatigue"+p.id);
-      if(ff){
-        ff.style.width = Math.round((p.fatigue||0)*100) + "%";
-        ff.style.background = fatigueColor(p);
-      }
-    }
+    const d=document.getElementById("player"+p.id); if(!d) return;
+    d.className="player "+(p.active?"active":"inactive")+(pendingPlayerEvent?" selectable":"");
+    const ds=p.active?p.rotationTime:p.rotationOutTime;
+    d.querySelector(".time").textContent=formatTime(ds);
+    d.querySelector(".last").textContent=(!p.active&&p.lastRotation>0)?("Últ. rotação: "+formatTime(p.lastRotation)):"";
+    d.querySelector("strong").textContent=p.name;
+    const badges=d.querySelector(".card-badges");
+    badges.innerHTML=(p.fouls>0?`<span class="badge-fouls" title="Faltas">${p.fouls}</span>`:'')+(p.yc?'<span class="badge-yc" title="Amarelo"></span>':'')+(p.rc?'<span class="badge-rc" title="Vermelho"></span>':'');
+    if(!p.isGK){const ff=document.getElementById("fatigue"+p.id); if(ff){ff.style.width=Math.round((p.fatigue||0)*100)+"%"; ff.style.background=fatigueColor(p);}}
+    let gkb=d.querySelector(".gk-badge");
+    if(p.isGK){ if(!gkb){gkb=document.createElement("span"); gkb.className="gk-badge"; gkb.textContent="🧤"; d.prepend(gkb);} }
+    else if(gkb){ gkb.remove(); }
   });
 }
 
-/* ===== LIMITE/CONTAGEM DE JOGADORES ===== */
+/* Contagem jogadores */
 function ensurePlayerCount(n){
-  while(players.length < n){
-    const id = players.length ? Math.max(...players.map(x=>x.id))+1 : 1;
-    players.push({...PLAYER_DEFAULTS, id, name:"Jogador "+id});
-  }
-  while(players.length > n){ players.pop(); }
+  while(players.length<n){const id=players.length?(Math.max(...players.map(x=>x.id))+1):1; players.push({...PLAYER_DEFAULTS,id,name:"Jogador "+id});}
+  while(players.length>n){players.pop();}
   buildPlayersDOM(); updatePlayersUI(); updateSummary(); saveData();
 }
-function activeCount(){ return players.reduce((n,p)=> n + (p.active?1:0), 0); }
-function flashLimit(id){
-  const d = document.getElementById("player"+id);
-  if(!d) return;
-  d.classList.add("limit");
-  setTimeout(()=>d.classList.remove("limit"), 600);
-}
+function activeCount(){return players.reduce((a,p)=>a+(p.active?1:0),0)}
+function flashLimit(id){const d=document.getElementById("player"+id); if(!d)return; d.classList.add("limit"); setTimeout(()=>d.classList.remove("limit"),600);}
 
-/* ===== TABELA ===== */
+/* Tabela */
 function updateSummary(){
-  const tb = document.getElementById("summaryBody");
-  tb.innerHTML = "";
+  const tb=summaryBody; tb.innerHTML="";
   players.forEach(p=>{
-    const total   = p.part1 + p.part2;
-    const avg     = p.rotations > 0 ? Math.floor(total / p.rotations) : 0;
-    const percent = ((total / (duration * (firstHalf ? 1 : 2))) * 100).toFixed(1);
-    const workload = p.seconds - p.secondsOut;
-    const cls = workload >= 0 ? "work-pos" : "work-neg";
-    const wlText = `${workload >= 0 ? "+" : ""}${(workload/60).toFixed(1)}m`;
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${p.name}${p.isGK?' 🧤':''}</td>
-      <td>${formatTime(p.part1)}</td>
-      <td>${formatTime(p.part2)}</td>
-      <td>${formatTime(total)}</td>
-      <td>${formatTime(p.secondsOut)}</td>
-      <td>${p.rotations}</td>
-      <td>${formatTime(avg)}</td>
-      <td>${percent}%</td>
-      <td><span class="pill ${cls}">${wlText}</span></td>
-    `;
+    const total=p.part1+p.part2, avg=p.rotations>0?Math.floor(total/p.rotations):0;
+    const percent=((total/(duration*(firstHalf?1:2)))*100).toFixed(1);
+    const wl=p.seconds-p.secondsOut, cls=wl>=0?"work-pos":"work-neg", wlTxt=`${wl>=0?"+":""}${(wl/60).toFixed(1)}m`;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${p.name}${p.isGK?' 🧤':''}</td>
+      <td>${formatTime(p.part1)}</td><td>${formatTime(p.part2)}</td>
+      <td>${formatTime(total)}</td><td>${formatTime(p.secondsOut)}</td>
+      <td>${p.rotations}</td><td>${formatTime(avg)}</td><td>${percent}%</td>
+      <td><span class="pill ${cls}">${wlTxt}</span></td>`;
     tb.appendChild(tr);
   });
 }
 
-/* ===== CRONÓMETRO ===== */
+/* Cronómetro (robusto) */
 function tick(){
   const now=Date.now(); if(_lastTick===null)_lastTick=now;
   const delta=Math.max(0,Math.floor((now-_lastTick)/1000));
@@ -430,16 +290,10 @@ function tick(){
       players.forEach(p=>{
         if(p.active){
           p.seconds++; p.rotationTime++; if(firstHalf) p.part1++; else p.part2++;
-          if(!p.isGK){
-            p.fatigue += FATIGUE_K_UP * (1 - p.fatigue);
-            if(p.fatigue>1) p.fatigue=1;
-          }
+          if(!p.isGK){p.fatigue+=FATIGUE_K_UP*(1-p.fatigue); if(p.fatigue>1)p.fatigue=1;}
         }else{
           p.secondsOut++; p.rotationOutTime++;
-          if(!p.isGK){
-            p.fatigue -= FATIGUE_K_DOWN * p.fatigue;
-            if(p.fatigue<0) p.fatigue=0;
-          }
+          if(!p.isGK){p.fatigue-=FATIGUE_K_DOWN*p.fatigue; if(p.fatigue<0)p.fatigue=0;}
         }
       });
     }
@@ -452,611 +306,312 @@ function startTimer(){ if(running) return; running=true; _lastTick=Date.now(); c
 function pauseTimer(){ running=false; clearInterval(timerInterval); saveData(); }
 function resetTimer(){
   pauseTimer();
-  const m=parseInt(document.getElementById("setMinutes").value)||20;
-  duration=m*60; remaining=duration; firstHalf=true;
-  players.forEach(p=>{
-    p.seconds=0; p.secondsOut=0; p.part1=0; p.part2=0; p.rotations=0; p.lastRotation=0;
-    p.rotationTime=0; p.rotationOutTime=0; if(!p.isGK) p.fatigue=0;
-    p.plusMinus=0; p.fouls=0; p.yc=false; p.rc=false;
-  });
-  timeline = []; tlSave(); tlRender();
+  const m=parseInt(setMinutes.value)||20; duration=m*60; remaining=duration; firstHalf=true;
+  players.forEach(p=>{p.seconds=0;p.secondsOut=0;p.part1=0;p.part2=0;p.rotations=0;p.lastRotation=0;p.rotationTime=0;p.rotationOutTime=0;if(!p.isGK)p.fatigue=0;p.plusMinus=0;p.fouls=0;p.yc=false;p.rc=false;});
+  timeline=[]; tlSave(); tlRender();
+  updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
+}
+function intervalTimer(){
+  pauseTimer(); firstHalf=false;
+  const mins=parseInt(setMinutes.value)||20; duration=mins*60; remaining=duration;
+  players.forEach(p=>{p.rotationTime=0;p.rotationOutTime=0; if(!p.isGK)p.fatigue=Math.max(0,p.fatigue*0.30);});
   updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
 }
 
-/* ===== INTERVALO ===== */
-function intervalTimer() {
-  pauseTimer();
-  firstHalf = false;
-  const mins = parseInt(document.getElementById("setMinutes").value) || 20;
-  duration = mins * 60;
-  remaining = duration;
-
-  players.forEach(p => {
-    p.rotationTime = 0;
-    p.rotationOutTime = 0;
-    if(!p.isGK) p.fatigue = Math.max(0, p.fatigue * 0.30);
-  });
-
-  updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
-}
-
-/* ===== INTERAÇÃO JOGADOR (limit 5 + eventos) ===== */
+/* Interação jogador */
 function onPlayerClick(id){
-  if(pendingPlayerEvent){
-    addPlayerEvent(pendingPlayerEvent, id);
-    pendingPlayerEvent = null;
-    updatePlayersUI();
-    return;
-  }
-  // comportamento normal: entrar/sair
+  if(pendingPlayerEvent){ addPlayerEvent(pendingPlayerEvent,id); pendingPlayerEvent=null; updatePlayersUI(); return; }
   const p=players.find(x=>x.id===id); if(!p) return;
-  if(!p.active && activeCount() >= 5){ flashLimit(id); return; }
+  if(!p.active && activeCount()>=5){flashLimit(id); return;}
   p.active=!p.active;
-  if(p.active){
-    p.rotations++; p.startTime=Date.now(); p.rotationTime=0; p.rotationOutTime=0;
-  }else{
-    p.lastRotation=p.rotationTime; p.rotationTime=0; p.rotationOutTime=0;
-  }
+  if(p.active){p.rotations++; p.startTime=Date.now(); p.rotationTime=0; p.rotationOutTime=0;}
+  else{p.lastRotation=p.rotationTime; p.rotationTime=0; p.rotationOutTime=0;}
   updatePlayersUI(); updateSummary(); saveData();
 }
-
 function addPlayerEvent(type, playerId){
-  const p = players.find(x=>x.id===playerId); if(!p) return;
-  // Atualiza estado do jogador
+  const p=players.find(x=>x.id===playerId); if(!p) return;
   if(type==="FK_P") p.fouls++;
-  if(type==="YC_P") p.yc = true;
-  if(type==="RC_P") p.rc = true;
-
-  // Guarda evento (só playerId; o nome é resolvido dinamicamente)
-  timeline.unshift({ t: Date.now(), clock: formatTime(remaining), type, playerId });
+  if(type==="YC_P") p.yc=true;
+  if(type==="RC_P") p.rc=true;
+  timeline.unshift({t:Date.now(),clock:formatTime(remaining),type,playerId});
   tlSave(); tlRender(); updatePlayersUI(); saveData();
 }
+function setPending(type){ pendingPlayerEvent=type; updatePlayersUI(); }
 
-function setPending(type){
-  pendingPlayerEvent = type; // ativa modo de seleção
-  updatePlayersUI();
-}
-
-/* ===== PERSISTÊNCIA ===== */
+/* Persistência */
 function saveData(){
-  const data = {
-    teamA: teamA.value||"", teamB: teamB.value||"",
-    duration, remaining, firstHalf, running, theme,
-    players, lastSaved: Date.now()
-  };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  tlSave();
+  const data={teamA:teamA.value||"",teamB:teamB.value||"",duration,remaining,firstHalf,running,theme,players,lastSaved:Date.now()};
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(data)); tlSave();
 }
 function loadData(){
-  const raw=localStorage.getItem(STORAGE_KEY);
-  if(!raw){ players=[]; ensurePlayerCount(14); updateTimerDisplay(); updateHalfBadge(); updateSummary(); tlLoad(); return; }
-  const d=JSON.parse(raw);
-  teamA.value=d.teamA||""; teamB.value=d.teamB||"";
-  duration  = typeof d.duration  === "number" ? d.duration  : duration;
-  remaining = typeof d.remaining === "number" ? d.remaining : remaining;
-  firstHalf = typeof d.firstHalf === "boolean" ? d.firstHalf : firstHalf;
-  running   = !!d.running;
-  theme     = d.theme || theme;
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(!raw){ players=[]; ensurePlayerCount(14); updateTimerDisplay(); updateHalfBadge(); updateSummary(); tlLoad(); return; }
+    const d=JSON.parse(raw);
+    teamA.value=d.teamA||""; teamB.value=d.teamB||"";
+    duration=typeof d.duration==="number"?d.duration:duration;
+    remaining=typeof d.remaining==="number"?d.remaining:remaining;
+    firstHalf=typeof d.firstHalf==="boolean"?d.firstHalf:firstHalf;
+    running=!!d.running; theme=d.theme||theme;
 
-  players = (Array.isArray(d.players)?d.players:[]).map((p,i)=>({
-    ...PLAYER_DEFAULTS,
-    id:p.id ?? (i+1),
-    name:p.name || `Jogador ${p.id ?? (i+1)}`,
-    ...p
-  }));
+    players=(Array.isArray(d.players)?d.players:[]).map((p,i)=>({...PLAYER_DEFAULTS,id:p.id??(i+1),name:p.name||`Jogador ${p.id??(i+1)}`,...p}));
 
-  const lastSaved = typeof d.lastSaved === "number" ? d.lastSaved : Date.now();
-  if(running){
-    const e=Math.max(0,Math.floor((Date.now()-lastSaved)/1000));
-    if(e>0){
-      remaining=Math.max(0,remaining-e);
-      players.forEach(p=>{
-        if(p.active){ 
-          p.seconds+=e; p.rotationTime+=e; if(firstHalf) p.part1+=e; else p.part2+=e;
-          if(!p.isGK){
-            p.fatigue += FATIGUE_K_UP * (1 - p.fatigue) * e;
-            if(p.fatigue>1) p.fatigue=1;
-          }
-        }else{ 
-          p.secondsOut+=e; p.rotationOutTime+=e;
-          if(!p.isGK){
-            p.fatigue -= FATIGUE_K_DOWN * p.fatigue * e;
-            if(p.fatigue<0) p.fatigue=0;
-          }
-        }
-      });
+    if(players.length===0) ensurePlayerCount(14); else {buildPlayersDOM();}
+
+    const lastSaved=typeof d.lastSaved==="number"?d.lastSaved:Date.now();
+    if(running){
+      const e=Math.max(0,Math.floor((Date.now()-lastSaved)/1000));
+      if(e>0){
+        remaining=Math.max(0,remaining-e);
+        players.forEach(p=>{
+          if(p.active){p.seconds+=e;p.rotationTime+=e;if(firstHalf)p.part1+=e;else p.part2+=e; if(!p.isGK){p.fatigue+=FATIGUE_K_UP*(1-p.fatigue)*e; if(p.fatigue>1)p.fatigue=1;}}
+          else{p.secondsOut+=e;p.rotationOutTime+=e; if(!p.isGK){p.fatigue-=FATIGUE_K_DOWN*p.fatigue*e; if(p.fatigue<0)p.fatigue=0;}}
+        });
+      }
     }
-  }
-  if(players.length===0) ensurePlayerCount(14); else buildPlayersDOM();
-  updatePlayersUI(); updateSummary(); updateTimerDisplay(); updateHalfBadge();
-  if(running && remaining>0) startTimer();
 
-  tlLoad();
+    updatePlayersUI(); updateSummary(); updateTimerDisplay(); updateHalfBadge();
+    if(running && remaining>0){ startTimer(); }
+    tlLoad();
+  }catch(e){
+    // fallback duro
+    players=[]; ensurePlayerCount(14); updateTimerDisplay(); updateHalfBadge(); updateSummary(); timeline=[]; tlSave(); tlRender();
+  }
 }
 window.addEventListener("beforeunload", saveData);
-setInterval(saveData, 3000);
+setInterval(saveData,3000);
 
-/* ===== HISTÓRICO LOCAL ===== */
-function getHistory(){ return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); }
-function setHistory(arr){ localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); }
+/* Histórico */
+function getHistory(){return JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]")}
+function setHistory(a){localStorage.setItem(HISTORY_KEY,JSON.stringify(a))}
 function saveGameToHistory(){
-  const snapshot = {
-    when: new Date().toISOString(),
-    teamA: (teamA.value||"").trim(),
-    teamB: (teamB.value||"").trim(),
-    duration,
-    totals: players.map(p=>({
-      id:p.id, name:p.name, isGK: !!p.isGK,
-      seconds:p.seconds, secondsOut:p.secondsOut,
-      rotations:p.rotations, part1:p.part1, part2:p.part2,
-      workload:p.seconds - p.secondsOut,
-      plusMinus:p.plusMinus||0, fouls:p.fouls||0, yc:!!p.yc, rc:!!p.rc
-    })),
-    events: timeline.slice(0, 300) // guarda últimos 300 eventos
-  };
-  const hist=getHistory(); hist.unshift(snapshot); setHistory(hist);
-  renderHistoryList();
+  const snap={when:new Date().toISOString(),teamA:(teamA.value||"").trim(),teamB:(teamB.value||"").trim(),duration,
+    totals:players.map(p=>({id:p.id,name:p.name,isGK:!!p.isGK,seconds:p.seconds,secondsOut:p.secondsOut,rotations:p.rotations,part1:p.part1,part2:p.part2,workload:p.seconds-p.secondsOut,plusMinus:p.plusMinus||0,fouls:p.fouls||0,yc:!!p.yc,rc:!!p.rc})),
+    events:timeline.slice(0,300)};
+  const hist=getHistory(); hist.unshift(snap); setHistory(hist); renderHistoryList();
 }
 function renderHistoryList(){
-  const list=document.getElementById("historyList");
-  const hist=getHistory();
-  if(hist.length===0){ list.innerHTML='<div class="hist-item">Sem jogos guardados.</div>'; return; }
+  const list=document.getElementById("historyList"); const hist=getHistory();
+  if(hist.length===0){list.innerHTML='<div class="hist-item">Sem jogos guardados.</div>';return;}
   list.innerHTML="";
-  hist.forEach((h,idx)=>{
-    const div=document.createElement("div");
-    const d=new Date(h.when);
-    const title=`${h.teamA||'Equipa A'} vs ${h.teamB||'Equipa B'}`;
-    div.className="hist-item";
-    div.innerHTML=`<div class="row"><div>
-        <div><strong>${title}</strong></div>
-        <div class="meta">${d.toLocaleString()}</div>
-      </div></div>
+  hist.forEach((h,i)=>{
+    const div=document.createElement("div"); div.className="hist-item";
+    const d=new Date(h.when).toLocaleString();
+    div.innerHTML=`<div><strong>${h.teamA||'Equipa A'} vs ${h.teamB||'Equipa B'}</strong><br><small>${d}</small></div>
       <div class="hist-actions">
-        <button onclick="exportCsv(${idx})">CSV</button>
-        <button onclick="exportPngFromHistory(${idx})">PNG</button>
-        <button onclick="deleteHistoryItem(${idx})" style="background:#a33">Apagar</button>
+        <button onclick="exportCsv(${i})">CSV</button>
+        <button onclick="exportPngFromHistory(${i})">PNG</button>
+        <button onclick="deleteHistoryItem(${i})" style="background:#a33">Apagar</button>
       </div>`;
     list.appendChild(div);
   });
 }
-function deleteHistoryItem(i){ const hist=getHistory(); hist.splice(i,1); setHistory(hist); renderHistoryList(); }
-function clearHistory(){ setHistory([]); renderHistoryList(); }
-function exportCsv(index){
-  const h=getHistory()[index]; if(!h) return;
+function deleteHistoryItem(i){const h=getHistory();h.splice(i,1);setHistory(h);renderHistoryList();}
+function clearHistory(){setHistory([]);renderHistoryList();}
+function exportCsv(idx){
+  const h=getHistory()[idx]; if(!h)return;
   const rows=[["Jogador","GR","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload","+/-","Faltas","YC","RC"]];
   h.totals.forEach(t=>{
-    const total = t.part1 + t.part2;
-    const avg = t.rotations > 0 ? Math.floor(total / t.rotations) : 0;
-    const percent = ((total / (duration * 2)) * 100).toFixed(1) + "%";
-    rows.push([
-      t.name, t.isGK?"Sim":"Não",
-      formatTime(t.part1), formatTime(t.part2),
-      formatTime(total), formatTime(t.secondsOut),
-      t.rotations, formatTime(avg), percent,
-      (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m",
-      t.plusMinus||0, t.fouls||0, t.yc?"Sim":"Não", t.rc?"Sim":"Não"
-    ]);
+    const total=t.part1+t.part2, avg=t.rotations>0?Math.floor(total/t.rotations):0, percent=((total/(duration*2))*100).toFixed(1)+"%";
+    rows.push([t.name,t.isGK?"Sim":"Não",formatTime(t.part1),formatTime(t.part2),formatTime(total),formatTime(t.secondsOut),t.rotations,formatTime(avg),percent,(t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m",t.plusMinus||0,t.fouls||0,t.yc?"Sim":"Não",t.rc?"Sim":"Não"]);
   });
-  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
-  const a=document.createElement("a");
-  const ts=new Date(h.when).toISOString().slice(0,19).replace(/[:T]/g,"-");
-  a.download=`Resumo_${(h.teamA||'EquipaA')}_vs_${(h.teamB||'EquipaB')}_${ts}.csv`;
-  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.click();
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const a=document.createElement("a"); const ts=new Date(h.when).toISOString().slice(0,19).replace(/[:T]/g,"-");
+  a.download=`Resumo_${(h.teamA||'EquipaA')}_vs_${(h.teamB||'EquipaB')}_${ts}.csv`; a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.click();
 }
 
-/* ===== PRINT → PNG (tabela + timeline) ===== */
+/* Print PNG (tabela + timeline) */
 function printScreen(){ exportPngFromCurrent(); }
-
 function exportPngFromCurrent(){
-  const nameA=(document.getElementById("teamA").value || "Equipa A").trim();
-  const nameB=(document.getElementById("teamB").value || "Equipa B").trim();
+  const nameA=(teamA.value||"Equipa A").trim(), nameB=(teamB.value||"Equipa B").trim();
   const headers=["Jogador","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
-  const rows = players.map(p=>{
-    const total = p.part1 + p.part2;
-    const avg = p.rotations > 0 ? Math.floor(total / p.rotations) : 0;
-    const percent = ((total / (duration * (firstHalf ? 1 : 2))) * 100).toFixed(1) + "%";
-    const workload = p.seconds - p.secondsOut;
-    const workloadText = `${workload >= 0 ? "+" : ""}${(workload/60).toFixed(1)}m`;
-    return [
-      p.name + (p.isGK?' 🧤':''), formatTime(p.part1), formatTime(p.part2),
-      formatTime(total), formatTime(p.secondsOut),
-      String(p.rotations), formatTime(avg), percent, workloadText
-    ];
-  });
-
-  // timeline -> linhas de texto, com nomes dinâmicos
-  const events = (timeline || []).map(ev=>{
-    const base = `${ev.clock} • ${tlLabel(ev.type)}`;
-    if(ev.type==="GF_A" || ev.type==="GA_A"){
-      const names = (ev.activeIds||[]).map(id => (players.find(p=>p.id===id)?.name || `#${id}`) + (players.find(p=>p.id===id)?.isGK?' 🧤':''));
-      const extra = names.length ? ` — Em campo: ${names.join(", ")}` : "";
-      return base + extra;
+  const rows=players.map(p=>{const total=p.part1+p.part2, avg=p.rotations>0?Math.floor(total/p.rotations):0, percent=((total/(duration*(firstHalf?1:2)))*100).toFixed(1)+"%", wl=p.seconds-p.secondsOut, wlt=`${wl>=0?"+":""}${(wl/60).toFixed(1)}m`;
+    return [p.name+(p.isGK?' 🧤':''),formatTime(p.part1),formatTime(p.part2),formatTime(total),formatTime(p.secondsOut),String(p.rotations),formatTime(avg),percent,wlt];});
+  const events=(timeline||[]).map(ev=>{
+    const label=tlLabel(ev.type), base=`${ev.clock} • ${label}`;
+    if(ev.type==="GF_A"||ev.type==="GA_A"){
+      const names=(ev.activeIds||[]).map(id=>{const P=players.find(p=>p.id===id);return (P?P.name:`#${id}`)+(P&&P.isGK?' 🧤':'');});
+      return names.length?`${base} — Em campo: ${names.join(", ")}`:base;
     }
     if(ev.type.endsWith("_P")){
-      const p = players.find(x=>x.id===ev.playerId);
-      const nm = p ? p.name + (p.isGK?' 🧤':'') : `#${ev.playerId||'?'}`;
-      return `${ev.clock} • ${tlLabel(ev.type)} — ${nm}`;
+      const P=players.find(x=>x.id===ev.playerId); const nm=P?(P.name+(P.isGK?' 🧤':'')):`#${ev.playerId}`; return `${base} — ${nm}`;
     }
     return base;
   });
-
-  renderReportPng(`${nameA} vs ${nameB}`, headers, rows, events, `Resumo_${nameA}_vs_${nameB}`);
+  renderReportPng(`${nameA} vs ${nameB}`,headers,rows,events,`Resumo_${nameA}_vs_${nameB}`);
 }
-
-function exportPngFromHistory(index){
-  const h=getHistory()[index]; if(!h) return;
+function exportPngFromHistory(i){
+  const h=getHistory()[i]; if(!h)return;
   const nameA=h.teamA||"Equipa A", nameB=h.teamB||"Equipa B";
   const headers=["Jogador","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
-  const rows = h.totals.map(t=>{
-    const total = t.part1 + t.part2;
-    const avg = t.rotations > 0 ? Math.floor(total / t.rotations) : 0;
-    const percent = ((total / (duration * 2)) * 100).toFixed(1) + "%";
-    const workloadText = (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m";
-    return [
-      t.name + (t.isGK?' 🧤':''), formatTime(t.part1), formatTime(t.part2),
-      formatTime(total), formatTime(t.secondsOut),
-      String(t.rotations), formatTime(avg), percent, workloadText
-    ];
-  });
-
-  const events = (h.events || []).map(ev=>{
-    const base = `${ev.clock} • ${tlLabel(ev.type)}`;
-    if(ev.type==="GF_A" || ev.type==="GA_A"){
-      const names = (ev.activeIds||[]).map(id => {
-        const t = h.totals.find(x=>x.id===id);
-        return (t ? t.name : `#${id}`) + ((t&&t.isGK)?' 🧤':'');
-      });
-      const extra = names.length ? ` — Em campo: ${names.join(", ")}` : "";
-      return base + extra;
+  const rows=h.totals.map(t=>{const total=t.part1+t.part2, avg=t.rotations>0?Math.floor(total/t.rotations):0, percent=((total/(duration*2))*100).toFixed(1)+"%"; const wlt=(t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m";
+    return [t.name+(t.isGK?' 🧤':''),formatTime(t.part1),formatTime(t.part2),formatTime(total),formatTime(t.secondsOut),String(t.rotations),formatTime(avg),percent,wlt];});
+  const events=(h.events||[]).map(ev=>{
+    const base=`${ev.clock} • ${tlLabel(ev.type)}`;
+    if(ev.type==="GF_A"||ev.type==="GA_A"){
+      const names=(ev.activeIds||[]).map(id=>{const T=h.totals.find(x=>x.id===id); return (T?T.name:`#${id}`)+((T&&T.isGK)?' 🧤':'');});
+      return names.length?`${base} — Em campo: ${names.join(", ")}`:base;
     }
     if(ev.type.endsWith("_P")){
-      const t = h.totals.find(x=>x.id===ev.playerId);
-      const nm = t ? t.name + (t.isGK?' 🧤':'') : `#${ev.playerId||'?'}`;
-      return `${ev.clock} • ${tlLabel(ev.type)} — ${nm}`;
+      const T=h.totals.find(x=>x.id===ev.playerId); const nm=T?(T.name+(T.isGK?' 🧤':'')):`#${ev.playerId}`; return `${base} — ${nm}`;
     }
     return base;
   });
-
-  renderReportPng(`${nameA} vs ${nameB}`, headers, rows, events, `Resumo_${nameA}_vs_${nameB}`);
+  renderReportPng(`${nameA} vs ${nameB}`,headers,rows,events,`Resumo_${nameA}_vs_${nameB}`);
 }
-
-function renderReportPng(title, headers, rows, events, basename){
-  // —— Layout base
-  const colWidths = [280,120,120,150,150,90,100,90,140]; // por coluna
-  const tableWidth = colWidths.reduce((a,b)=>a+b, 0);
-  const margin=20, innerPad=12;
-  const titleFont="bold 20px Arial, sans-serif";
-  const headFont="bold 14px Arial, sans-serif";
-  const rowFont="14px Arial, sans-serif";
-  const smallFont="13px Arial, sans-serif";
+function renderReportPng(title,headers,rows,events,basename){
+  const colWidths=[280,120,120,150,150,90,100,90,140], tableWidth=colWidths.reduce((a,b)=>a+b,0);
+  const margin=20, innerPad=12, titleFont="bold 20px Arial, sans-serif", headFont="bold 14px Arial, sans-serif", rowFont="14px Arial, sans-serif", smallFont="13px Arial, sans-serif";
   const rowH=34, headerH=36, titleH=28;
 
-  // —— Medir altura da tabela
-  const tableCardW = tableWidth + innerPad*2;
-  const tableCardH = innerPad + headerH + rows.length*rowH + innerPad;
+  const tableCardW=tableWidth+innerPad*2, tableCardH=innerPad+headerH+rows.length*rowH+innerPad;
 
-  // —— Preparar linhas da Timeline (com word-wrap)
-  const timelineTitleH = 24;
-  const timelineCardW = Math.max(tableCardW, 700);
-  const timelineInnerW = timelineCardW - innerPad*2;
-  const wrapLines = [];
-  const canvasMeasure = document.createElement("canvas").getContext("2d");
-  canvasMeasure.font = smallFont;
+  const canvasMeasure=document.createElement("canvas").getContext("2d"); canvasMeasure.font=smallFont;
+  const wrap=(text,maxW)=>{const w=text.split(" ");let line="",out=[];for(const t of w){const test=line?line+" "+t:t; if(canvasMeasure.measureText(test).width<=maxW) line=test; else {if(line)out.push(line); line=t;}} if(line)out.push(line); return out;};
 
-  function wrapTextToLines(text, maxWidth, ctx){
-    const words = text.split(" ");
-    let line="", out=[];
-    for(const w of words){
-      const test = line ? line + " " + w : w;
-      if(ctx.measureText(test).width <= maxWidth){
-        line = test;
-      }else{
-        if(line) out.push(line);
-        line = w;
-      }
-    }
-    if(line) out.push(line);
-    return out;
-  }
+  const timelineTitleH=24, timelineCardW=Math.max(tableCardW,700), tInnerW=timelineCardW-innerPad*2;
+  const evLines=[]; const maxEv=Math.min(events.length,200);
+  for(let i=0;i<maxEv;i++){evLines.push(...wrap(events[i],tInnerW-8));}
+  const lineH=20, tlBodyH=evLines.length*lineH, tlCardH=innerPad+timelineTitleH+6+tlBodyH+innerPad;
 
-  const maxEvents = Math.min(events.length, 200);
-  for(let i=0;i<maxEvents;i++){
-    const ev = events[i];
-    const lines = wrapTextToLines(ev, timelineInnerW - 8, canvasMeasure);
-    wrapLines.push(...lines);
-  }
+  const contentW=Math.max(tableCardW,timelineCardW), canvasW=Math.max(contentW+margin*2,900);
+  const canvasH=margin+titleH+8+innerPad+tableCardH+16+tlCardH+margin;
 
-  const lineH = 20;
-  const timelineBodyH = wrapLines.length * lineH;
-  const timelineCardH = innerPad + timelineTitleH + 6 + timelineBodyH + innerPad;
+  const c=document.createElement("canvas"); c.width=canvasW; c.height=canvasH; const ctx=c.getContext("2d");
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,canvasW,canvasH);
+  ctx.fillStyle="#000"; ctx.font=titleFont; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(title,canvasW/2,margin+titleH/2);
 
-  // —— Altura total do canvas
-  const contentWidth = Math.max(tableCardW, timelineCardW);
-  const canvasWidth = Math.max(contentWidth + margin*2, 900);
-  const totalHeight = margin + titleH + 8
-                    + innerPad + tableCardH + 16
-                    + timelineCardH + margin;
-
-  const canvas=document.createElement("canvas");
-  canvas.width=canvasWidth; canvas.height=totalHeight;
-  const ctx=canvas.getContext("2d");
-
-  // —— Fundo
-  ctx.fillStyle="#fff"; ctx.fillRect(0,0,canvasWidth,totalHeight);
-
-  // —— Título
-  ctx.fillStyle="#000"; ctx.font=titleFont; ctx.textAlign="center"; ctx.textBaseline="middle";
-  ctx.fillText(title, canvasWidth/2, margin + titleH/2);
-
-  // —— Cartão Tabela
-  let cardX=(canvasWidth - tableCardW)/2, cardY=margin + titleH + 8;
+  let cardX=(canvasW-tableCardW)/2, cardY=margin+titleH+8; const r=10;
   ctx.fillStyle="#fff"; ctx.strokeStyle="#ccc"; ctx.lineWidth=1;
-  const r=10;
-  ctx.beginPath();
-  ctx.moveTo(cardX + r, cardY);
-  ctx.lineTo(cardX + tableCardW - r, cardY);
-  ctx.quadraticCurveTo(cardX + tableCardW, cardY, cardX + tableCardW, cardY + r);
-  ctx.lineTo(cardX + tableCardW, cardY + tableCardH - r);
-  ctx.quadraticCurveTo(cardX + tableCardW, cardY + tableCardH, cardX + tableCardW - r, cardY + tableCardH);
-  ctx.lineTo(cardX + r, cardY + tableCardH);
-  ctx.quadraticCurveTo(cardX, cardY + tableCardH, cardX, cardY + tableCardH - r);
-  ctx.lineTo(cardX, cardY + r);
-  ctx.quadraticCurveTo(cardX, cardY, cardX + r, cardY);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cardX+r,cardY); ctx.lineTo(cardX+tableCardW-r,cardY); ctx.quadraticCurveTo(cardX+tableCardW,cardY,cardX+tableCardW,cardY+r);
+  ctx.lineTo(cardX+tableCardW,cardY+tableCardH-r); ctx.quadraticCurveTo(cardX+tableCardW,cardY+tableCardH,cardX+tableCardW-r,cardY+tableCardH);
+  ctx.lineTo(cardX+r,cardY+tableCardH); ctx.quadraticCurveTo(cardX,cardY+tableCardH,cardX,cardY+tableCardH-r);
+  ctx.lineTo(cardX,cardY+r); ctx.quadraticCurveTo(cardX,cardY,cardX+r,cardY); ctx.closePath(); ctx.fill(); ctx.stroke();
 
-  // —— Cabeçalho da tabela
-  let x=cardX + innerPad, y=cardY + innerPad;
-  ctx.fillStyle="#eee"; ctx.fillRect(x - 1, y, tableWidth + 2, headerH);
+  let x=cardX+innerPad, y=cardY+innerPad;
+  ctx.fillStyle="#eee"; ctx.fillRect(x-1,y,tableWidth+2,headerH);
   ctx.fillStyle="#000"; ctx.font=headFont; ctx.textAlign="left"; ctx.textBaseline="middle";
-  let colX=x; headers.forEach((h,i)=>{ ctx.fillText(h, colX + 8, y + headerH/2); colX += colWidths[i]; });
+  let cx=x; headers.forEach((h,i)=>{ctx.fillText(h,cx+8,y+headerH/2); cx+=colWidths[i];});
+  ctx.strokeStyle="#999"; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+tableWidth,y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x,y+headerH); ctx.lineTo(x+tableWidth,y+headerH); ctx.stroke();
 
-  // linhas horizontais topo/abaixo do header
-  ctx.strokeStyle="#999"; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x + tableWidth, y); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(x,y + headerH); ctx.lineTo(x + tableWidth, y + headerH); ctx.stroke();
-
-  // —— Linhas da tabela
-  ctx.font=rowFont; let rowY=y + headerH;
-  for(let rI=0;rI<rows.length;rI++){
-    const row=rows[rI];
-    ctx.strokeStyle="#ddd"; ctx.beginPath(); ctx.moveTo(x, rowY + rowH); ctx.lineTo(x + tableWidth, rowY + rowH); ctx.stroke();
-    let cx=x;
-    for(let c=0;c<row.length;c++){
-      const cell=String(row[c] ?? "");
-      const maxW = colWidths[c] - 14;
+  ctx.font=rowFont; let rowY=y+headerH;
+  for(const row of rows){
+    ctx.strokeStyle="#ddd"; ctx.beginPath(); ctx.moveTo(x,rowY+rowH); ctx.lineTo(x+tableWidth,rowY+rowH); ctx.stroke();
+    let cxx=x;
+    for(let i=0;i<row.length;i++){
+      const cell=String(row[i]??""); const maxW=colWidths[i]-14;
       ctx.fillStyle="#000"; ctx.textAlign="left"; ctx.textBaseline="middle";
-      ctx.save(); let text=cell;
-      while(ctx.measureText(text).width > maxW){ if(text.length<=1) break; text = text.slice(0,-1); }
-      if(text !== cell) text = text.slice(0,-1) + "…";
-      ctx.fillText(text, cx + 7, rowY + rowH/2); ctx.restore();
-      // linhas verticais
-      ctx.strokeStyle="#eee"; ctx.beginPath(); ctx.moveTo(cx, rowY); ctx.lineTo(cx, rowY + rowH); ctx.stroke();
-      cx += colWidths[c];
+      ctx.save(); let txt=cell; while(ctx.measureText(txt).width>maxW){ if(txt.length<=1)break; txt=txt.slice(0,-1);} if(txt!==cell) txt=txt.slice(0,-1)+"…";
+      ctx.fillText(txt,cxx+7,rowY+rowH/2); ctx.restore();
+      ctx.strokeStyle="#eee"; ctx.beginPath(); ctx.moveTo(cxx,rowY); ctx.lineTo(cxx,rowY+rowH); ctx.stroke();
+      cxx+=colWidths[i];
     }
-    ctx.beginPath(); ctx.moveTo(x + tableWidth, rowY); ctx.lineTo(x + tableWidth, rowY + rowH); ctx.stroke();
-    rowY += rowH;
+    ctx.beginPath(); ctx.moveTo(x+tableWidth,rowY); ctx.lineTo(x+tableWidth,rowY+rowH); ctx.stroke();
+    rowY+=rowH;
   }
-  // moldura exterior
-  ctx.strokeStyle="#999"; ctx.lineWidth=1; ctx.strokeRect(x - 1, y, tableWidth + 2, headerH + rows.length*rowH);
+  ctx.strokeStyle="#999"; ctx.lineWidth=1; ctx.strokeRect(x-1,y,tableWidth+2,headerH+rows.length*rowH);
 
-  // —— Cartão Timeline (abaixo da tabela)
-  const timelineTitleH = 24;
-  const tlCardX = (canvasWidth - Math.max(tableCardW, 700))/2;
-  const tlCardW = Math.max(tableCardW, 700);
-  const tlCardY = cardY + tableCardH + 16;
-  // medir altura já calculada acima: usamos wrapLines
-  const canvasMeasure2 = document.createElement("canvas").getContext("2d");
-  canvasMeasure2.font = smallFont;
-  const wrapLines = [];
-  const timelineInnerW = tlCardW - innerPad*2;
-  function wrapTextToLines2(text){ // rewrap com o novo W
-    const words = text.split(" ");
-    let line="", out=[];
-    for(const w of words){
-      const test = line ? line + " " + w : w;
-      if(canvasMeasure2.measureText(test).width <= timelineInnerW - 8){ line = test; }
-      else { if(line) out.push(line); line = w; }
-    }
-    if(line) out.push(line);
-    return out;
-  }
-  const maxEvents = Math.min(events.length, 200);
-  for(let i=0;i<maxEvents;i++){ wrapLines.push(...wrapTextToLines2(events[i])); }
-  const lineH = 20;
-  const tlBodyH = wrapLines.length * lineH;
-  const tlCardH = innerPad + timelineTitleH + 6 + tlBodyH + innerPad;
-
-  // cartão
+  const tlW=Math.max(tableCardW,700), tlX=(canvasW-tlW)/2, tlY=cardY+tableCardH+16; const r2=10;
   ctx.fillStyle="#fff"; ctx.strokeStyle="#ccc"; ctx.lineWidth=1;
-  const r2=10;
-  ctx.beginPath();
-  ctx.moveTo(tlCardX + r2, tlCardY);
-  ctx.lineTo(tlCardX + tlCardW - r2, tlCardY);
-  ctx.quadraticCurveTo(tlCardX + tlCardW, tlCardY, tlCardX + tlCardW, tlCardY + r2);
-  ctx.lineTo(tlCardX + tlCardW, tlCardY + tlCardH - r2);
-  ctx.quadraticCurveTo(tlCardX + tlCardW, tlCardY + tlCardH, tlCardX + tlCardW - r2, tlCardY + tlCardH);
-  ctx.lineTo(tlCardX + r2, tlCardY + tlCardH);
-  ctx.quadraticCurveTo(tlCardX, tlCardY + tlCardH, tlCardX, tlCardY + tlCardH - r2);
-  ctx.lineTo(tlCardX, tlCardY + r2);
-  ctx.quadraticCurveTo(tlCardX, tlCardY, tlCardX + r2, tlCardY);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(tlX+r2,tlY); ctx.lineTo(tlX+tlW-r2,tlY); ctx.quadraticCurveTo(tlX+tlW,tlY,tlX+tlW,tlY+r2);
+  ctx.lineTo(tlX+tlW,tlY+tlCardH-r2); ctx.quadraticCurveTo(tlX+tlW,tlY+tlCardH,tlX+tlW-r2,tlY+tlCardH);
+  ctx.lineTo(tlX+r2,tlY+tlCardH); ctx.quadraticCurveTo(tlX,tlY+tlCardH,tlX,tlY+tlCardH-r2);
+  ctx.lineTo(tlX,tlY+r2); ctx.quadraticCurveTo(tlX,tlY,tlX+r2,tlY); ctx.closePath(); ctx.fill(); ctx.stroke();
 
-  // título "Timeline"
-  let tx = tlCardX + innerPad, ty = tlCardY + innerPad;
-  ctx.font = headFont; ctx.fillStyle="#000"; ctx.textAlign="left"; ctx.textBaseline="middle";
-  ctx.fillText("Timeline", tx, ty + timelineTitleH/2);
+  let tx=tlX+innerPad, ty=tlY+innerPad; ctx.font=headFont; ctx.fillStyle="#000"; ctx.textAlign="left"; ctx.textBaseline="middle";
+  ctx.fillText("Timeline",tx,ty+24/2);
 
-  // linhas dos eventos
-  ctx.font = smallFont; ctx.fillStyle="#000";
-  let lineY = ty + timelineTitleH + 6;
-  if(wrapLines.length === 0){
-    ctx.fillText("— sem eventos —", tx, lineY + lineH/2);
-  }else{
-    wrapLines.forEach(line=>{
-      ctx.fillText(line, tx, lineY + lineH/2);
-      lineY += lineH;
-    });
-  }
+  ctx.font=smallFont; ctx.fillStyle="#000"; let lY=ty+24+6;
+  if(evLines.length===0){ ctx.fillText("— sem eventos —",tx,lY+20/2); }
+  else { evLines.forEach(line=>{ ctx.fillText(line,tx,lY+20/2); lY+=20; }); }
 
-  // —— Export
-  const a=document.createElement("a");
-  const ts=new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
-  a.download=`${basename}_${ts}.png`;
-  a.href=canvas.toDataURL("image/png");
-  a.click();
+  const a=document.createElement("a"); const ts=new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+  a.download=`${basename}_${ts}.png`; a.href=c.toDataURL("image/png"); a.click();
 }
 
-/* ===== TEMA / FULLSCREEN ===== */
-function toggleTheme(){
-  const btn=themeToggle;
-  document.body.classList.toggle("light-mode");
-  theme=document.body.classList.contains("light-mode")?"light":"dark";
-  btn.textContent=theme==="dark"?"🌙":"🌞";
-  saveData();
-}
+/* Tema/Fullscreen */
+function toggleTheme(){document.body.classList.toggle("light-mode"); theme=document.body.classList.contains("light-mode")?"light":"dark"; themeToggle.textContent=theme==="dark"?"🌙":"🌞"; saveData();}
+fullscreenBtn.onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
 
-/* ===== PAINEL DE NOMES (com GR) ===== */
+/* Editar nomes */
 const editPanel=document.getElementById("editPanel"), editList=document.getElementById("editList");
 editNamesBtn.onclick=()=>{
-  editList.innerHTML="";
-  players.forEach(p=>{
-    const row=document.createElement("div");
-    row.className="row";
-    row.innerHTML=`
-      <span style="color:#aaa;width:26px;text-align:right">${p.id}.</span>
+  editList.innerHTML=""; players.forEach(p=>{
+    const row=document.createElement("div"); row.className="row";
+    row.innerHTML=`<span style="color:#aaa;width:26px;text-align:right">${p.id}.</span>
       <input type="text" id="nameEdit${p.id}" value="${p.name}">
-      <label><input type="checkbox" id="gkEdit${p.id}" ${p.isGK?'checked':''}> 🧤 GR</label>
-    `;
+      <label><input type="checkbox" id="gkEdit${p.id}" ${p.isGK?'checked':''}> 🧤 GR</label>`;
     editList.appendChild(row);
   });
   editPanel.classList.add("open");
 };
 closePanel.onclick=()=>editPanel.classList.remove("open");
 saveNamesBtn.onclick=()=>{
-  players.forEach(p=>{
-    const v=document.getElementById("nameEdit"+p.id).value.trim();
-    const gk=document.getElementById("gkEdit"+p.id).checked;
-    if(v) p.name=v;
-    p.isGK = !!gk;
-    if(p.isGK){ p.fatigue=0; }
-  });
-  editPanel.classList.remove("open");
-  buildPlayersDOM();
-  updatePlayersUI(); updateSummary(); saveData();
+  players.forEach(p=>{const v=document.getElementById("nameEdit"+p.id).value.trim(); const gk=document.getElementById("gkEdit"+p.id).checked; if(v)p.name=v; p.isGK=!!gk; if(p.isGK)p.fatigue=0;});
+  editPanel.classList.remove("open"); buildPlayersDOM(); updatePlayersUI(); updateSummary(); saveData();
 };
 
-/* ===== TIMELINE ===== */
-function tlSave(){ localStorage.setItem(TL_KEY, JSON.stringify(timeline)); }
-function tlLoad(){
-  timeline = JSON.parse(localStorage.getItem(TL_KEY) || "[]");
-  tlRender();
-}
-function tlLabel(type){
-  const map = {
-    GF_A: "Golo A", GA_A: "Golo Sofrido A",
-    FK_P: "Falta", YC_P: "Amarelo", RC_P: "Vermelho",
-    TO_A: "Time-out A"
-  }; return map[type] || type;
-}
-function tlClass(type){
-  if(type==="GF_A") return "tl-gf";
-  if(type==="GA_A") return "tl-ga";
-  if(type==="FK_P") return "tl-fk";
-  if(type==="YC_P") return "tl-yc";
-  if(type==="RC_P") return "tl-rc";
-  if(type==="TO_A") return "tl-to";
-  return "";
-}
+/* Timeline helpers */
+function tlSave(){localStorage.setItem(TL_KEY,JSON.stringify(timeline))}
+function tlLoad(){timeline=JSON.parse(localStorage.getItem(TL_KEY)||"[]"); tlRender();}
+function tlLabel(t){const m={GF_A:"Golo A",GA_A:"Golo Sofrido A",FK_P:"Falta",YC_P:"Amarelo",RC_P:"Vermelho",TO_A:"Time-out A"}; return m[t]||t;}
+function tlClass(t){if(t==="GF_A")return"tl-gf"; if(t==="GA_A")return"tl-ga"; if(t==="FK_P")return"tl-fk"; if(t==="YC_P")return"tl-yc"; if(t==="RC_P")return"tl-rc"; if(t==="TO_A")return"tl-to"; return "";}
 function tlAddTeam(type){
-  // captura jogadores ativos (para golos)
-  const activeIds = players.filter(p=>p.active).map(p=>p.id);
-  // Atualiza +/- dos 5 em campo
-  if(type==="GF_A"){ players.forEach(p=>{ if(p.active) p.plusMinus = (p.plusMinus||0) + 1; }); }
-  if(type==="GA_A"){ players.forEach(p=>{ if(p.active) p.plusMinus = (p.plusMinus||0) - 1; }); }
-  timeline.unshift({ t: Date.now(), clock: formatTime(remaining), type, activeIds });
-  tlSave(); tlRender(); updateSummary(); saveData();
+  const activeIds=players.filter(p=>p.active).map(p=>p.id);
+  if(type==="GF_A") players.forEach(p=>{if(p.active)p.plusMinus=(p.plusMinus||0)+1;});
+  if(type==="GA_A") players.forEach(p=>{if(p.active)p.plusMinus=(p.plusMinus||0)-1;});
+  timeline.unshift({t:Date.now(),clock:formatTime(remaining),type,activeIds}); tlSave(); tlRender(); updateSummary(); saveData();
 }
 function tlRender(){
-  const feed = document.getElementById("timelineFeed");
-  if(!feed) return;
-  feed.innerHTML = "";
+  const feed=timelineFeed; feed.innerHTML="";
   timeline.forEach(ev=>{
-    const chip = document.createElement("div");
-    chip.className = "tl-chip " + tlClass(ev.type);
-    let text = `${ev.clock} • ${tlLabel(ev.type)}`;
-    if(ev.type==="GF_A" || ev.type==="GA_A"){
-      const names = (ev.activeIds||[]).map(id => (players.find(p=>p.id===id)?.name || `#${id}`) + (players.find(p=>p.id===id)?.isGK?' 🧤':''));
-      if(names.length) chip.title = "Em campo: " + names.join(", ");
+    const chip=document.createElement("div"); chip.className="tl-chip "+tlClass(ev.type);
+    let text=`${ev.clock} • ${tlLabel(ev.type)}`;
+    if((ev.type==="GF_A"||ev.type==="GA_A") && ev.activeIds){
+      const names=ev.activeIds.map(id=>{const P=players.find(p=>p.id===id); return (P?P.name:`#${id}`)+(P&&P.isGK?' 🧤':'');});
+      if(names.length) chip.title="Em campo: "+names.join(", ");
     }
     if(ev.type.endsWith("_P") && ev.playerId){
-      const p = players.find(x=>x.id===ev.playerId);
-      const nm = p ? p.name + (p.isGK?' 🧤':'') : `#${ev.playerId}`;
-      text += ` — ${nm}`;
+      const P=players.find(x=>x.id===ev.playerId); const nm=P?(P.name+(P.isGK?' 🧤':'')):`#${ev.playerId}`; text+=` — ${nm}`;
     }
-    chip.textContent = text;
-    feed.appendChild(chip);
+    chip.textContent=text; feed.appendChild(chip);
   });
 }
 
-/* Liga botões timeline */
+/* Liga botões UI */
+startBtn.onclick=startTimer; pauseBtn.onclick=pauseTimer; resetBtn.onclick=resetTimer; intervalBtn.onclick=intervalTimer;
+addBtn.onclick=()=>ensurePlayerCount(players.length+1);
+removeBtn.onclick=()=>{if(players.length>1){players.pop();buildPlayersDOM();updatePlayersUI();updateSummary();saveData();}}
+printBtn.onclick=printScreen; themeToggle.onclick=toggleTheme;
 document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
-  if(btn.classList.contains("tl-player")){
-    btn.addEventListener("click", ()=> setPending(btn.dataset.type));
-  }else{
-    btn.addEventListener("click", ()=> tlAddTeam(btn.dataset.type));
-  }
+  if(btn.classList.contains("tl-player")) btn.addEventListener("click",()=>setPending(btn.dataset.type));
+  else btn.addEventListener("click",()=>tlAddTeam(btn.dataset.type));
 });
-document.getElementById("tlClear").onclick = ()=>{
-  if(confirm("Limpar timeline?")){ timeline = []; tlSave(); tlRender(); }
-};
-
-/* ===== HISTÓRICO UI ===== */
-const historyPanel=document.getElementById("historyPanel");
-document.getElementById("historyBtn").onclick=()=>{ renderHistoryList(); historyPanel.classList.add("open"); };
-document.getElementById("closeHistory").onclick=()=>historyPanel.classList.remove("open");
-document.getElementById("saveGameBtn").onclick=saveGameToHistory;
-document.getElementById("clearHistoryBtn").onclick=clearHistory;
-document.getElementById("exportAllCsvBtn").onclick=()=>{
-  const hist=getHistory(); if(hist.length===0) return;
+tlClear.onclick=()=>{if(confirm("Limpar timeline?")){timeline=[];tlSave();tlRender();}}
+historyBtn.onclick=()=>{renderHistoryList();historyPanel.classList.add("open");};
+closeHistory.onclick=()=>historyPanel.classList.remove("open");
+saveGameBtn.onclick=saveGameToHistory;
+clearHistoryBtn.onclick=clearHistory;
+exportAllCsvBtn.onclick=()=>{
+  const hist=getHistory(); if(hist.length===0)return;
   let csv="Data,EquipaA,EquipaB,Jogador,GR,1aParte,2aParte,Total,TempoFora,Rotacoes,Media,Percent,Workload,PlusMinus,Faltas,YC,RC\n";
   hist.forEach(h=>{
     const d=new Date(h.when).toISOString();
     h.totals.forEach(t=>{
-      const total = t.part1 + t.part2;
-      const avg = t.rotations > 0 ? Math.floor(total / t.rotations) : 0;
-      const percent = ((total / (duration * 2)) * 100).toFixed(1) + "%";
-      csv += [
-        d, JSON.stringify(h.teamA||""), JSON.stringify(h.teamB||""),
-        JSON.stringify(t.name), t.isGK?"Sim":"Não",
-        formatTime(t.part1), formatTime(t.part2),
-        formatTime(total), formatTime(t.secondsOut),
-        t.rotations, formatTime(avg), percent,
-        (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m",
-        t.plusMinus||0, t.fouls||0, t.yc?"Sim":"Não", t.rc?"Sim":"Não"
-      ].join(",") + "\n";
+      const total=t.part1+t.part2, avg=t.rotations>0?Math.floor(total/t.rotations):0, percent=((total/(duration*2))*100).toFixed(1)+"%";
+      csv+=[d,JSON.stringify(h.teamA||""),JSON.stringify(h.teamB||""),JSON.stringify(t.name),t.isGK?"Sim":"Não",formatTime(t.part1),formatTime(t.part2),formatTime(total),formatTime(t.secondsOut),t.rotations,formatTime(avg),percent,(t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m",t.plusMinus||0,t.fouls||0,t.yc?"Sim":"Não",t.rc?"Sim":"Não"].join(",")+"\n";
     });
   });
-  const a=document.createElement("a"); a.download="historico_gamecontrol.csv";
-  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.click();
+  const a=document.createElement("a"); a.download="historico_gamecontrol.csv"; a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.click();
 };
 
-/* ===== BOTÕES ===== */
-document.getElementById("startBtn").onclick=startTimer;
-document.getElementById("pauseBtn").onclick=pauseTimer;
-document.getElementById("resetBtn").onclick=resetTimer;
-document.getElementById("intervalBtn").onclick=intervalTimer;
-document.getElementById("addBtn").onclick=()=>ensurePlayerCount(players.length+1);
-document.getElementById("removeBtn").onclick=()=>{if(players.length>1){players.pop();buildPlayersDOM();updatePlayersUI();updateSummary();saveData();}}
-document.getElementById("printBtn").onclick=printScreen;
-document.getElementById("themeToggle").onclick=toggleTheme;
-document.getElementById("fullscreenBtn").onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();};
-
-/* ===== START ===== */
-buildPlayersDOM();
-updateTimerDisplay();
-updateHalfBadge();
-loadData();
+/* Boot seguro */
+updateTimerDisplay(); updateHalfBadge();
+loadData();                // carrega estado e boxes
+if(players.length===0){    // fallback defensivo
+  ensurePlayerCount(14);
+}
 </script>
 </body>
 </html>
