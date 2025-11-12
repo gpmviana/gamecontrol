@@ -13,12 +13,12 @@
 
   #teamInputs{display:flex;justify-content:center;align-items:center;gap:10px;margin:10px}
   #teamInputs input{padding:6px 10px;border-radius:6px;border:none;font-size:16px;text-align:center}
-
-  /* Marcador */
-  .score{display:flex;justify-content:center;align-items:center;gap:10px;margin:0 0 6px 0}
-  .score .name{font-weight:700}
-  .score .sep{opacity:.6}
-  .score .val{font-size:42px;font-weight:800;min-width:40px}
+  .scoreBubble{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:34px;height:34px;padding:0 8px;margin:0 6px;
+    border-radius:8px;background:#111;color:#fff;font-weight:800;font-size:20px;
+  }
+  body.light-mode .scoreBubble{background:#e7e7e7;color:#111}
 
   .timer-row{display:flex;align-items:center;justify-content:center;gap:10px;margin:6px 0 0 0}
   #timer{font-size:3em}
@@ -117,19 +117,13 @@
   </div>
 </header>
 
+<!-- Equipas com marcador (bubbles) -->
 <div id="teamInputs">
+  <span class="scoreBubble" id="scoreA">0</span>
   <input id="teamA" placeholder="Equipa A" />
   <span style="font-weight:bold;">vs</span>
   <input id="teamB" placeholder="Equipa B" />
-</div>
-
-<!-- Marcador -->
-<div class="score">
-  <span class="name" id="labelA">Equipa A</span>
-  <span class="val" id="scoreA">0</span>
-  <span class="sep">–</span>
-  <span class="val" id="scoreB">0</span>
-  <span class="name" id="labelB">Equipa B</span>
+  <span class="scoreBubble" id="scoreB">0</span>
 </div>
 
 <div class="timer-row">
@@ -223,12 +217,7 @@ const pad=n=>String(n).padStart(2,"0");
 function formatTime(sec){sec=Math.max(0,Math.floor(sec));return `${pad(Math.floor(sec/60))}:${pad(sec%60)}`;}
 function updateTimerDisplay(){timer.textContent=formatTime(remaining);}
 function updateHalfBadge(){halfBadge.textContent=firstHalf?"1ª Parte":"2ª Parte";}
-function updateScoreUI(){
-  document.getElementById('scoreA').textContent = scoreA;
-  document.getElementById('scoreB').textContent = scoreB;
-  document.getElementById('labelA').textContent = (teamA.value||'Equipa A');
-  document.getElementById('labelB').textContent = (teamB.value||'Equipa B');
-}
+function updateScoreUI(){ document.getElementById('scoreA').textContent = scoreA; document.getElementById('scoreB').textContent = scoreB; }
 function fatigueColor(p){if(p.active){if(p.rotationTime>=RED_THRESHOLD_SEC)return"#e74c3c";if(p.rotationTime>=YELLOW_THRESHOLD_SEC)return"#e6b800";return"#2ecc71";}else{if(p.fatigue>=0.66)return"#e74c3c";if(p.fatigue>=0.33)return"#e6b800";return"#2ecc71";}}
 
 /* DOM jogadores */
@@ -357,8 +346,7 @@ function setPending(type){ pendingPlayerEvent=type; updatePlayersUI(); }
 function saveData(){
   const data={teamA:teamA.value||"",teamB:teamB.value||"",duration,remaining,firstHalf,running,theme,players,lastSaved:Date.now(),scoreA,scoreB};
   localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
-  tlSave();
-  updateScoreUI();
+  tlSave(); updateScoreUI();
 }
 function loadData(){
   try{
@@ -439,13 +427,24 @@ function exportCsv(idx){
   a.download=`Resumo_${(h.teamA||'EquipaA')}_vs_${(h.teamB||'EquipaB')}_${ts}.csv`; a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.click();
 }
 
-/* Print PNG (tabela + timeline textual com nome e resultado) */
-function printScreen(){ exportPngFromCurrent(); }
+/* Timeline + Score */
+function tlSave(){localStorage.setItem(TL_KEY,JSON.stringify(timeline))}
+function tlLoad(){timeline=JSON.parse(localStorage.getItem(TL_KEY)||"[]");}
 function tlLabel(type, teamName){
   const A = teamName || (document.getElementById('teamA').value || 'Equipa A');
   const map = { GF_A:`Golo ${A}`, GA_A:`Golo Sofrido ${A}`, FK_P:"Falta", YC_P:"Amarelo", RC_P:"Vermelho" };
   return map[type] || type;
 }
+function tlAddTeam(type){
+  const activeIds=players.filter(p=>p.active).map(p=>p.id);
+  if(type==="GF_A"){ players.forEach(p=>{if(p.active)p.plusMinus=(p.plusMinus||0)+1;}); scoreA++; }
+  if(type==="GA_A"){ players.forEach(p=>{if(p.active)p.plusMinus=(p.plusMinus||0)-1;}); scoreB++; }
+  updateScoreUI();
+  timeline.unshift({t:Date.now(),clock:formatTime(remaining),type,activeIds}); tlSave(); updateSummary(); saveData();
+}
+
+/* Export PNG (tabela + timeline textual, com título que inclui resultado) */
+function printScreen(){ exportPngFromCurrent(); }
 function exportPngFromCurrent(){
   const nameA=(teamA.value||"Equipa A").trim(), nameB=(teamB.value||"Equipa B").trim();
   const title = `${nameA} ${scoreA}–${scoreB} ${nameB}`;
@@ -485,8 +484,6 @@ function exportPngFromHistory(i){
   });
   renderReportPng(title,headers,rows,events,`Resumo_${nameA}_vs_${nameB}`);
 }
-
-/* PNG renderer (igual) */
 function renderReportPng(title,headers,rows,events,basename){
   const colWidths=[280,120,120,150,150,90,100,90,140], tableWidth=colWidths.reduce((a,b)=>a+b,0);
   const margin=20, innerPad=12, titleFont="bold 20px Arial, sans-serif", headFont="bold 14px Arial, sans-serif", rowFont="14px Arial, sans-serif", smallFont="13px Arial, sans-serif";
@@ -541,7 +538,6 @@ function renderReportPng(title,headers,rows,events,basename){
   ctx.strokeStyle="#999"; ctx.lineWidth=1; ctx.strokeRect(x-1,y,tableWidth+2,headerH+rows.length*rowH);
 
   const tlW=Math.max(tableCardW,700), tlX=(canvasW-tlW)/2, tlY=cardY+tableCardH+16; const r2=10;
-  const tlCardH=innerPad+24+6+(evLines.length*20)+innerPad;
   ctx.fillStyle="#fff"; ctx.strokeStyle="#ccc"; ctx.lineWidth=1;
   ctx.beginPath(); ctx.moveTo(tlX+r2,tlY); ctx.lineTo(tlX+tlW-r2,tlY); ctx.quadraticCurveTo(tlX+tlW,tlY,tlX+tlW,tlY+r2);
   ctx.lineTo(tlX+tlW,tlY+tlCardH-r2); ctx.quadraticCurveTo(tlX+tlW,tlY+tlCardH,tlX+tlW-r2,tlY+tlCardH);
@@ -552,8 +548,11 @@ function renderReportPng(title,headers,rows,events,basename){
   ctx.fillText("Timeline",tx,ty+24/2);
 
   ctx.font=smallFont; ctx.fillStyle="#000"; let lY=ty+24+6;
-  if(evLines.length===0){ ctx.fillText("— sem eventos —",tx,lY+20/2); }
-  else { evLines.forEach(line=>{ ctx.fillText(line,tx,lY+20/2); lY+=20; }); }
+  if(events.length===0){ ctx.fillText("— sem eventos —",tx,lY+20/2); }
+  else {
+    const wrap2=(line,maxW)=>{const words=String(line).split(" ");let cur="",out=[];for(const w of words){const t=cur?cur+" "+w:w; if(canvasMeasure.measureText(t).width<=maxW)cur=t; else{if(cur)out.push(cur); cur=w;}} if(cur)out.push(cur); return out;};
+    events.forEach(line=>{ wrap2(line, tlW-innerPad*2-8).forEach(w=>{ ctx.fillText(w,tx,lY+20/2); lY+=20; }); });
+  }
 
   const a=document.createElement("a"); const ts=new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
   a.download=`${basename}_${ts}.png`; a.href=c.toDataURL("image/png"); a.click();
@@ -581,18 +580,7 @@ saveNamesBtn.onclick=()=>{
   editPanel.classList.remove("open"); buildPlayersDOM(); updatePlayersUI(); updateSummary(); saveData();
 };
 
-/* Timeline storage */
-function tlSave(){localStorage.setItem(TL_KEY,JSON.stringify(timeline))}
-function tlLoad(){timeline=JSON.parse(localStorage.getItem(TL_KEY)||"[]");}
-function tlAddTeam(type){
-  const activeIds=players.filter(p=>p.active).map(p=>p.id);
-  if(type==="GF_A"){ players.forEach(p=>{if(p.active)p.plusMinus=(p.plusMinus||0)+1;}); scoreA++; }
-  if(type==="GA_A"){ players.forEach(p=>{if(p.active)p.plusMinus=(p.plusMinus||0)-1;}); scoreB++; }
-  updateScoreUI();
-  timeline.unshift({t:Date.now(),clock:formatTime(remaining),type,activeIds}); tlSave(); updateSummary(); saveData();
-}
-
-/* Liga botões UI */
+/* Liga botões UI e timeline */
 startBtn.onclick=startTimer; pauseBtn.onclick=pauseTimer; resetBtn.onclick=resetTimer; intervalBtn.onclick=intervalTimer;
 addBtn.onclick=()=>ensurePlayerCount(players.length+1);
 removeBtn.onclick=()=>{if(players.length>1){players.pop();buildPlayersDOM();updatePlayersUI();updateSummary();saveData();}}
