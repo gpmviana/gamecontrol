@@ -382,53 +382,179 @@ function loadData(){
 window.addEventListener("beforeunload", saveData);
 setInterval(saveData, 3000);
 
-/* ===== PRINT → PNG (screenshot da tabela + nomes das equipas) ===== */
-function printScreen(){
-  const nameA=(teamA.value||"Equipa A").trim();
-  const nameB=(teamB.value||"Equipa B").trim();
-  const rows = players.length || 14;
-  const width = 1000;               // largura fixa para boa leitura
-  const height = 140 + rows * 34;   // altura estimada pela quantidade de linhas
+/* ===== PRINT → PNG (canvas) ===== */
+function printScreen() {
+  // --- Dados base ---
+  const nameA = (document.getElementById("teamA").value || "Equipa A").trim();
+  const nameB = (document.getElementById("teamB").value || "Equipa B").trim();
+  const title = `${nameA} vs ${nameB}`;
 
-  const tableHTML = document.querySelector(".summary").querySelector("table").outerHTML;
-  const html = `
-    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:Arial, sans-serif;background:#ffffff;color:#000;padding:16px;width:${width}px;">
-      <h2 style="text-align:center;margin:0 0 12px 0;font-size:20px;">${nameA} vs ${nameB}</h2>
-      <div style="background:#fff;border:1px solid #ccc;border-radius:8px;padding:10px;">
-        <style>
-          table{border-collapse:collapse;width:100%;}
-          th,td{border:1px solid #999;padding:6px;text-align:center;font:14px Arial, sans-serif;color:#000;}
-          th{background:#eee;font-weight:bold;}
-        </style>
-        ${tableHTML}
-      </div>
-    </div>`;
+  // Construir dados da tabela a partir do estado atual
+  const headers = ["Jogador","Tempo em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
+  const rows = players.map(p => {
+    const total = p.part1 + p.part2;
+    const avg = p.rotations > 0 ? Math.floor(total / p.rotations) : 0;
+    const percent = ((total / (duration * (firstHalf ? 1 : 2))) * 100).toFixed(1) + "%";
+    const workload = p.seconds - p.secondsOut;
+    const workloadText = `${workload >= 0 ? "+" : ""}${(workload/60).toFixed(1)}m`;
+    return [
+      p.name,
+      formatTime(p.seconds),
+      formatTime(p.secondsOut),
+      String(p.rotations),
+      formatTime(avg),
+      percent,
+      workloadText
+    ];
+  });
 
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-      <foreignObject width="100%" height="100%">${html}</foreignObject>
-    </svg>`;
+  // --- Layout do PNG ---
+  const colWidths = [280, 150, 150, 90, 100, 90, 140];
+  const tableWidth = colWidths.reduce((a,b)=>a+b, 0);
 
-  const blob = new Blob([svg], {type:"image/svg+xml;charset=utf-8"});
-  const url = URL.createObjectURL(blob);
-  const img = new Image();
-  img.onload = function(){
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0,0,width,height);
-    ctx.drawImage(img, 0, 0);
-    URL.revokeObjectURL(url);
+  const margin = 20;
+  const titleFont = "bold 20px Arial, sans-serif";
+  const headFont  = "bold 14px Arial, sans-serif";
+  const rowFont   = "14px Arial, sans-serif";
+  const rowH = 34;
+  const headerH = 36;
 
-    const a = document.createElement("a");
-    const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
-    a.download = `Resumo_${nameA}_vs_${nameB}_${ts}.png`;
-    a.href = canvas.toDataURL("image/png");
-    a.click();
-  };
-  img.src = url;
+  const titleH = 28;
+  const innerPad = 10;
+  const contentWidth = tableWidth + innerPad*2;
+
+  const canvasWidth = Math.max(contentWidth + margin*2, 700);
+  const canvasHeight =
+    margin + titleH + 8 +
+    innerPad + headerH + rows.length * rowH + innerPad +
+    margin;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
+  const ctx = canvas.getContext("2d");
+
+  // Fundo branco
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+  // Título
+  ctx.fillStyle = "#000000";
+  ctx.font = titleFont;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(title, canvasWidth/2, margin + titleH/2);
+
+  // Cartão/tabela
+  const cardX = (canvasWidth - contentWidth)/2;
+  const cardY = margin + titleH + 8;
+  const cardW = contentWidth;
+  const cardH = innerPad + headerH + rows.length*rowH + innerPad;
+
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "#cccccc";
+  ctx.lineWidth = 1;
+  const r = 10;
+  ctx.beginPath();
+  ctx.moveTo(cardX + r, cardY);
+  ctx.lineTo(cardX + cardW - r, cardY);
+  ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + r);
+  ctx.lineTo(cardX + cardW, cardY + cardH - r);
+  ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - r, cardY + cardH);
+  ctx.lineTo(cardX + r, cardY + cardH);
+  ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - r);
+  ctx.lineTo(cardX, cardY + r);
+  ctx.quadraticCurveTo(cardX, cardY, cardX + r, cardY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Cabeçalho
+  let x = cardX + innerPad;
+  let y = cardY + innerPad;
+
+  ctx.fillStyle = "#eeeeee";
+  ctx.fillRect(x - 1, y, tableWidth + 2, headerH);
+
+  ctx.fillStyle = "#000000";
+  ctx.font = headFont;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  let colX = x;
+  headers.forEach((h, i) => {
+    ctx.fillText(h, colX + 8, y + headerH/2);
+    colX += colWidths[i];
+  });
+
+  // Linhas entre header e corpo
+  ctx.strokeStyle = "#999999";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + tableWidth, y);
+  ctx.moveTo(x, y + headerH);
+  ctx.lineTo(x + tableWidth, y + headerH);
+  ctx.stroke();
+
+  // Corpo
+  ctx.font = rowFont;
+  let rowY = y + headerH;
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r];
+    // grade horizontal
+    ctx.strokeStyle = "#dddddd";
+    ctx.beginPath();
+    ctx.moveTo(x, rowY + rowH);
+    ctx.lineTo(x + tableWidth, rowY + rowH);
+    ctx.stroke();
+
+    // células
+    let cx = x;
+    for (let c = 0; c < row.length; c++) {
+      const cell = String(row[c] ?? "");
+      const maxW = colWidths[c] - 14;
+      ctx.fillStyle = "#000000";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.save();
+      let text = cell;
+      while (ctx.measureText(text).width > maxW) {
+        if (text.length <= 1) break;
+        text = text.slice(0, -1);
+      }
+      if (text !== cell) text = text.slice(0, -1) + "…";
+      ctx.fillText(text, cx + 7, rowY + rowH/2);
+      ctx.restore();
+
+      // linhas verticais
+      ctx.strokeStyle = "#dddddd";
+      ctx.beginPath();
+      ctx.moveTo(cx, rowY);
+      ctx.lineTo(cx, rowY + rowH);
+      ctx.stroke();
+
+      cx += colWidths[c];
+    }
+    // borda vertical final
+    ctx.beginPath();
+    ctx.moveTo(x + tableWidth, rowY);
+    ctx.lineTo(x + tableWidth, rowY + rowH);
+    ctx.stroke();
+
+    rowY += rowH;
+  }
+
+  // Borda externa
+  ctx.strokeStyle = "#999999";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - 1, y, tableWidth + 2, headerH + rows.length*rowH);
+
+  // Download PNG
+  const a = document.createElement("a");
+  const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+  a.download = `Resumo_${nameA}_vs_${nameB}_${ts}.png`;
+  a.href = canvas.toDataURL("image/png");
+  a.click();
 }
 
 /* ===== TEMA / FULLSCREEN ===== */
