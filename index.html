@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Game Control</title>
 <style>
-  :root { --timeline-h: 68px; } /* altura útil da barra da timeline */
+  :root { --timeline-h: 68px; }
 
   body{font-family:Arial, sans-serif;margin:0;background:#1e1e1e;color:#f5f5f5;text-align:center;
        padding-bottom: calc(var(--timeline-h) + 10px);}
@@ -30,7 +30,6 @@
   .controls{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;background:#2e2e2e;padding:10px}
   .controls button{padding:6px 10px;border:none;border-radius:6px;background:#444;color:#fff;cursor:pointer}
 
-  /* Caixas grandes e máx 5/linha */
   #players{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px;width:95%;max-width:1300px;margin:12px auto;
            justify-items:center; margin-bottom: calc(var(--timeline-h) + 20px);}
   .player{
@@ -43,7 +42,6 @@
   .player .time{font-size:40px;font-weight:bold;line-height:1}
   .player .last{font-size:12px;opacity:.9;margin-top:6px}
 
-  /* Badges */
   .gk-badge{
     position:absolute;top:8px;left:8px;width:28px;height:28px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);
@@ -55,7 +53,6 @@
   .badge-yc{background:#f1c40f}
   .badge-rc{background:#e74c3c}
 
-  /* Fadiga (não para GR) */
   .fatigue{position:absolute;left:8px;right:8px;bottom:8px;height:8px;border-radius:6px;background:rgba(255,255,255,0.25)}
   .fatigue-fill{height:100%;border-radius:6px;width:0%}
 
@@ -66,7 +63,6 @@
   @media (max-width:900px){#players{grid-template-columns:repeat(3,minmax(0,1fr));}}
   @media (max-width:600px){#players{grid-template-columns:repeat(2,minmax(0,1fr));}}
 
-  /* Tabela */
   .summary{width:90%;max-width:1100px;margin:18px auto  calc(var(--timeline-h) + 20px) auto;padding:0;background:#242424;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden}
   .summary h3{margin:0;padding:12px 16px;background:#2f2f2f;border-bottom:1px solid #3a3a3a;text-align:left}
   .summary table{width:100%;border-collapse:separate;border-spacing:0}
@@ -79,7 +75,6 @@
   .pill.work-pos{color:#2ecc71;background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.35)}
   .pill.work-neg{color:#e74c3c;background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.35)}
 
-  /* Editar nomes (direita) */
   #editPanel{position:fixed; right:-420px; top:20%; width:380px; height:60%;
     background:rgba(0,0,0,0.92); border-left:2px solid #555; border-radius:10px 0 0 10px;
     padding:15px; box-shadow:-4px 0 8px rgba(0,0,0,.4); transition:right .2s; z-index:999; overflow-y:auto}
@@ -91,7 +86,6 @@
   #editPanel .save-btn{width:100%; padding:8px; border:none; border-radius:6px; background:#0078d7; color:#fff; cursor:pointer; margin-top:8px}
   #editPanel h3{ margin:0 0 10px 0; }
 
-  /* Histórico (esquerda) */
   #historyPanel{position:fixed; left:-420px; top:10%; width:380px; height:80%;
     background:rgba(0,0,0,0.92); border-right:2px solid #555; border-radius:0 10px 10px 0;
     padding:15px; box-shadow:4px 0 8px rgba(0,0,0,.4); transition:left .2s; z-index:999; overflow-y:auto}
@@ -101,7 +95,6 @@
   .hist-actions{display:flex;gap:6px;margin-top:6px}
   .hist-actions button{padding:6px 8px;border:none;border-radius:6px;background:#444;color:#fff;cursor:pointer;font-size:12px}
 
-  /* Timeline (só botões) */
   #timelineBar{position:fixed;left:0;right:0;bottom:0;background:#222;border-top:1px solid #333;z-index:900;
                min-height: var(--timeline-h); padding:8px 10px;box-shadow:0 -6px 16px rgba(0,0,0,.25)}
   #timelineBar .tl-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:0}
@@ -122,7 +115,6 @@
   </div>
 </header>
 
-<!-- Equipas com marcador (bubbles) -->
 <div id="teamInputs">
   <span class="scoreBubble" id="scoreA">0</span>
   <input id="teamA" placeholder="Equipa A" />
@@ -170,7 +162,6 @@
   </table>
 </div>
 
-<!-- Painel editar nomes -->
 <div id="editPanel">
   <button class="close-btn" id="closePanel">❌</button>
   <h3>Editar Jogadores</h3>
@@ -178,7 +169,6 @@
   <button class="save-btn" id="saveNamesBtn">Guardar Alterações</button>
 </div>
 
-<!-- Histórico -->
 <div id="historyPanel">
   <button class="close-btn" id="closeHistory">❌</button>
   <h3>Histórico de Jogos</h3>
@@ -189,7 +179,6 @@
   </div>
 </div>
 
-<!-- Timeline (só botões) -->
 <div id="timelineBar">
   <div class="tl-actions">
     <button class="tl-btn" data-type="GF_A" title="Golo a favor">⚽ +</button>
@@ -209,13 +198,13 @@ let players = [], theme = "dark", timerInterval=null, _lastTick=null;
 let scoreA = 0, scoreB = 0;
 const STORAGE_KEY="gameControlData_gcStable", HISTORY_KEY="gameControlHistory_v1";
 const TL_KEY="gameControlTimeline_v1"; let timeline=[];
-let pendingPlayerEvent=null; // FK_P | YC_P | RC_P
+let pendingPlayerEvent=null;
 
-/* Troca/rotação real (para não contar sair->entrar o mesmo sem troca) */
-let pendingSub = null;      // { outId, time }
-let pendingSubTimer = null; // timeout para limpar pendência
+/* Troca real */
+let pendingSub = null;
+let pendingSubTimer = null;
 
-/* NOVO: contar titulares no arranque de cada parte */
+/* Titulares contam no arranque de cada parte */
 let startersCounted = false;
 
 /* Fadiga */
@@ -227,8 +216,8 @@ const PLAYER_DEFAULTS={id:0,name:"",active:false,isGK:false,seconds:0,secondsOut
 /* Utils */
 const pad=n=>String(n).padStart(2,"0");
 function formatTime(sec){sec=Math.max(0,Math.floor(sec));return `${pad(Math.floor(sec/60))}:${pad(sec%60)}`;}
-function updateTimerDisplay(){timer.textContent=formatTime(remaining);}
-function updateHalfBadge(){halfBadge.textContent=firstHalf?"1ª Parte":"2ª Parte";}
+function updateTimerDisplay(){document.getElementById('timer').textContent=formatTime(remaining);}
+function updateHalfBadge(){document.getElementById('halfBadge').textContent=firstHalf?"1ª Parte":"2ª Parte";}
 function updateScoreUI(){ document.getElementById('scoreA').textContent = scoreA; document.getElementById('scoreB').textContent = scoreB; }
 function fatigueColor(p){if(p.active){if(p.rotationTime>=RED_THRESHOLD_SEC)return"#e74c3c";if(p.rotationTime>=YELLOW_THRESHOLD_SEC)return"#e6b800";return"#2ecc71";}else{if(p.fatigue>=0.66)return"#e74c3c";if(p.fatigue>=0.33)return"#e6b800";return"#2ecc71";}}
 
@@ -281,7 +270,7 @@ function flashLimit(id){const d=document.getElementById("player"+id); if(!d)retu
 
 /* Tabela */
 function updateSummary(){
-  const tb=summaryBody; tb.innerHTML="";
+  const tb=document.getElementById("summaryBody"); tb.innerHTML="";
   players.forEach(p=>{
     const total=p.part1+p.part2, avg=p.rotations>0?Math.floor(total/p.rotations):0;
     const percent=((total/(duration*(firstHalf?1:2)))*100).toFixed(1);
@@ -326,7 +315,6 @@ function startTimer(){
   clearInterval(timerInterval); 
   timerInterval=setInterval(tick,250); 
 
-  /* Contar 1 rotação para quem já está em campo no arranque da parte (só 1x/parte) */
   if(!startersCounted){
     players.forEach(p=>{ if(p.active) p.rotations++; });
     startersCounted = true;
@@ -338,7 +326,7 @@ function startTimer(){
 function pauseTimer(){ running=false; clearInterval(timerInterval); saveData(); }
 function resetTimer(){
   pauseTimer();
-  const m=parseInt(setMinutes.value)||20; duration=m*60; remaining=duration; firstHalf=true;
+  const m=parseInt(document.getElementById('setMinutes').value)||20; duration=m*60; remaining=duration; firstHalf=true;
   players.forEach(p=>{p.seconds=0;p.secondsOut=0;p.part1=0;p.part2=0;p.rotations=0;p.lastRotation=0;p.rotationTime=0;p.rotationOutTime=0;if(!p.isGK)p.fatigue=0;p.plusMinus=0;p.fouls=0;p.yc=false;p.rc=false;});
   timeline=[]; scoreA=0; scoreB=0; updateScoreUI(); tlSave();
   pendingSub=null; if(pendingSubTimer){clearTimeout(pendingSubTimer); pendingSubTimer=null;}
@@ -347,10 +335,10 @@ function resetTimer(){
 }
 function intervalTimer(){
   pauseTimer(); firstHalf=false;
-  const mins=parseInt(setMinutes.value)||20; duration=mins*60; remaining=duration;
+  const mins=parseInt(document.getElementById('setMinutes').value)||20; duration=mins*60; remaining=duration;
   players.forEach(p=>{p.rotationTime=0;p.rotationOutTime=0; if(!p.isGK)p.fatigue=Math.max(0,p.fatigue*0.30);});
   pendingSub=null; if(pendingSubTimer){clearTimeout(pendingSubTimer); pendingSubTimer=null;}
-  startersCounted=false; /* para contar titulares quando carregares Iniciar na 2ª parte */
+  startersCounted=false;
   updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
 }
 
@@ -369,7 +357,6 @@ function onPlayerClick(id){
   const beforeActive = activeCount();
 
   if(p.active){
-    // Jogador sai
     const was5 = (beforeActive === 5);
     p.active = false;
     p.lastRotation = p.rotationTime;
@@ -386,7 +373,6 @@ function onPlayerClick(id){
     }
 
   } else {
-    // Jogador entra
     if(beforeActive >= 5){
       flashLimit(id);
       return;
@@ -397,7 +383,6 @@ function onPlayerClick(id){
     p.rotationTime = 0;
     p.rotationOutTime = 0;
 
-    // Contar rotação só se repõe 4->5 e NÃO é o mesmo que saiu
     const isSwap = pendingSub && pendingSub.outId !== id && beforeActive === 4;
     if(isSwap){
       p.rotations++;
@@ -405,7 +390,6 @@ function onPlayerClick(id){
       if(pendingSubTimer) { clearTimeout(pendingSubTimer); pendingSubTimer = null; }
     } else {
       if(pendingSub && pendingSub.outId === id){
-        // Saiu e entrou o mesmo: não conta, limpa pendência
         pendingSub = null;
         if(pendingSubTimer) { clearTimeout(pendingSubTimer); pendingSubTimer = null; }
       }
@@ -429,7 +413,7 @@ function setPending(type){ pendingPlayerEvent=type; updatePlayersUI(); }
 
 /* Persistência */
 function saveData(){
-  const data={teamA:teamA.value||"",teamB:teamB.value||"",duration,remaining,firstHalf,running,theme,players,lastSaved:Date.now(),scoreA,scoreB,startersCounted};
+  const data={teamA:document.getElementById('teamA').value||"",teamB:document.getElementById('teamB').value||"",duration,remaining,firstHalf,running,theme,players,lastSaved:Date.now(),scoreA,scoreB,startersCounted};
   localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
   tlSave(); updateScoreUI();
 }
@@ -438,7 +422,7 @@ function loadData(){
     const raw=localStorage.getItem(STORAGE_KEY);
     if(!raw){ players=[]; ensurePlayerCount(14); updateScoreUI(); updateTimerDisplay(); updateHalfBadge(); updateSummary(); tlLoad(); return; }
     const d=JSON.parse(raw);
-    teamA.value=d.teamA||""; teamB.value=d.teamB||"";
+    document.getElementById('teamA').value=d.teamA||""; document.getElementById('teamB').value=d.teamB||"";
     duration=typeof d.duration==="number"?d.duration:duration;
     remaining=typeof d.remaining==="number"?d.remaining:remaining;
     firstHalf=typeof d.firstHalf==="boolean"?d.firstHalf:firstHalf;
@@ -477,7 +461,7 @@ setInterval(saveData,3000);
 function getHistory(){return JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]")}
 function setHistory(a){localStorage.setItem(HISTORY_KEY,JSON.stringify(a))}
 function saveGameToHistory(){
-  const snap={when:new Date().toISOString(),teamA:(teamA.value||"").trim(),teamB:(teamB.value||"").trim(),duration,scoreA,scoreB,
+  const snap={when:new Date().toISOString(),teamA:(document.getElementById('teamA').value||"").trim(),teamB:(document.getElementById('teamB').value||"").trim(),duration,scoreA,scoreB,
     totals:players.map(p=>({id:p.id,name:p.name,isGK:!!p.isGK,seconds:p.seconds,secondsOut:p.secondsOut,rotations:p.rotations,part1:p.part1,part2:p.part2,workload:p.seconds-p.secondsOut,plusMinus:p.plusMinus||0,fouls:p.fouls||0,yc:!!p.yc,rc:!!p.rc})),
     events:timeline.slice(0,300)};
   const hist=getHistory(); hist.unshift(snap); setHistory(hist); renderHistoryList();
@@ -529,10 +513,10 @@ function tlAddTeam(type){
   timeline.unshift({t:Date.now(),clock:formatTime(remaining),type,activeIds}); tlSave(); updateSummary(); saveData();
 }
 
-/* Export PNG (tabela + timeline textual, com título que inclui resultado) */
+/* Export PNG */
 function printScreen(){ exportPngFromCurrent(); }
 function exportPngFromCurrent(){
-  const nameA=(teamA.value||"Equipa A").trim(), nameB=(teamB.value||"Equipa B").trim();
+  const nameA=(document.getElementById('teamA').value||"Equipa A").trim(), nameB=(document.getElementById('teamB').value||"Equipa B").trim();
   const title = `${nameA} ${scoreA}–${scoreB} ${nameB}`;
   const headers=["Jogador","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
   const rows=players.map(p=>{const total=p.part1+p.part2, avg=p.rotations>0?Math.floor(total/p.rotations):0, percent=((total/(duration*(firstHalf?1:2)))*100).toFixed(1)+"%", wl=p.seconds-p.secondsOut, wlt=`${wl>=0?"+":""}${(wl/60).toFixed(1)}m`;
@@ -577,8 +561,11 @@ function renderReportPng(title,headers,rows,events,basename){
 
   const tableCardW=tableWidth+innerPad*2, tableCardH=innerPad+headerH+rows.length*rowH+innerPad;
 
-  const canvasMeasure=document.createElement("canvas").getContext("2d"); canvasMeasure.font=smallFont;
-  const wrap=(text,maxW)=>{const w=text.split(" ");let line="",out=[];for(const t of w){const test=line?line+" "+t:t; if(canvasMeasure.measureText(test).width<=maxW) line=test; else {if(line)out.push(line); line=t;}} if(line)out.push(line); return out;};
+  /* MEDIDOR ÚNICO (corrige o erro) */
+  const canvasMeasure=document.createElement("canvas").getContext("2d");
+  canvasMeasure.font=smallFont;
+
+  const wrap=(text,maxW)=>{const w=String(text).split(" ");let line="",out=[];for(const t of w){const test=line?line+" "+t:t;if(canvasMeasure.measureText(test).width<=maxW)line=test;else{if(line)out.push(line);line=t;}}if(line)out.push(line);return out;};
 
   const timelineTitleH=24, timelineCardW=Math.max(tableCardW,700), tInnerW=timelineCardW-innerPad*2;
   const evLines=[]; const maxEv=Math.min(events.length,200);
@@ -633,24 +620,21 @@ function renderReportPng(title,headers,rows,events,basename){
   let tx=tlX+innerPad, ty=tlY+innerPad; ctx.font=headFont; ctx.fillStyle="#000"; ctx.textAlign="left"; ctx.textBaseline="middle";
   ctx.fillText("Timeline",tx,ty+24/2);
 
-  const canvasMeasure=document.createElement("canvas").getContext("2d"); canvasMeasure.font=smallFont;
-  const wrap2=(line,maxW)=>{const words=String(line).split(" ");let cur="",out=[];for(const w of words){const t=cur?cur+" "+w:w; if(canvasMeasure.measureText(t).width<=maxW)cur=t; else{if(cur)out.push(cur); cur=w;}} if(cur)out.push(cur); return out;};
-
   ctx.font=smallFont; ctx.fillStyle="#000"; let lY=ty+24+6;
   if(events.length===0){ ctx.fillText("— sem eventos —",tx,lY+20/2); }
-  else { events.forEach(line=>{ wrap2(line, tlW-innerPad*2-8).forEach(w=>{ ctx.fillText(w,tx,lY+20/2); lY+=20; }); }); }
+  else { evLines.forEach(w=>{ ctx.fillText(w,tx,lY+20/2); lY+=20; }); }
 
   const a=document.createElement("a"); const ts=new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
   a.download=`${basename}_${ts}.png`; a.href=c.toDataURL("image/png"); a.click();
 }
 
 /* Tema/Fullscreen */
-function toggleTheme(){document.body.classList.toggle("light-mode"); theme=document.body.classList.contains("light-mode")?"light":"dark"; themeToggle.textContent=theme==="dark"?"🌙":"🌞"; saveData();}
-fullscreenBtn.onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
+function toggleTheme(){document.body.classList.toggle("light-mode"); theme=document.body.classList.contains("light-mode")?"light":"dark"; document.getElementById('themeToggle').textContent=theme==="dark"?"🌙":"🌞"; saveData();}
+document.getElementById('fullscreenBtn').onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
 
 /* Editar nomes */
 const editPanel=document.getElementById("editPanel"), editList=document.getElementById("editList");
-editNamesBtn.onclick=()=>{
+document.getElementById('editNamesBtn').onclick=()=>{
   editList.innerHTML=""; players.forEach(p=>{
     const row=document.createElement("div"); row.className="row";
     row.innerHTML=`<span style="color:#aaa;width:26px;text-align:right">${p.id}.</span>
@@ -660,29 +644,33 @@ editNamesBtn.onclick=()=>{
   });
   editPanel.classList.add("open");
 };
-closePanel.onclick=()=>editPanel.classList.remove("open");
-saveNamesBtn.onclick=()=>{
+document.getElementById('closePanel').onclick=()=>editPanel.classList.remove("open");
+document.getElementById('saveNamesBtn').onclick=()=>{
   players.forEach(p=>{const v=document.getElementById("nameEdit"+p.id).value.trim(); const gk=document.getElementById("gkEdit"+p.id).checked; if(v)p.name=v; p.isGK=!!gk; if(p.isGK)p.fatigue=0;});
   editPanel.classList.remove("open"); buildPlayersDOM(); updatePlayersUI(); updateSummary(); saveData();
 };
 
-/* Liga botões UI e timeline */
-startBtn.onclick=startTimer; pauseBtn.onclick=pauseTimer; resetBtn.onclick=resetTimer; intervalBtn.onclick=intervalTimer;
-addBtn.onclick=()=>ensurePlayerCount(players.length+1);
-removeBtn.onclick=()=>{if(players.length>1){players.pop();buildPlayersDOM();updatePlayersUI();updateSummary();saveData();}}
-printBtn.onclick=printScreen; themeToggle.onclick=toggleTheme;
+/* Liga botões */
+document.getElementById('startBtn').onclick=startTimer;
+document.getElementById('pauseBtn').onclick=pauseTimer;
+document.getElementById('resetBtn').onclick=resetTimer;
+document.getElementById('intervalBtn').onclick=intervalTimer;
+document.getElementById('addBtn').onclick=()=>ensurePlayerCount(players.length+1);
+document.getElementById('removeBtn').onclick=()=>{if(players.length>1){players.pop();buildPlayersDOM();updatePlayersUI();updateSummary();saveData();}}
+document.getElementById('printBtn').onclick=printScreen;
+document.getElementById('themeToggle').onclick=toggleTheme;
+
 document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   if(btn.classList.contains("tl-player")) btn.addEventListener("click",()=>setPending(btn.dataset.type));
   else btn.addEventListener("click",()=>tlAddTeam(btn.dataset.type));
 });
-tlClear.onclick=()=>{if(confirm("Limpar eventos?")){timeline=[];tlSave();}}
+document.getElementById('tlClear').onclick=()=>{if(confirm("Limpar eventos?")){timeline=[];tlSave();}}
 
-/* Histórico botões */
-historyBtn.onclick=()=>{renderHistoryList();historyPanel.classList.add("open");};
-closeHistory.onclick=()=>historyPanel.classList.remove("open");
-saveGameBtn.onclick=saveGameToHistory;
-clearHistoryBtn.onclick=clearHistory;
-exportAllCsvBtn.onclick=()=>{
+document.getElementById('historyBtn').onclick=()=>{renderHistoryList();document.getElementById('historyPanel').classList.add("open");};
+document.getElementById('closeHistory').onclick=()=>document.getElementById('historyPanel').classList.remove("open");
+document.getElementById('saveGameBtn').onclick=saveGameToHistory;
+document.getElementById('clearHistoryBtn').onclick=clearHistory;
+document.getElementById('exportAllCsvBtn').onclick=()=>{
   const hist=getHistory(); if(hist.length===0)return;
   let csv="Data,EquipaA,EquipaB,Jogador,GR,1aParte,2aParte,Total,TempoFora,Rotacoes,Media,Percent,Workload,PlusMinus,Faltas,YC,RC\n";
   hist.forEach(h=>{
