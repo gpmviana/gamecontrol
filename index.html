@@ -91,19 +91,17 @@
   .hist-actions{display:flex;gap:6px;margin-top:6px}
   .hist-actions button{padding:6px 8px;border:none;border-radius:6px;background:#444;color:#fff;cursor:pointer;font-size:12px}
 
-  /* Timeline */
+  /* Timeline (apenas botões; feed escondido) */
   #timelineBar{position:fixed;left:0;right:0;bottom:0;background:#222;border-top:1px solid #333;z-index:900;padding:8px 10px;box-shadow:0 -6px 16px rgba(0,0,0,.25)}
-  #timelineBar .tl-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:6px}
+  #timelineBar .tl-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:0}
   #timelineBar .tl-btn{background:#3a3a3a;color:#fff;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px}
   #tlClear{background:#a33;color:#fff;border:none;border-radius:8px;padding:6px 10px;cursor:pointer}
-  #timelineFeed{max-height:120px;overflow:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-  .tl-chip{background:#2b2b2b;border:1px solid #444;color:#eee;padding:4px 8px;border-radius:999px;font-size:12px;white-space:nowrap}
-  .tl-gf{border-color:rgba(46,204,113,.5);color:#2ecc71}
-  .tl-ga{border-color:rgba(231,76,60,.6);color:#e74c3c}
-  .tl-fk{border-color:rgba(241,196,15,.5);color:#f1c40f}
-  .tl-yc{border-color:rgba(241,196,15,.5);color:#f1c40f}
-  .tl-rc{border-color:rgba(231,76,60,.6);color:#e74c3c}
-  .tl-to{border-color:rgba(52,152,219,.6);color:#3498db}
+  #timelineFeed{display:none} /* ← feed oculto para não poluir o ecrã */
+  .tl-gf{color:#2ecc71}
+  .tl-ga{color:#e74c3c}
+  .tl-fk{color:#f1c40f}
+  .tl-yc{color:#f1c40f}
+  .tl-rc{color:#e74c3c}
 </style>
 </head>
 <body>
@@ -181,16 +179,15 @@
   </div>
 </div>
 
-<!-- Timeline -->
+<!-- Timeline (só botões) -->
 <div id="timelineBar">
   <div class="tl-actions">
-    <button class="tl-btn" data-type="GF_A" title="Golo Equipa A">⚽ A+</button>
-    <button class="tl-btn" data-type="GA_A" title="Golo Sofrido A">⚽ A−</button>
+    <button class="tl-btn" data-type="GF_A" title="Golo a favor">⚽ +</button>
+    <button class="tl-btn" data-type="GA_A" title="Golo sofrido">⚽ −</button>
     <button class="tl-btn tl-player" data-type="FK_P" title="Falta (seleciona jogador)">❌ Falta</button>
     <button class="tl-btn tl-player" data-type="YC_P" title="Amarelo (seleciona jogador)">🟨 Amarelo</button>
     <button class="tl-btn tl-player" data-type="RC_P" title="Vermelho (seleciona jogador)">🟥 Vermelho</button>
-    <button class="tl-btn" data-type="TO_A" title="Time-out A">⏱️ A</button>
-    <button id="tlClear" title="Limpar timeline">🧹</button>
+    <button id="tlClear" title="Limpar eventos">🧹</button>
   </div>
   <div id="timelineFeed"></div>
 </div>
@@ -280,7 +277,7 @@ function updateSummary(){
   });
 }
 
-/* Cronómetro (robusto) */
+/* Cronómetro */
 function tick(){
   const now=Date.now(); if(_lastTick===null)_lastTick=now;
   const delta=Math.max(0,Math.floor((now-_lastTick)/1000));
@@ -308,7 +305,7 @@ function resetTimer(){
   pauseTimer();
   const m=parseInt(setMinutes.value)||20; duration=m*60; remaining=duration; firstHalf=true;
   players.forEach(p=>{p.seconds=0;p.secondsOut=0;p.part1=0;p.part2=0;p.rotations=0;p.lastRotation=0;p.rotationTime=0;p.rotationOutTime=0;if(!p.isGK)p.fatigue=0;p.plusMinus=0;p.fouls=0;p.yc=false;p.rc=false;});
-  timeline=[]; tlSave(); tlRender();
+  timeline=[]; tlSave(); // tlRender() não precisa porque o feed está oculto
   updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
 }
 function intervalTimer(){
@@ -318,7 +315,7 @@ function intervalTimer(){
   updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
 }
 
-/* Interação jogador */
+/* Interação jogador + eventos individuais */
 function onPlayerClick(id){
   if(pendingPlayerEvent){ addPlayerEvent(pendingPlayerEvent,id); pendingPlayerEvent=null; updatePlayersUI(); return; }
   const p=players.find(x=>x.id===id); if(!p) return;
@@ -334,14 +331,15 @@ function addPlayerEvent(type, playerId){
   if(type==="YC_P") p.yc=true;
   if(type==="RC_P") p.rc=true;
   timeline.unshift({t:Date.now(),clock:formatTime(remaining),type,playerId});
-  tlSave(); tlRender(); updatePlayersUI(); saveData();
+  tlSave(); updatePlayersUI(); saveData();
 }
 function setPending(type){ pendingPlayerEvent=type; updatePlayersUI(); }
 
 /* Persistência */
 function saveData(){
   const data={teamA:teamA.value||"",teamB:teamB.value||"",duration,remaining,firstHalf,running,theme,players,lastSaved:Date.now()};
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(data)); tlSave();
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  tlSave();
 }
 function loadData(){
   try{
@@ -374,8 +372,7 @@ function loadData(){
     if(running && remaining>0){ startTimer(); }
     tlLoad();
   }catch(e){
-    // fallback duro
-    players=[]; ensurePlayerCount(14); updateTimerDisplay(); updateHalfBadge(); updateSummary(); timeline=[]; tlSave(); tlRender();
+    players=[]; ensurePlayerCount(14); updateTimerDisplay(); updateHalfBadge(); updateSummary(); timeline=[]; tlSave();
   }
 }
 window.addEventListener("beforeunload", saveData);
@@ -420,15 +417,22 @@ function exportCsv(idx){
   a.download=`Resumo_${(h.teamA||'EquipaA')}_vs_${(h.teamB||'EquipaB')}_${ts}.csv`; a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.click();
 }
 
-/* Print PNG (tabela + timeline) */
+/* Print PNG (tabela + timeline textual com nome da Equipa A) */
 function printScreen(){ exportPngFromCurrent(); }
+function tlLabel(type, teamName){
+  const A = teamName || (document.getElementById('teamA').value || 'Equipa A');
+  const map = {
+    GF_A: `Golo ${A}`, GA_A: `Golo Sofrido ${A}`,
+    FK_P: "Falta", YC_P: "Amarelo", RC_P: "Vermelho"
+  }; return map[type] || type;
+}
 function exportPngFromCurrent(){
   const nameA=(teamA.value||"Equipa A").trim(), nameB=(teamB.value||"Equipa B").trim();
   const headers=["Jogador","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
   const rows=players.map(p=>{const total=p.part1+p.part2, avg=p.rotations>0?Math.floor(total/p.rotations):0, percent=((total/(duration*(firstHalf?1:2)))*100).toFixed(1)+"%", wl=p.seconds-p.secondsOut, wlt=`${wl>=0?"+":""}${(wl/60).toFixed(1)}m`;
     return [p.name+(p.isGK?' 🧤':''),formatTime(p.part1),formatTime(p.part2),formatTime(total),formatTime(p.secondsOut),String(p.rotations),formatTime(avg),percent,wlt];});
   const events=(timeline||[]).map(ev=>{
-    const label=tlLabel(ev.type), base=`${ev.clock} • ${label}`;
+    const label=tlLabel(ev.type, nameA), base=`${ev.clock} • ${label}`;
     if(ev.type==="GF_A"||ev.type==="GA_A"){
       const names=(ev.activeIds||[]).map(id=>{const P=players.find(p=>p.id===id);return (P?P.name:`#${id}`)+(P&&P.isGK?' 🧤':'');});
       return names.length?`${base} — Em campo: ${names.join(", ")}`:base;
@@ -447,7 +451,7 @@ function exportPngFromHistory(i){
   const rows=h.totals.map(t=>{const total=t.part1+t.part2, avg=t.rotations>0?Math.floor(total/t.rotations):0, percent=((total/(duration*2))*100).toFixed(1)+"%"; const wlt=(t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m";
     return [t.name+(t.isGK?' 🧤':''),formatTime(t.part1),formatTime(t.part2),formatTime(total),formatTime(t.secondsOut),String(t.rotations),formatTime(avg),percent,wlt];});
   const events=(h.events||[]).map(ev=>{
-    const base=`${ev.clock} • ${tlLabel(ev.type)}`;
+    const base=`${ev.clock} • ${tlLabel(ev.type, nameA)}`;
     if(ev.type==="GF_A"||ev.type==="GA_A"){
       const names=(ev.activeIds||[]).map(id=>{const T=h.totals.find(x=>x.id===id); return (T?T.name:`#${id}`)+((T&&T.isGK)?' 🧤':'');});
       return names.length?`${base} — Em campo: ${names.join(", ")}`:base;
@@ -459,6 +463,8 @@ function exportPngFromHistory(i){
   });
   renderReportPng(`${nameA} vs ${nameB}`,headers,rows,events,`Resumo_${nameA}_vs_${nameB}`);
 }
+
+/* PNG renderer (igual ao estável anterior) */
 function renderReportPng(title,headers,rows,events,basename){
   const colWidths=[280,120,120,150,150,90,100,90,140], tableWidth=colWidths.reduce((a,b)=>a+b,0);
   const margin=20, innerPad=12, titleFont="bold 20px Arial, sans-serif", headFont="bold 14px Arial, sans-serif", rowFont="14px Arial, sans-serif", smallFont="13px Arial, sans-serif";
@@ -523,8 +529,8 @@ function renderReportPng(title,headers,rows,events,basename){
   ctx.fillText("Timeline",tx,ty+24/2);
 
   ctx.font=smallFont; ctx.fillStyle="#000"; let lY=ty+24+6;
-  if(evLines.length===0){ ctx.fillText("— sem eventos —",tx,lY+20/2); }
-  else { evLines.forEach(line=>{ ctx.fillText(line,tx,lY+20/2); lY+=20; }); }
+  if(events.length===0){ ctx.fillText("— sem eventos —",tx,lY+20/2); }
+  else { events.forEach(line=>{ wrap(line, tlW-innerPad*2-8).forEach(w=>{ ctx.fillText(w,tx,lY+20/2); lY+=20; }); }); }
 
   const a=document.createElement("a"); const ts=new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
   a.download=`${basename}_${ts}.png`; a.href=c.toDataURL("image/png"); a.click();
@@ -552,31 +558,14 @@ saveNamesBtn.onclick=()=>{
   editPanel.classList.remove("open"); buildPlayersDOM(); updatePlayersUI(); updateSummary(); saveData();
 };
 
-/* Timeline helpers */
+/* Timeline storage (feed oculto, mas mantemos dados para PNG/histórico) */
 function tlSave(){localStorage.setItem(TL_KEY,JSON.stringify(timeline))}
-function tlLoad(){timeline=JSON.parse(localStorage.getItem(TL_KEY)||"[]"); tlRender();}
-function tlLabel(t){const m={GF_A:"Golo A",GA_A:"Golo Sofrido A",FK_P:"Falta",YC_P:"Amarelo",RC_P:"Vermelho",TO_A:"Time-out A"}; return m[t]||t;}
-function tlClass(t){if(t==="GF_A")return"tl-gf"; if(t==="GA_A")return"tl-ga"; if(t==="FK_P")return"tl-fk"; if(t==="YC_P")return"tl-yc"; if(t==="RC_P")return"tl-rc"; if(t==="TO_A")return"tl-to"; return "";}
+function tlLoad(){timeline=JSON.parse(localStorage.getItem(TL_KEY)||"[]");}
 function tlAddTeam(type){
   const activeIds=players.filter(p=>p.active).map(p=>p.id);
   if(type==="GF_A") players.forEach(p=>{if(p.active)p.plusMinus=(p.plusMinus||0)+1;});
   if(type==="GA_A") players.forEach(p=>{if(p.active)p.plusMinus=(p.plusMinus||0)-1;});
-  timeline.unshift({t:Date.now(),clock:formatTime(remaining),type,activeIds}); tlSave(); tlRender(); updateSummary(); saveData();
-}
-function tlRender(){
-  const feed=timelineFeed; feed.innerHTML="";
-  timeline.forEach(ev=>{
-    const chip=document.createElement("div"); chip.className="tl-chip "+tlClass(ev.type);
-    let text=`${ev.clock} • ${tlLabel(ev.type)}`;
-    if((ev.type==="GF_A"||ev.type==="GA_A") && ev.activeIds){
-      const names=ev.activeIds.map(id=>{const P=players.find(p=>p.id===id); return (P?P.name:`#${id}`)+(P&&P.isGK?' 🧤':'');});
-      if(names.length) chip.title="Em campo: "+names.join(", ");
-    }
-    if(ev.type.endsWith("_P") && ev.playerId){
-      const P=players.find(x=>x.id===ev.playerId); const nm=P?(P.name+(P.isGK?' 🧤':'')):`#${ev.playerId}`; text+=` — ${nm}`;
-    }
-    chip.textContent=text; feed.appendChild(chip);
-  });
+  timeline.unshift({t:Date.now(),clock:formatTime(remaining),type,activeIds}); tlSave(); updateSummary(); saveData();
 }
 
 /* Liga botões UI */
@@ -588,7 +577,8 @@ document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   if(btn.classList.contains("tl-player")) btn.addEventListener("click",()=>setPending(btn.dataset.type));
   else btn.addEventListener("click",()=>tlAddTeam(btn.dataset.type));
 });
-tlClear.onclick=()=>{if(confirm("Limpar timeline?")){timeline=[];tlSave();tlRender();}}
+tlClear.onclick=()=>{if(confirm("Limpar eventos?")){timeline=[];tlSave();}}
+
 historyBtn.onclick=()=>{renderHistoryList();historyPanel.classList.add("open");};
 closeHistory.onclick=()=>historyPanel.classList.remove("open");
 saveGameBtn.onclick=saveGameToHistory;
@@ -606,12 +596,10 @@ exportAllCsvBtn.onclick=()=>{
   const a=document.createElement("a"); a.download="historico_gamecontrol.csv"; a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.click();
 };
 
-/* Boot seguro */
+/* Boot */
 updateTimerDisplay(); updateHalfBadge();
-loadData();                // carrega estado e boxes
-if(players.length===0){    // fallback defensivo
-  ensurePlayerCount(14);
-}
+loadData();
+if(players.length===0){ ensurePlayerCount(14); }
 </script>
 </body>
 </html>
