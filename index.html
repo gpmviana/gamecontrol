@@ -53,18 +53,66 @@
   @media (max-width:900px){#players{grid-template-columns:repeat(3,minmax(0,1fr));}}
   @media (max-width:600px){#players{grid-template-columns:repeat(2,minmax(0,1fr));}}
 
-  .summary{margin:15px auto;border-collapse:collapse;width:90%;max-width:1000px;background:#2b2b2b;border-radius:10px;padding:10px}
-  .summary table{width:100%;border-collapse:collapse}
-  .summary th,.summary td{border:1px solid #555;padding:6px;text-align:center}
-  .summary th{background:#333}
-  .work-pos{color:#2ecc71}.work-neg{color:#e74c3c}
+  /* ——— TABELA | Visual polido ——— */
+  .summary{
+    width: 90%;
+    max-width: 1100px;
+    margin: 18px auto;
+    padding: 0;
+    background: #242424;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    overflow: hidden;
+  }
+  .summary h3{
+    margin: 0;
+    padding: 12px 16px;
+    background: #2f2f2f;
+    border-bottom: 1px solid #3a3a3a;
+    text-align: left;
+  }
+  .summary table{width: 100%; border-collapse: separate; border-spacing: 0;}
+  .summary thead th{
+    position: sticky; top: 0;
+    background: #303030; z-index: 1;
+    text-transform: uppercase; font-size: 12px; letter-spacing: .4px; color: #ddd;
+    border-bottom: 1px solid #3a3a3a; padding: 10px 12px;
+  }
+  .summary tbody td{padding: 10px 12px; border-bottom: 1px solid #333;}
+  .summary tbody tr:nth-child(even){ background: rgba(255,255,255,0.03); }
+  .summary tbody tr:hover{ background: rgba(255,255,255,0.06); }
+  .summary td:nth-child(1){ text-align: left; font-weight: 600; }
+  .summary td:nth-child(4),
+  .summary td:nth-child(5),
+  .summary td:nth-child(6),
+  .summary td:nth-child(7){ font-variant-numeric: tabular-nums; }
 
+  /* Pílulas para Workload (+/-) */
+  .pill{
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .pill.work-pos{ color:#2ecc71; background: rgba(46,204,113,.12); border: 1px solid rgba(46,204,113,.35); }
+  .pill.work-neg{ color:#e74c3c; background: rgba(231,76,60,.12); border: 1px solid rgba(231,76,60,.35); }
+
+  /* Modo claro */
   .light-mode{background:#f4f4f4;color:#000}
   .light-mode header{background:#ddd}
   .light-mode .controls{background:#ddd}
   .light-mode .player.active{background:#27ae60;color:#fff}
   .light-mode .player.inactive{background:#e74c3c;color:#fff}
   .light-mode .fatigue{background:rgba(0,0,0,0.15)}
+  .light-mode .summary{ background:#ffffff; box-shadow:0 8px 24px rgba(0,0,0,.10); }
+  .light-mode .summary h3{ background:#f0f0f0; border-bottom:1px solid #e5e5e5; }
+  .light-mode .summary thead th{ background:#f7f7f7; color:#333; border-bottom:1px solid #e5e5e5; }
+  .light-mode .summary tbody td{ border-bottom:1px solid #eee; }
+  .light-mode .summary tbody tr:nth-child(even){ background:#fafafa; }
+  .light-mode .summary tbody tr:hover{ background:#f2f2f2; }
+  .light-mode .pill.work-pos{ background:rgba(39,174,96,.10); border-color:rgba(39,174,96,.30); color:#1e824c; }
+  .light-mode .pill.work-neg{ background:rgba(231,76,60,.10); border-color:rgba(231,76,60,.30); color:#b3392e; }
 
   /* Painel lateral editar nomes (direita) */
   #editPanel{
@@ -138,7 +186,9 @@
     <thead>
       <tr>
         <th>Jogador</th>
-        <th>Tempo em Campo</th>
+        <th>1ª Parte</th>
+        <th>2ª Parte</th>
+        <th>Total em Campo</th>
         <th>Tempo Fora</th>
         <th>Rotações</th>
         <th>Média</th>
@@ -215,7 +265,6 @@ function fatigueColor(p){
     if(p.rotationTime >= YELLOW_THRESHOLD_SEC) return "#e6b800"; // amarelo
     return "#2ecc71";                                            // verde
   }else{
-    // Banco: cor reflete a % de fadiga atual
     if(p.fatigue >= 0.66) return "#e74c3c";
     if(p.fatigue >= 0.33) return "#e6b800";
     return "#2ecc71";
@@ -255,7 +304,7 @@ function updatePlayersUI(){
     d.querySelector(".last").textContent = (!p.active && p.lastRotation>0) ? ("Últ. rotação: "+formatTime(p.lastRotation)) : "";
     d.querySelector("strong").textContent = p.name;
 
-    // Badge 🧤: garantir que existe/retira conforme isGK
+    // Badge 🧤
     let badge = d.querySelector(".gk-badge");
     if(p.isGK){
       if(!badge){
@@ -290,21 +339,28 @@ function ensurePlayerCount(n){
 
 /* ===== TABELA ===== */
 function updateSummary(){
-  const tb=document.getElementById("summaryBody"); tb.innerHTML="";
+  const tb = document.getElementById("summaryBody");
+  tb.innerHTML = "";
   players.forEach(p=>{
-    const total=p.part1+p.part2;
-    const avg=p.rotations>0 ? Math.floor(total/p.rotations) : 0;
-    const percent=((total/(duration*(firstHalf?1:2)))*100).toFixed(1);
-    const workload=p.seconds-p.secondsOut;
-    const cls=workload>=0?"work-pos":"work-neg";
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${p.name}${p.isGK?' 🧤':''}</td>
-      <td>${formatTime(p.seconds)}</td>
+    const total   = p.part1 + p.part2;
+    const avg     = p.rotations > 0 ? Math.floor(total / p.rotations) : 0;
+    const percent = ((total / (duration * (firstHalf ? 1 : 2))) * 100).toFixed(1);
+    const workload = p.seconds - p.secondsOut;
+    const cls = workload >= 0 ? "work-pos" : "work-neg";
+    const wlText = `${workload >= 0 ? "+" : ""}${(workload/60).toFixed(1)}m`;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${p.name}${p.isGK?' 🧤':''}</td>
+      <td>${formatTime(p.part1)}</td>
+      <td>${formatTime(p.part2)}</td>
+      <td>${formatTime(total)}</td>
       <td>${formatTime(p.secondsOut)}</td>
       <td>${p.rotations}</td>
       <td>${formatTime(avg)}</td>
       <td>${percent}%</td>
-      <td class="${cls}">${workload>=0?"+":""}${(workload/60).toFixed(1)}m</td>`;
+      <td><span class="pill ${cls}">${wlText}</span></td>
+    `;
     tb.appendChild(tr);
   });
 }
@@ -328,7 +384,6 @@ function tick(){
       players.forEach(p=>{
         if(p.active){
           p.seconds++; p.rotationTime++; if(firstHalf) p.part1++; else p.part2++;
-          // Fadiga só para jogadores de campo
           if(!p.isGK){
             p.fatigue += FATIGUE_K_UP * (1 - p.fatigue);
             if(p.fatigue>1) p.fatigue=1;
@@ -371,8 +426,7 @@ function intervalTimer() {
   players.forEach(p => {
     p.rotationTime = 0;
     p.rotationOutTime = 0;
-    // Redução significativa de fadiga no intervalo (apenas campo)
-    if(!p.isGK) p.fatigue = Math.max(0, p.fatigue * 0.30);
+    if(!p.isGK) p.fatigue = Math.max(0, p.fatigue * 0.30); // recuperação forte no intervalo
   });
 
   updateTimerDisplay(); updateHalfBadge(); updatePlayersUI(); updateSummary(); saveData();
@@ -492,9 +546,18 @@ function deleteHistoryItem(i){ const hist=getHistory(); hist.splice(i,1); setHis
 function clearHistory(){ setHistory([]); renderHistoryList(); }
 function exportCsv(index){
   const h=getHistory()[index]; if(!h) return;
-  const rows=[["Jogador","GR","Tempo em Campo","Tempo Fora","Rotações","Parte 1","Parte 2","Workload"]];
+  const rows=[["Jogador","GR","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"]];
   h.totals.forEach(t=>{
-    rows.push([t.name, t.isGK?"Sim":"Não", formatTime(t.seconds), formatTime(t.secondsOut), t.rotations, formatTime(t.part1), formatTime(t.part2), (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m"]);
+    const total = t.part1 + t.part2;
+    const avg = t.rotations > 0 ? Math.floor(total / t.rotations) : 0;
+    const percent = ((total / (duration * 2)) * 100).toFixed(1) + "%";
+    rows.push([
+      t.name, t.isGK?"Sim":"Não",
+      formatTime(t.part1), formatTime(t.part2),
+      formatTime(total), formatTime(t.secondsOut),
+      t.rotations, formatTime(avg), percent,
+      (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m"
+    ]);
   });
   const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
   const a=document.createElement("a");
@@ -509,30 +572,41 @@ function printScreen(){ exportPngFromCurrent(); }
 function exportPngFromCurrent(){
   const nameA=(document.getElementById("teamA").value || "Equipa A").trim();
   const nameB=(document.getElementById("teamB").value || "Equipa B").trim();
-  const headers=["Jogador","Tempo em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
+  const headers=["Jogador","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
   const rows = players.map(p=>{
     const total = p.part1 + p.part2;
     const avg = p.rotations > 0 ? Math.floor(total / p.rotations) : 0;
     const percent = ((total / (duration * (firstHalf ? 1 : 2))) * 100).toFixed(1) + "%";
     const workload = p.seconds - p.secondsOut;
     const workloadText = `${workload >= 0 ? "+" : ""}${(workload/60).toFixed(1)}m`;
-    return [p.name + (p.isGK?' 🧤':''), formatTime(p.seconds), formatTime(p.secondsOut), String(p.rotations), formatTime(avg), percent, workloadText];
+    return [
+      p.name + (p.isGK?' 🧤':''), formatTime(p.part1), formatTime(p.part2),
+      formatTime(total), formatTime(p.secondsOut),
+      String(p.rotations), formatTime(avg), percent, workloadText
+    ];
   });
   renderTablePng(nameA,nameB,headers,rows, `Resumo_${nameA}_vs_${nameB}`);
 }
 function exportPngFromHistory(index){
   const h=getHistory()[index]; if(!h) return;
   const nameA=h.teamA||"Equipa A", nameB=h.teamB||"Equipa B";
-  const headers=["Jogador","Tempo em Campo","Tempo Fora","Rotações","Parte 1","Parte 2","Workload"];
-  const rows = h.totals.map(t=>[
-    t.name + (t.isGK?' 🧤':''), formatTime(t.seconds), formatTime(t.secondsOut), String(t.rotations),
-    formatTime(t.part1), formatTime(t.part2), (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m"
-  ]);
+  const headers=["Jogador","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
+  const rows = h.totals.map(t=>{
+    const total = t.part1 + t.part2;
+    const avg = t.rotations > 0 ? Math.floor(total / t.rotations) : 0;
+    const percent = ((total / (duration * 2)) * 100).toFixed(1) + "%";
+    const workloadText = (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m";
+    return [
+      t.name + (t.isGK?' 🧤':''), formatTime(t.part1), formatTime(t.part2),
+      formatTime(total), formatTime(t.secondsOut),
+      String(t.rotations), formatTime(avg), percent, workloadText
+    ];
+  });
   renderTablePng(nameA,nameB,headers,rows, `Resumo_${nameA}_vs_${nameB}`);
 }
 function renderTablePng(nameA,nameB,headers,rows, basename){
   const title = `${nameA} vs ${nameB}`;
-  const colWidths = headers.map((h,i)=>[280,150,150,90,100,90,140][i]||120);
+  const colWidths = headers.map((h,i)=>[280,120,120,150,150,90,100,90,140][i]||120);
   const tableWidth = colWidths.reduce((a,b)=>a+b, 0);
   const margin=20, titleFont="bold 20px Arial, sans-serif", headFont="bold 14px Arial, sans-serif", rowFont="14px Arial, sans-serif";
   const rowH=34, headerH=36, titleH=28, innerPad=10;
@@ -620,11 +694,10 @@ saveNamesBtn.onclick=()=>{
     const gk=document.getElementById("gkEdit"+p.id).checked;
     if(v) p.name=v;
     p.isGK = !!gk;
-    // se passou a GR, remove fadiga/barra; se deixou de ser GR, mantém fadiga atual (ou 0)
     if(p.isGK){ p.fatigue=0; }
   });
   editPanel.classList.remove("open");
-  buildPlayersDOM(); // recria DOM para adicionar/remover barra consoante isGK
+  buildPlayersDOM(); // recria DOM p/ adicionar/remover barra consoante isGK
   updatePlayersUI(); updateSummary(); saveData();
 };
 
@@ -636,15 +709,19 @@ document.getElementById("saveGameBtn").onclick=saveGameToHistory;
 document.getElementById("clearHistoryBtn").onclick=clearHistory;
 document.getElementById("exportAllCsvBtn").onclick=()=>{
   const hist=getHistory(); if(hist.length===0) return;
-  let csv="Data,EquipaA,EquipaB,Jogador,GR,TempoCampo,TempoFora,Rotacoes,Parte1,Parte2,Workload\n";
+  let csv="Data,EquipaA,EquipaB,Jogador,GR,1aParte,2aParte,Total,TempoFora,Rotacoes,Media,Percent,Workload\n";
   hist.forEach(h=>{
     const d=new Date(h.when).toISOString();
     h.totals.forEach(t=>{
+      const total = t.part1 + t.part2;
+      const avg = t.rotations > 0 ? Math.floor(total / t.rotations) : 0;
+      const percent = ((total / (duration * 2)) * 100).toFixed(1) + "%";
       csv += [
         d, JSON.stringify(h.teamA||""), JSON.stringify(h.teamB||""),
         JSON.stringify(t.name), t.isGK?"Sim":"Não",
-        formatTime(t.seconds), formatTime(t.secondsOut),
-        t.rotations, formatTime(t.part1), formatTime(t.part2),
+        formatTime(t.part1), formatTime(t.part2),
+        formatTime(total), formatTime(t.secondsOut),
+        t.rotations, formatTime(avg), percent,
         (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m"
       ].join(",") + "\n";
     });
