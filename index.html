@@ -1298,6 +1298,14 @@ document.getElementById('themeToggle').onclick=toggleTheme;
 updateTimerDisplay(); updateHalfBadge(); updateScoreUI();
 loadData();
 if(players.length===0){ ensurePlayerCount(14); }
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').catch(function(err) {
+      console.log('SW falhou:', err);
+    });
+  });
+}
 </script>
 </body>
 </html>
