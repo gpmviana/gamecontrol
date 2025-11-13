@@ -1,0 +1,9 @@
+{
+  "name": "Game Control",
+  "short_name": "GameControl",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#1e1e1e",
+  "theme_color": "#333333",
+  "orientation": "landscape"
+}
