@@ -150,6 +150,21 @@
     text-align:center;
   }
 
+  /* BOTÃO PRINCIPAL – maior e mais destacado */
+  #startPauseBtn{
+    padding:10px 26px;
+    min-width:140px;
+    font-size:16px;
+    font-weight:700;
+    border-radius:999px;
+    background:#0078d7;
+    color:#fff;
+  }
+  body.light-mode #startPauseBtn{
+    background:#0078d7;
+    color:#fff;
+  }
+
   /* Grelha dos jogadores – mais finas e juntas */
   #players{
     display:grid;
@@ -1418,7 +1433,6 @@ function exportPng(){
   const headers = ["Jogador","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
   const rows = [];
   const gameTime = computeGameTime();
-  const ideal = computeIdealPerPlayer(gameTime);
 
   players.forEach(p=>{
     const total = p.part1 + p.part2;
