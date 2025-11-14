@@ -58,6 +58,10 @@
   body.light-mode .top-buttons button{
     color:#222;
   }
+  .top-buttons button:disabled{
+    opacity:0.4;
+    cursor:default;
+  }
 
   #teamInputs{
     display:flex;
@@ -144,29 +148,6 @@
     border-radius:6px;
     border:none;
     text-align:center;
-  }
-
-  /* Botão principal Start/Pause */
-  #startPauseBtn{
-    padding:12px 28px;
-    font-size:20px;
-    font-weight:700;
-    border:none;
-    border-radius:10px;
-    cursor:pointer;
-    transition:0.2s;
-    box-shadow:0 4px 12px rgba(0,0,0,0.25);
-  }
-  .start-mode{
-    background:#2ecc71;
-    color:#000;
-  }
-  .pause-mode{
-    background:#f1c40f;
-    color:#000;
-  }
-  #startPauseBtn:active{
-    transform:scale(0.96);
   }
 
   /* Grelha dos jogadores – mais finas e juntas */
@@ -544,6 +525,29 @@
     color:#e74c3c;
     border:1px solid rgba(231,76,60,.5);
   }
+
+  /* NOVAS CLASSES PARA ESTADOS DE CARGA */
+  .load-neutral{
+    background:rgba(255,255,255,0.15);
+    color:#fff;
+    border:1px solid rgba(255,255,255,0.25);
+  }
+  .load-sub{
+    background:rgba(241,196,15,0.15);
+    color:#f1c40f;
+    border:1px solid rgba(241,196,15,0.5);
+  }
+  .load-over{
+    background:rgba(231,76,60,0.15);
+    color:#e74c3c;
+    border:1px solid rgba(231,76,60,0.5);
+  }
+  .load-zone{
+    background:rgba(46,204,113,0.15);
+    color:#2ecc71;
+    border:1px solid rgba(46,204,113,0.5);
+  }
+
   .fat-low{
     color:#2ecc71;
   }
@@ -628,6 +632,7 @@
   <div class="top-buttons">
     <button id="themeToggle" title="Tema">🌙</button>
     <button id="fullscreenBtn" title="Fullscreen">⛶</button>
+    <button id="lockBtn" title="Bloquear interface">🔓</button>
     <button id="loadPanelBtn" title="Gestão de Cargas">⚡</button>
     <button id="editNamesBtn" title="Editar nomes">👥</button>
     <button id="presetsBtn" title="Presets">💾</button>
@@ -650,7 +655,8 @@
 
 <div class="controls">
   <input id="setMinutes" type="number" value="20" min="1" style="width:60px;">
-  <button id="startPauseBtn" class="start-mode">▶ Iniciar</button>
+  <button id="startBtn">Iniciar</button>
+  <button id="pauseBtn">Pausar</button>
   <button id="intervalBtn">Intervalo</button>
   <button id="resetBtn">Reset</button>
   <button id="addBtn">+</button>
@@ -752,6 +758,7 @@ const maxOnField = 5;
 let scoreA = 0;
 let scoreB = 0;
 let pendingPlayerEvent = null;
+let uiLocked = false; // 🔒 estado de bloqueio
 
 let timeline = [];
 
@@ -814,13 +821,11 @@ function startTimer(){
   running = true;
   clearInterval(timerInterval);
   timerInterval = setInterval(tick,1000);
-  updateStartPauseUI();
 }
 function pauseTimer(){
   running = false;
   clearInterval(timerInterval);
   saveData();
-  updateStartPauseUI();
 }
 function resetTimer(){
   pauseTimer();
@@ -952,8 +957,8 @@ function ensurePlayerCount(n){
       lastRotation: prev ? (prev.lastRotation||0) : 0,
       fatigue: prev && !prev.isGK ? (prev.fatigue||0) : 0,
       fouls: prev ? (prev.fouls||0) : 0,
-      yc: prev ? !!prev.yc : false,
-      rc: prev ? !!prev.rc : false
+      yc: prev ? (prev.yc||false) : false,
+      rc: prev ? (prev.rc||false) : false
     });
   }
   buildPlayersDOM();
@@ -1097,11 +1102,30 @@ function toggleFullscreen(){
   else document.exitFullscreen();
 }
 
+/* 🔒 Bloqueio de interface */
+function applyLockState(){
+  const lockBtn = document.getElementById("lockBtn");
+  lockBtn.textContent = uiLocked ? "🔒" : "🔓";
+
+  document.getElementById("editNamesBtn").disabled = uiLocked;
+  document.getElementById("presetsBtn").disabled = uiLocked;
+  document.getElementById("loadPanelBtn").disabled = uiLocked;
+  document.getElementById("addBtn").disabled = uiLocked;
+  document.getElementById("removeBtn").disabled = uiLocked;
+}
+
+function toggleLock(){
+  uiLocked = !uiLocked;
+  applyLockState();
+  saveData();
+}
+
 /* Painel editar nomes */
 const editPanel = document.getElementById("editPanel");
 const editList = document.getElementById("editList");
 
 function openEditPanel(){
+  if(uiLocked) return;
   editList.innerHTML = "";
   players.forEach(p=>{
     const row = document.createElement("div");
@@ -1137,6 +1161,7 @@ const loadPanel = document.getElementById("loadPanel");
 const loadList = document.getElementById("loadList");
 
 function openLoadPanel(){
+  if(uiLocked) return;
   renderLoadPanel();
   loadPanel.classList.add("open");
 }
@@ -1155,9 +1180,23 @@ function renderLoadPanel(){
     const wlMin = wlSec/60;
     const totalSec = (p.seconds||0);
     const fad = p.fatigue || 0;
+
+    // fadiga
     let fadClass="fat-low", fadTxt="Fadiga baixa";
     if(fad>=0.7){ fadClass="fat-high"; fadTxt="Fadiga alta"; }
     else if(fad>=0.4){ fadClass="fat-mid"; fadTxt="Fadiga média"; }
+
+    // classificação de workload
+    let loadClass = "load-zone";
+    let loadText = "Zona ideal";
+
+    if (wlMin >= 3) {
+      loadClass = "load-over";
+      loadText = "Sobrecarregado";
+    } else if (wlMin <= -3) {
+      loadClass = "load-sub";
+      loadText = "Subutilizado";
+    }
 
     const div = document.createElement("div");
     div.className = "load-row";
@@ -1168,11 +1207,9 @@ function renderLoadPanel(){
         <span class="${fadClass}">${fadTxt}</span>
       </div>
       <div class="load-meta">
-        <span>Ideal: ${gameTime>0 ? formatTime(ideal) : "00:00"}</span>
-        <span>
-          <span class="load-tag ${wlMin>=0?'load-pos':'load-neg'}">
-            ${wlMin>=0?"+":""}${wlMin.toFixed(1)}m
-          </span>
+        <span>${loadText}</span>
+        <span class="load-tag ${loadClass}">
+          ${wlMin>=0?"+":""}${wlMin.toFixed(1)}m
         </span>
       </div>
     `;
@@ -1217,6 +1254,7 @@ function renderPresetList(){
   });
 }
 function savePreset(){
+  if(uiLocked) return;
   const nm = (document.getElementById("presetName").value || "").trim();
   if(!nm){
     alert("Dá um nome ao preset.");
@@ -1262,7 +1300,8 @@ function saveData(){
     players,
     scoreA,
     scoreB,
-    timeline
+    timeline,
+    uiLocked
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
@@ -1295,7 +1334,7 @@ function loadData(){
     updateHalfBadge();
     updateSummary();
     updateScoreUI();
-    updateStartPauseUI();
+    applyLockState();
     return;
   }
   try{
@@ -1309,6 +1348,7 @@ function loadData(){
     scoreA = typeof d.scoreA==="number" ? d.scoreA : 0;
     scoreB = typeof d.scoreB==="number" ? d.scoreB : 0;
     timeline = Array.isArray(d.timeline) ? d.timeline : [];
+    uiLocked = !!d.uiLocked;
 
     players = (Array.isArray(d.players)?d.players:[]).map((p,i)=>({
       id: p.id ?? (i+1),
@@ -1363,7 +1403,7 @@ function loadData(){
       document.getElementById("themeToggle").textContent = "🌞";
     }
 
-    updateStartPauseUI();
+    applyLockState();
   }catch(e){
     console.error(e);
     localStorage.removeItem(STORAGE_KEY);
@@ -1558,32 +1598,17 @@ document.getElementById("tlClearBtn").onclick = ()=>{
   saveData();
 };
 
-/* Botão Start/Pause único */
-const startPauseBtn = document.getElementById("startPauseBtn");
-function updateStartPauseUI(){
-  if(running){
-    startPauseBtn.classList.remove("start-mode");
-    startPauseBtn.classList.add("pause-mode");
-    startPauseBtn.textContent = "⏸ Pausar";
-  }else{
-    startPauseBtn.classList.remove("pause-mode");
-    startPauseBtn.classList.add("start-mode");
-    startPauseBtn.textContent = "▶ Iniciar";
-  }
-}
-startPauseBtn.onclick = ()=>{
-  if(running) pauseTimer();
-  else startTimer();
-};
-
 /* Ligações de botões base */
+document.getElementById("startBtn").onclick = startTimer;
+document.getElementById("pauseBtn").onclick = pauseTimer;
 document.getElementById("resetBtn").onclick = resetTimer;
 document.getElementById("intervalBtn").onclick = intervalTimer;
-document.getElementById("addBtn").onclick = ()=>ensurePlayerCount(players.length+1);
-document.getElementById("removeBtn").onclick = ()=>{ if(players.length>1) ensurePlayerCount(players.length-1); };
+document.getElementById("addBtn").onclick = ()=>{ if(!uiLocked) ensurePlayerCount(players.length+1); };
+document.getElementById("removeBtn").onclick = ()=>{ if(!uiLocked && players.length>1) ensurePlayerCount(players.length-1); };
 document.getElementById("themeToggle").onclick = toggleTheme;
 document.getElementById("fullscreenBtn").onclick = toggleFullscreen;
 document.getElementById("printBtn").onclick = exportPng;
+document.getElementById("lockBtn").onclick = toggleLock;
 
 document.getElementById("editNamesBtn").onclick = openEditPanel;
 document.getElementById("closePanel").onclick = closeEditPanel;
@@ -1591,6 +1616,7 @@ document.getElementById("saveNamesBtn").onclick = saveNamesFromPanel;
 
 const presetsPanel = document.getElementById("presetsPanel");
 document.getElementById("presetsBtn").onclick = ()=>{
+  if(uiLocked) return;
   renderPresetList();
   presetsPanel.classList.add("open");
 };
@@ -1622,7 +1648,6 @@ loadData();
 updateTimerDisplay();
 updateHalfBadge();
 updateScoreUI();
-updateStartPauseUI();
 </script>
 </body>
 </html>
