@@ -146,7 +146,7 @@
   #players{
     display:grid;
     grid-template-columns:repeat(5,minmax(0,1fr));
-    gap:18px;
+    gap:14px;
     width:95%;
     max-width:1300px;
     margin:12px auto 20px auto;
@@ -165,8 +165,8 @@
 
   .player{
     width:100%;
-    max-width:260px;
-    height:190px; /* ↓ reduzido um bocado */
+    max-width:150px;   /* mais estreito p/ caber bem em iPad Air */
+    height:135px;      /* mais baixo */
     border-radius:14px;
     display:flex;
     flex-direction:column;
@@ -186,41 +186,41 @@
   }
 
   .player strong{
-    font-size:18px;
-    margin-bottom:8px;
+    font-size:14px;
+    margin-bottom:4px;
     padding:0 4px;
   }
   .player .time{
-    font-size:34px;
+    font-size:24px;
     font-weight:bold;
     line-height:1;
   }
   .player .last{
-    font-size:11px;
+    font-size:9px;
     opacity:.9;
-    margin-top:4px;
+    margin-top:2px;
   }
 
   .gk-icon{
     position:absolute;
-    top:8px;
-    left:8px;
-    width:28px;
-    height:28px;
+    top:6px;
+    left:6px;
+    width:22px;
+    height:22px;
     border-radius:50%;
     display:flex;
     align-items:center;
     justify-content:center;
     background:rgba(0,0,0,0.45);
-    font-size:18px;
+    font-size:14px;
   }
 
   .fatigue-container{
     position:absolute;
     left:8px;
     right:8px;
-    bottom:8px;
-    height:8px;
+    bottom:6px;
+    height:6px;
     border-radius:6px;
     background:rgba(255,255,255,0.3);
     overflow:hidden;
@@ -646,16 +646,16 @@ function ensurePlayerCount(n){
     players.push({
       id:i,
       name: prev ? prev.name : ("Jogador "+i),
-      active:false,
+      active: prev ? !!prev.active : false,
       isGK: prev ? !!prev.isGK : (i===1),
-      seconds: prev ? prev.seconds : 0,
-      secondsOut: prev ? prev.secondsOut : 0,
-      part1: prev ? prev.part1 : 0,
-      part2: prev ? prev.part2 : 0,
-      rotations: prev ? prev.rotations : 0,
-      rotationSecondsCurrent:0,
-      rotationSecondsOut:0,
-      lastRotation: prev ? prev.lastRotation : 0,
+      seconds: prev ? (prev.seconds||0) : 0,
+      secondsOut: prev ? (prev.secondsOut||0) : 0,
+      part1: prev ? (prev.part1||0) : 0,
+      part2: prev ? (prev.part2||0) : 0,
+      rotations: prev ? (prev.rotations||0) : 0,
+      rotationSecondsCurrent: prev ? (prev.rotationSecondsCurrent||0) : 0,
+      rotationSecondsOut: prev ? (prev.rotationSecondsOut||0) : 0,
+      lastRotation: prev ? (prev.lastRotation||0) : 0,
       fatigue: prev && !prev.isGK ? (prev.fatigue||0) : 0
     });
   }
@@ -838,15 +838,15 @@ function loadData(){
     players = (Array.isArray(d.players)?d.players:[]).map((p,i)=>({
       id: p.id ?? (i+1),
       name: p.name || ("Jogador "+(p.id ?? (i+1))),
-      active: !!p.active,                                      // <- mantém estado
+      active: !!p.active,
       isGK: !!p.isGK,
       seconds: p.seconds || 0,
       secondsOut: p.secondsOut || 0,
       part1: p.part1 || 0,
       part2: p.part2 || 0,
       rotations: p.rotations || 0,
-      rotationSecondsCurrent: p.rotationSecondsCurrent || 0,   // <- mantém rotação em curso
-      rotationSecondsOut: p.rotationSecondsOut || 0,           // <- mantém tempo fora
+      rotationSecondsCurrent: p.rotationSecondsCurrent || 0,
+      rotationSecondsOut: p.rotationSecondsOut || 0,
       lastRotation: p.lastRotation || 0,
       fatigue: p.isGK ? 0 : (p.fatigue || 0)
     }));
@@ -1029,7 +1029,7 @@ function exportPng(){
 }
 
 /* ============================================================
-   SCORE (se quiseres evoluir depois)
+   SCORE (placeholder, se quiseres evoluir depois)
    ============================================================ */
 function updateScoreUI(){
   document.getElementById("scoreA").textContent = "0";
