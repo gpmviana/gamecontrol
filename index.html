@@ -153,7 +153,6 @@
     justify-items:center;
   }
 
-  /* iPad & afins: ajustar, mas manter muitas caixas visíveis */
   @media (max-width:1200px){
     #players{grid-template-columns:repeat(4,minmax(0,1fr));}
   }
@@ -167,7 +166,7 @@
   .player{
     width:100%;
     max-width:260px;
-    height:220px;
+    height:190px; /* ↓ reduzido um bocado */
     border-radius:14px;
     display:flex;
     flex-direction:column;
@@ -192,14 +191,14 @@
     padding:0 4px;
   }
   .player .time{
-    font-size:40px;
+    font-size:34px;
     font-weight:bold;
     line-height:1;
   }
   .player .last{
-    font-size:12px;
+    font-size:11px;
     opacity:.9;
-    margin-top:6px;
+    margin-top:4px;
   }
 
   .gk-icon{
@@ -479,7 +478,7 @@ let players = [];
 let theme = "dark";
 const maxOnField = 5;
 
-const STORAGE_KEY = "gameControl_simple_v1";
+const STORAGE_KEY = "gameControl_simple_v2";
 
 /* ============================================================
    FUNÇÕES UTILITÁRIAS
@@ -514,13 +513,13 @@ function tick(){
       if(firstHalf) p.part1++;
       else p.part2++;
       if(!p.isGK){
-        p.fatigue += 0.01 * (1 - p.fatigue); // aumenta devagar
+        p.fatigue += 0.01 * (1 - p.fatigue);
       }
     }else{
       p.secondsOut++;
       p.rotationSecondsOut++;
       if(!p.isGK){
-        p.fatigue -= 0.02 * p.fatigue; // recupera mais depressa
+        p.fatigue -= 0.02 * p.fatigue;
       }
     }
     if(!p.isGK){
@@ -560,6 +559,7 @@ function resetTimer(){
     p.rotationSecondsOut = 0;
     p.lastRotation = 0;
     if(!p.isGK) p.fatigue = 0;
+    p.active = false;
   });
   updateTimerDisplay();
   updateHalfBadge();
@@ -573,12 +573,11 @@ function intervalTimer(){
   const mins = parseInt(document.getElementById("setMinutes").value)||20;
   duration = mins * 60;
   remaining = duration;
-  // reset tempos de rotação, mas manter acumulados
   players.forEach(p=>{
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
     if(!p.isGK){
-      p.fatigue *= 0.3; // intervalo baixa fadiga
+      p.fatigue *= 0.3;
     }
   });
   updateTimerDisplay();
@@ -625,7 +624,7 @@ function updatePlayersUI(){
     const timeEl = el.querySelector(".time");
     const lastEl = el.querySelector(".last");
     const nameEl = el.querySelector(".name");
-    if(nameEl) nameEl.textContent = p.name + (p.isGK ? "" : "");
+    if(nameEl) nameEl.textContent = p.name;
     const displaySec = p.active ? p.rotationSecondsCurrent : p.rotationSecondsOut;
     timeEl.textContent = formatTime(displaySec);
     lastEl.textContent = (!p.active && p.lastRotation>0) ? ("Últ. rotação: " + formatTime(p.lastRotation)) : "";
@@ -640,7 +639,6 @@ function updatePlayersUI(){
 }
 
 function ensurePlayerCount(n){
-  // guardar nomes/gk se já existirem
   const old = players || [];
   players = [];
   for(let i=1;i<=n;i++){
@@ -688,13 +686,11 @@ function togglePlayer(id){
   }
 
   if(p.active){
-    // a sair
     p.active = false;
     p.lastRotation = p.rotationSecondsCurrent;
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
   } else {
-    // a entrar
     p.active = true;
     p.rotations++;
     p.rotationSecondsCurrent = 0;
@@ -796,7 +792,7 @@ function saveData(){
     duration,
     remaining,
     firstHalf,
-    running:false, // ao recarregar não volta logo a contar
+    running:false,
     theme,
     players
   };
@@ -838,21 +834,23 @@ function loadData(){
     remaining = typeof d.remaining==="number" ? d.remaining : remaining;
     firstHalf = typeof d.firstHalf==="boolean" ? d.firstHalf : true;
     theme = d.theme || "dark";
+
     players = (Array.isArray(d.players)?d.players:[]).map((p,i)=>({
       id: p.id ?? (i+1),
       name: p.name || ("Jogador "+(p.id ?? (i+1))),
-      active:false,
+      active: !!p.active,                                      // <- mantém estado
       isGK: !!p.isGK,
-      seconds:p.seconds||0,
-      secondsOut:p.secondsOut||0,
-      part1:p.part1||0,
-      part2:p.part2||0,
-      rotations:p.rotations||0,
-      rotationSecondsCurrent:0,
-      rotationSecondsOut:0,
-      lastRotation:p.lastRotation||0,
-      fatigue: p.isGK ? 0 : (p.fatigue||0)
+      seconds: p.seconds || 0,
+      secondsOut: p.secondsOut || 0,
+      part1: p.part1 || 0,
+      part2: p.part2 || 0,
+      rotations: p.rotations || 0,
+      rotationSecondsCurrent: p.rotationSecondsCurrent || 0,   // <- mantém rotação em curso
+      rotationSecondsOut: p.rotationSecondsOut || 0,           // <- mantém tempo fora
+      lastRotation: p.lastRotation || 0,
+      fatigue: p.isGK ? 0 : (p.fatigue || 0)
     }));
+
     if(players.length===0){
       for(let i=1;i<=14;i++){
         players.push({
@@ -872,10 +870,12 @@ function loadData(){
         });
       }
     }
+
     buildPlayersDOM();
     updateTimerDisplay();
     updateHalfBadge();
     updateSummary();
+
     if(theme==="light"){
       document.body.classList.add("light-mode");
       document.getElementById("themeToggle").textContent = "🌞";
@@ -888,7 +888,7 @@ function loadData(){
 }
 
 /* ============================================================
-   EXPORTAR PNG (NOME EQUIPAS + TABELA)
+   EXPORTAR PNG
    ============================================================ */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
@@ -962,7 +962,6 @@ function exportPng(){
   let x = cardX+padding;
   let y = cardY+padding;
 
-  // Header
   ctx.fillStyle = "#eeeeee";
   ctx.fillRect(x-1,y,tableWidth+2,headerH);
   ctx.fillStyle = "#000";
@@ -985,7 +984,6 @@ function exportPng(){
   ctx.lineTo(x+tableWidth,y+headerH);
   ctx.stroke();
 
-  // Linhas
   ctx.font = "13px Arial";
   let rowY = y+headerH;
   rows.forEach(row=>{
@@ -1031,7 +1029,7 @@ function exportPng(){
 }
 
 /* ============================================================
-   SCORE (APENAS CONTADOR MANUAL SE QUISERES MAIS TARDE)
+   SCORE (se quiseres evoluir depois)
    ============================================================ */
 function updateScoreUI(){
   document.getElementById("scoreA").textContent = "0";
