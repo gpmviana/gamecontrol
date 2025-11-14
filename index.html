@@ -426,7 +426,7 @@
     margin-top:8px;
   }
 
-  /* Painel presets */
+  /* Painel Presets */
   #presetsPanel{
     position:fixed;
     right:-420px;
@@ -573,6 +573,29 @@
     outline:3px dashed #fff;
     outline-offset:-3px;
   }
+
+  /* Assinatura @gpmviana */
+  #brandSignature{
+    position:fixed;
+    bottom:10px;
+    right:12px;
+    z-index:9999;
+    pointer-events:none;
+  }
+  #brandSignature img{
+    height:34px;
+    opacity:0.55;
+    display:none;
+    user-select:none;
+  }
+  /* Dark (sem light-mode) → assinatura branca (signature-light) */
+  body:not(.light-mode) #brandSignature .sig-on-dark{
+    display:block;
+  }
+  /* Light mode → assinatura preta (signature-dark) */
+  body.light-mode #brandSignature .sig-on-light{
+    display:block;
+  }
 </style>
 </head>
 
@@ -664,6 +687,12 @@
     Workload = tempo em campo − tempo ideal (se todos jogassem igual).
   </p>
   <div id="loadList"></div>
+</div>
+
+<!-- Assinatura -->
+<div id="brandSignature">
+  <img src="signature-light.png" class="sig-on-dark" alt="@gpmviana">
+  <img src="signature-dark.png" class="sig-on-light" alt="@gpmviana">
 </div>
 
 <!-- Timeline fixa -->
@@ -981,7 +1010,7 @@ function togglePlayer(id){
   saveData();
 }
 
-/* Novo workload: diferença para tempo ideal */
+/* Workload inteligente */
 function computeGameTime(){
   if(players.length===0) return 0;
   return players.reduce((max,p)=>{
@@ -997,7 +1026,7 @@ function computeIdealPerPlayer(gameTime){
 
 function computePlayerWorkload(p, gameTime, idealPerPlayer){
   if(gameTime <= 0) return 0;
-  return (p.seconds || 0) - idealPerPlayer; // em segundos
+  return (p.seconds || 0) - idealPerPlayer;
 }
 
 function updateSummary(){
@@ -1315,9 +1344,7 @@ function loadData(){
   }
 }
 
-/* Export PNG (igual à versão anterior – tabela + timeline em tags) */
-/* Para não rebentar isto tudo agora, mantemos só tabela + título.
-   Se quiseres depois volto a pôr também a timeline no PNG, como já tivemos. */
+/* Export PNG – tabela + título */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
