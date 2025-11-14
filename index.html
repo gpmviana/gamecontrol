@@ -74,15 +74,34 @@
     justify-items:center;
     margin-bottom: calc(var(--timeline-h) + 20px);
   }
+
+  /* CAIXAS AJUSTADAS PARA CABEREM MELHOR NO TABLET */
   .player{
-    width:100%;max-width:260px;height:240px;border-radius:14px;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    cursor:pointer;transition:.2s;background:#c0392b;color:#fff;
-    position:relative;overflow:hidden
+    width:100%;
+    max-width:220px;  /* antes 260px */
+    height:180px;     /* antes 240px */
+    border-radius:14px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:.2s;
+    background:#c0392b;
+    color:#fff;
+    position:relative;
+    overflow:hidden
   }
   .player.active{background:#2ecc71;color:#000}
-  .player strong{font-size:20px;margin-bottom:8px}
-  .player .time{font-size:40px;font-weight:bold;line-height:1}
+  .player strong{
+    font-size:18px;   /* antes 20px */
+    margin-bottom:6px;
+  }
+  .player .time{
+    font-size:32px;   /* antes 40px */
+    font-weight:bold;
+    line-height:1
+  }
   .player .last{font-size:12px;opacity:.9;margin-top:6px}
 
   .gk-badge{
@@ -764,7 +783,7 @@ function exportCsv(idx){
       formatTime(t.part1),formatTime(t.part2),
       formatTime(total),formatTime(t.secondsOut),
       t.rotations,formatTime(avg),percent,
-      (t.workload>=0?"+":"")+(t.workload/60).toFixed(1)+"m",
+      (t.workload>=0?"+":"" )+(t.workload/60).toFixed(1)+"m",
       t.plusMinus||0,t.fouls||0,t.yc?"Sim":"Não",t.rc?"Sim":"Não"
     ]);
   });
