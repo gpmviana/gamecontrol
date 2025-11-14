@@ -486,7 +486,7 @@
     cursor:pointer;
   }
   #loadPanel h3{
-    margin:0 0 10px 0;
+    margin:0 0 8px 0;
   }
   .load-row{
     display:flex;
@@ -515,39 +515,21 @@
     font-size:11px;
     font-weight:600;
   }
-  .load-pos{
+  .load-sub{
+    background:rgba(52,152,219,.15);
+    color:#3498db;
+    border:1px solid rgba(52,152,219,.5);
+  }
+  .load-ideal{
     background:rgba(46,204,113,.15);
     color:#2ecc71;
     border:1px solid rgba(46,204,113,.5);
   }
-  .load-neg{
+  .load-over{
     background:rgba(231,76,60,.15);
     color:#e74c3c;
     border:1px solid rgba(231,76,60,.5);
   }
-
-  /* NOVAS CLASSES PARA ESTADOS DE CARGA */
-  .load-neutral{
-    background:rgba(255,255,255,0.15);
-    color:#fff;
-    border:1px solid rgba(255,255,255,0.25);
-  }
-  .load-sub{
-    background:rgba(241,196,15,0.15);
-    color:#f1c40f;
-    border:1px solid rgba(241,196,15,0.5);
-  }
-  .load-over{
-    background:rgba(231,76,60,0.15);
-    color:#e74c3c;
-    border:1px solid rgba(231,76,60,0.5);
-  }
-  .load-zone{
-    background:rgba(46,204,113,0.15);
-    color:#2ecc71;
-    border:1px solid rgba(46,204,113,0.5);
-  }
-
   .fat-low{
     color:#2ecc71;
   }
@@ -615,11 +597,9 @@
     display:none;
     user-select:none;
   }
-  /* Dark (sem light-mode) → assinatura branca (signature-light) */
   body:not(.light-mode) #brandSignature .sig-on-dark{
     display:block;
   }
-  /* Light mode → assinatura preta (signature-dark) */
   body.light-mode #brandSignature .sig-on-light{
     display:block;
   }
@@ -632,7 +612,6 @@
   <div class="top-buttons">
     <button id="themeToggle" title="Tema">🌙</button>
     <button id="fullscreenBtn" title="Fullscreen">⛶</button>
-    <button id="lockBtn" title="Bloquear interface">🔓</button>
     <button id="loadPanelBtn" title="Gestão de Cargas">⚡</button>
     <button id="editNamesBtn" title="Editar nomes">👥</button>
     <button id="presetsBtn" title="Presets">💾</button>
@@ -655,8 +634,7 @@
 
 <div class="controls">
   <input id="setMinutes" type="number" value="20" min="1" style="width:60px;">
-  <button id="startBtn">Iniciar</button>
-  <button id="pauseBtn">Pausar</button>
+  <button id="startPauseBtn">Iniciar</button>
   <button id="intervalBtn">Intervalo</button>
   <button id="resetBtn">Reset</button>
   <button id="addBtn">+</button>
@@ -711,8 +689,11 @@
 <div id="loadPanel">
   <button class="close-btn" id="closeLoad">❌</button>
   <h3>Gestão de Cargas</h3>
+  <p style="font-size:12px;color:#ccc;margin:0 0 4px 0;">
+    Workload compara o tempo em campo com o tempo ideal (se todos jogassem igual).
+  </p>
   <p style="font-size:12px;color:#ccc;margin:0 0 8px 0;">
-    Workload = tempo em campo − tempo ideal (se todos jogassem igual).
+    Tags: <strong>Subutilizado</strong> (≤ −10%), <strong>Zona Ideal</strong> (±10%), <strong>Sobrecarregado</strong> (≥ +10%).
   </p>
   <div id="loadList"></div>
 </div>
@@ -758,7 +739,6 @@ const maxOnField = 5;
 let scoreA = 0;
 let scoreB = 0;
 let pendingPlayerEvent = null;
-let uiLocked = false; // 🔒 estado de bloqueio
 
 let timeline = [];
 
@@ -782,6 +762,11 @@ function updateHalfBadge(){
 function updateScoreUI(){
   document.getElementById("scoreA").textContent = scoreA;
   document.getElementById("scoreB").textContent = scoreB;
+}
+function updateStartPauseLabel(){
+  const btn = document.getElementById("startPauseBtn");
+  if(!btn) return;
+  btn.textContent = running ? "Pausar" : "Iniciar";
 }
 
 function tick(){
@@ -814,6 +799,9 @@ function tick(){
   updateTimerDisplay();
   updatePlayersUI();
   updateSummary();
+  if(document.getElementById("loadPanel").classList.contains("open")){
+    renderLoadPanel();
+  }
   saveData();
 }
 function startTimer(){
@@ -821,12 +809,19 @@ function startTimer(){
   running = true;
   clearInterval(timerInterval);
   timerInterval = setInterval(tick,1000);
+  updateStartPauseLabel();
 }
 function pauseTimer(){
   running = false;
   clearInterval(timerInterval);
+  updateStartPauseLabel();
   saveData();
 }
+function toggleStartPause(){
+  if(running) pauseTimer();
+  else startTimer();
+}
+
 function resetTimer(){
   pauseTimer();
   const mins = parseInt(document.getElementById("setMinutes").value)||20;
@@ -856,6 +851,9 @@ function resetTimer(){
   updatePlayersUI();
   updateSummary();
   updateScoreUI();
+  if(document.getElementById("loadPanel").classList.contains("open")){
+    renderLoadPanel();
+  }
   saveData();
 }
 function intervalTimer(){
@@ -875,6 +873,9 @@ function intervalTimer(){
   updateHalfBadge();
   updatePlayersUI();
   updateSummary();
+  if(document.getElementById("loadPanel").classList.contains("open")){
+    renderLoadPanel();
+  }
   saveData();
 }
 
@@ -957,12 +958,15 @@ function ensurePlayerCount(n){
       lastRotation: prev ? (prev.lastRotation||0) : 0,
       fatigue: prev && !prev.isGK ? (prev.fatigue||0) : 0,
       fouls: prev ? (prev.fouls||0) : 0,
-      yc: prev ? (prev.yc||false) : false,
-      rc: prev ? (prev.rc||false) : false
+      yc: prev ? !!prev.yc : false,
+      rc: prev ? !!prev.rc : false
     });
   }
   buildPlayersDOM();
   updateSummary();
+  if(document.getElementById("loadPanel").classList.contains("open")){
+    renderLoadPanel();
+  }
   saveData();
 }
 
@@ -977,69 +981,7 @@ function flashLimit(id){
   setTimeout(()=>el.classList.remove("limit"),600);
 }
 
-/* Timeline helpers */
-function addTimelineEvent(ev){
-  timeline.push(ev);
-}
-
-/* Player events */
-function addPlayerEvent(type, playerId){
-  const p = players.find(x=>x.id===playerId);
-  if(!p) return;
-  if(type==="FK_P") p.fouls = (p.fouls||0) + 1;
-  if(type==="YC_P") p.yc = true;
-  if(type==="RC_P") p.rc = true;
-
-  const half = firstHalf ? 1 : 2;
-  const clock = formatTime(remaining);
-  addTimelineEvent({
-    type,
-    half,
-    clock,
-    playerId,
-    ts: Date.now()
-  });
-
-  updatePlayersUI();
-  updateSummary();
-  saveData();
-}
-
-function togglePlayer(id){
-  if(pendingPlayerEvent){
-    addPlayerEvent(pendingPlayerEvent, id);
-    pendingPlayerEvent = null;
-    updatePlayersUI();
-    return;
-  }
-
-  const p = players.find(x=>x.id===id);
-  if(!p) return;
-  const currently = activeCount();
-
-  if(!p.active && currently >= maxOnField){
-    flashLimit(id);
-    return;
-  }
-
-  if(p.active){
-    p.active = false;
-    p.lastRotation = p.rotationSecondsCurrent;
-    p.rotationSecondsCurrent = 0;
-    p.rotationSecondsOut = 0;
-  } else {
-    p.active = true;
-    p.rotations++;
-    p.rotationSecondsCurrent = 0;
-    p.rotationSecondsOut = 0;
-  }
-
-  updatePlayersUI();
-  updateSummary();
-  saveData();
-}
-
-/* Workload inteligente */
+/* Workload helpers */
 function computeGameTime(){
   if(players.length===0) return 0;
   return players.reduce((max,p)=>{
@@ -1047,17 +989,21 @@ function computeGameTime(){
     return t>max?t:max;
   },0);
 }
-
 function computeIdealPerPlayer(gameTime){
   if(players.length===0) return 0;
   return gameTime * (maxOnField / players.length);
 }
-
-function computePlayerWorkload(p, gameTime, idealPerPlayer){
-  if(gameTime <= 0) return 0;
-  return (p.seconds || 0) - idealPerPlayer;
+function computePlayerWorkloadSec(p, gameTime){
+  const ideal = computeIdealPerPlayer(gameTime);
+  return (p.seconds || 0) - ideal;
+}
+function computePlayerWorkloadPerc(p, gameTime){
+  const ideal = computeIdealPerPlayer(gameTime);
+  if(ideal <= 0) return 0;
+  return ((p.seconds || 0) - ideal) / ideal * 100;
 }
 
+/* Tabela principal */
 function updateSummary(){
   const tbody = document.getElementById("summaryBody");
   tbody.innerHTML = "";
@@ -1069,8 +1015,8 @@ function updateSummary(){
     const total = p.part1 + p.part2;
     const avg = p.rotations > 0 ? Math.floor(total / p.rotations) : 0;
     const percent = gameTime>0 ? ((p.seconds / gameTime)*100).toFixed(1) : "0.0";
-    const wlSec = computePlayerWorkload(p, gameTime, ideal);
-    const wlMin = wlSec / 60;
+    const wlSec = computePlayerWorkloadSec(p, gameTime);
+    const wlMin = wlSec/60;
     const wClass = wlMin >= 0 ? "work-pos" : "work-neg";
     const wTxt = `${wlMin>=0?"+":""}${wlMin.toFixed(1)}m`;
 
@@ -1102,30 +1048,11 @@ function toggleFullscreen(){
   else document.exitFullscreen();
 }
 
-/* 🔒 Bloqueio de interface */
-function applyLockState(){
-  const lockBtn = document.getElementById("lockBtn");
-  lockBtn.textContent = uiLocked ? "🔒" : "🔓";
-
-  document.getElementById("editNamesBtn").disabled = uiLocked;
-  document.getElementById("presetsBtn").disabled = uiLocked;
-  document.getElementById("loadPanelBtn").disabled = uiLocked;
-  document.getElementById("addBtn").disabled = uiLocked;
-  document.getElementById("removeBtn").disabled = uiLocked;
-}
-
-function toggleLock(){
-  uiLocked = !uiLocked;
-  applyLockState();
-  saveData();
-}
-
 /* Painel editar nomes */
 const editPanel = document.getElementById("editPanel");
 const editList = document.getElementById("editList");
 
 function openEditPanel(){
-  if(uiLocked) return;
   editList.innerHTML = "";
   players.forEach(p=>{
     const row = document.createElement("div");
@@ -1153,6 +1080,9 @@ function saveNamesFromPanel(){
   closeEditPanel();
   buildPlayersDOM();
   updateSummary();
+  if(document.getElementById("loadPanel").classList.contains("open")){
+    renderLoadPanel();
+  }
   saveData();
 }
 
@@ -1161,7 +1091,6 @@ const loadPanel = document.getElementById("loadPanel");
 const loadList = document.getElementById("loadList");
 
 function openLoadPanel(){
-  if(uiLocked) return;
   renderLoadPanel();
   loadPanel.classList.add("open");
 }
@@ -1176,27 +1105,27 @@ function renderLoadPanel(){
   const sorted = [...players].sort((a,b)=> (b.seconds||0)-(a.seconds||0));
 
   sorted.forEach(p=>{
-    const wlSec = computePlayerWorkload(p, gameTime, ideal);
+    const wlSec = computePlayerWorkloadSec(p, gameTime);
     const wlMin = wlSec/60;
+    const wlPerc = computePlayerWorkloadPerc(p, gameTime);
+
+    let tagLabel, tagClass;
+    if(wlPerc <= -10){
+      tagLabel = "Subutilizado";
+      tagClass = "load-sub";
+    }else if(wlPerc >= 10){
+      tagLabel = "Sobrecarregado";
+      tagClass = "load-over";
+    }else{
+      tagLabel = "Zona Ideal";
+      tagClass = "load-ideal";
+    }
+
     const totalSec = (p.seconds||0);
     const fad = p.fatigue || 0;
-
-    // fadiga
     let fadClass="fat-low", fadTxt="Fadiga baixa";
     if(fad>=0.7){ fadClass="fat-high"; fadTxt="Fadiga alta"; }
     else if(fad>=0.4){ fadClass="fat-mid"; fadTxt="Fadiga média"; }
-
-    // classificação de workload
-    let loadClass = "load-zone";
-    let loadText = "Zona ideal";
-
-    if (wlMin >= 3) {
-      loadClass = "load-over";
-      loadText = "Sobrecarregado";
-    } else if (wlMin <= -3) {
-      loadClass = "load-sub";
-      loadText = "Subutilizado";
-    }
 
     const div = document.createElement("div");
     div.className = "load-row";
@@ -1207,9 +1136,11 @@ function renderLoadPanel(){
         <span class="${fadClass}">${fadTxt}</span>
       </div>
       <div class="load-meta">
-        <span>${loadText}</span>
-        <span class="load-tag ${loadClass}">
-          ${wlMin>=0?"+":""}${wlMin.toFixed(1)}m
+        <span>Ideal: ${gameTime>0 ? formatTime(ideal) : "00:00"}</span>
+        <span>
+          <span class="load-tag ${tagClass}">
+            ${tagLabel} (${wlMin>=0?"+":""}${wlMin.toFixed(1)}m)
+          </span>
         </span>
       </div>
     `;
@@ -1254,7 +1185,6 @@ function renderPresetList(){
   });
 }
 function savePreset(){
-  if(uiLocked) return;
   const nm = (document.getElementById("presetName").value || "").trim();
   if(!nm){
     alert("Dá um nome ao preset.");
@@ -1284,8 +1214,79 @@ function loadPreset(name){
   });
   buildPlayersDOM();
   updateSummary();
+  if(document.getElementById("loadPanel").classList.contains("open")){
+    renderLoadPanel();
+  }
   saveData();
   alert("Preset carregado.");
+}
+
+/* Timeline helpers */
+function addTimelineEvent(ev){
+  timeline.push(ev);
+}
+
+/* Player events */
+function addPlayerEvent(type, playerId){
+  const p = players.find(x=>x.id===playerId);
+  if(!p) return;
+  if(type==="FK_P") p.fouls = (p.fouls||0) + 1;
+  if(type==="YC_P") p.yc = true;
+  if(type==="RC_P") p.rc = true;
+
+  const half = firstHalf ? 1 : 2;
+  const clock = formatTime(remaining);
+  addTimelineEvent({
+    type,
+    half,
+    clock,
+    playerId,
+    ts: Date.now()
+  });
+
+  updatePlayersUI();
+  updateSummary();
+  if(document.getElementById("loadPanel").classList.contains("open")){
+    renderLoadPanel();
+  }
+  saveData();
+}
+
+function togglePlayer(id){
+  if(pendingPlayerEvent){
+    addPlayerEvent(pendingPlayerEvent, id);
+    pendingPlayerEvent = null;
+    updatePlayersUI();
+    return;
+  }
+
+  const p = players.find(x=>x.id===id);
+  if(!p) return;
+  const currently = activeCount();
+
+  if(!p.active && currently >= maxOnField){
+    flashLimit(id);
+    return;
+  }
+
+  if(p.active){
+    p.active = false;
+    p.lastRotation = p.rotationSecondsCurrent;
+    p.rotationSecondsCurrent = 0;
+    p.rotationSecondsOut = 0;
+  } else {
+    p.active = true;
+    p.rotations++;
+    p.rotationSecondsCurrent = 0;
+    p.rotationSecondsOut = 0;
+  }
+
+  updatePlayersUI();
+  updateSummary();
+  if(document.getElementById("loadPanel").classList.contains("open")){
+    renderLoadPanel();
+  }
+  saveData();
 }
 
 /* Persistência */
@@ -1300,8 +1301,7 @@ function saveData(){
     players,
     scoreA,
     scoreB,
-    timeline,
-    uiLocked
+    timeline
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
@@ -1334,7 +1334,7 @@ function loadData(){
     updateHalfBadge();
     updateSummary();
     updateScoreUI();
-    applyLockState();
+    updateStartPauseLabel();
     return;
   }
   try{
@@ -1348,7 +1348,6 @@ function loadData(){
     scoreA = typeof d.scoreA==="number" ? d.scoreA : 0;
     scoreB = typeof d.scoreB==="number" ? d.scoreB : 0;
     timeline = Array.isArray(d.timeline) ? d.timeline : [];
-    uiLocked = !!d.uiLocked;
 
     players = (Array.isArray(d.players)?d.players:[]).map((p,i)=>({
       id: p.id ?? (i+1),
@@ -1397,13 +1396,12 @@ function loadData(){
     updateHalfBadge();
     updateSummary();
     updateScoreUI();
+    updateStartPauseLabel();
 
     if(theme==="light"){
       document.body.classList.add("light-mode");
       document.getElementById("themeToggle").textContent = "🌞";
     }
-
-    applyLockState();
   }catch(e){
     console.error(e);
     localStorage.removeItem(STORAGE_KEY);
@@ -1426,7 +1424,7 @@ function exportPng(){
     const total = p.part1 + p.part2;
     const avg = p.rotations>0 ? Math.floor(total/p.rotations) : 0;
     const percent = gameTime>0 ? ((p.seconds / gameTime)*100).toFixed(1)+"%" : "0.0%";
-    const wlSec = computePlayerWorkload(p, gameTime, ideal);
+    const wlSec = computePlayerWorkloadSec(p, gameTime);
     const wlMin = wlSec/60;
     const wTxt = `${wlMin>=0?"+":""}${wlMin.toFixed(1)}m`;
     rows.push([
@@ -1595,20 +1593,21 @@ document.getElementById("tlClearBtn").onclick = ()=>{
   updateScoreUI();
   updatePlayersUI();
   updateSummary();
+  if(document.getElementById("loadPanel").classList.contains("open")){
+    renderLoadPanel();
+  }
   saveData();
 };
 
 /* Ligações de botões base */
-document.getElementById("startBtn").onclick = startTimer;
-document.getElementById("pauseBtn").onclick = pauseTimer;
+document.getElementById("startPauseBtn").onclick = toggleStartPause;
 document.getElementById("resetBtn").onclick = resetTimer;
 document.getElementById("intervalBtn").onclick = intervalTimer;
-document.getElementById("addBtn").onclick = ()=>{ if(!uiLocked) ensurePlayerCount(players.length+1); };
-document.getElementById("removeBtn").onclick = ()=>{ if(!uiLocked && players.length>1) ensurePlayerCount(players.length-1); };
+document.getElementById("addBtn").onclick = ()=>ensurePlayerCount(players.length+1);
+document.getElementById("removeBtn").onclick = ()=>{ if(players.length>1) ensurePlayerCount(players.length-1); };
 document.getElementById("themeToggle").onclick = toggleTheme;
 document.getElementById("fullscreenBtn").onclick = toggleFullscreen;
 document.getElementById("printBtn").onclick = exportPng;
-document.getElementById("lockBtn").onclick = toggleLock;
 
 document.getElementById("editNamesBtn").onclick = openEditPanel;
 document.getElementById("closePanel").onclick = closeEditPanel;
@@ -1616,7 +1615,6 @@ document.getElementById("saveNamesBtn").onclick = saveNamesFromPanel;
 
 const presetsPanel = document.getElementById("presetsPanel");
 document.getElementById("presetsBtn").onclick = ()=>{
-  if(uiLocked) return;
   renderPresetList();
   presetsPanel.classList.add("open");
 };
@@ -1648,6 +1646,7 @@ loadData();
 updateTimerDisplay();
 updateHalfBadge();
 updateScoreUI();
+updateStartPauseLabel();
 </script>
 </body>
 </html>
