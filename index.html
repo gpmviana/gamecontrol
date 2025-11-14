@@ -6,7 +6,9 @@
 <title>Game Control</title>
 
 <style>
-  :root { --timeline-h: 68px; }
+  :root {
+    --timeline-h: 0px;
+  }
 
   body{
     font-family:Arial, sans-serif;
@@ -17,248 +19,395 @@
     padding-bottom: calc(var(--timeline-h) + 10px);
   }
 
+  body.light-mode{
+    background:#f5f5f5;
+    color:#222;
+  }
+
   header{
     display:flex;
     align-items:center;
     justify-content:center;
     background:#333;
     padding:10px 0;
-    position:relative
+    position:relative;
   }
-  header h1{margin:0;font-size:1.5em;text-align:center}
+  body.light-mode header{background:#ddd;color:#111;}
+
+  header h1{
+    margin:0;
+    font-size:1.6em;
+  }
+
   .top-buttons{
-    position:absolute;right:10px;top:8px;
-    display:flex;gap:8px
+    position:absolute;
+    right:10px;
+    top:8px;
+    display:flex;
+    gap:8px;
   }
   .top-buttons button{
-    background:none;border:none;font-size:22px;
-    color:#fff;cursor:pointer
+    background:none;
+    border:none;
+    font-size:22px;
+    color:#fff;
+    cursor:pointer;
   }
+  body.light-mode .top-buttons button{color:#222;}
 
   #teamInputs{
-    display:flex;justify-content:center;align-items:center;
-    gap:10px;margin:10px
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    margin:10px;
   }
   #teamInputs input{
-    padding:6px 10px;border-radius:6px;border:none;
-    font-size:16px;text-align:center
+    padding:6px 10px;
+    border-radius:6px;
+    border:none;
+    font-size:16px;
+    text-align:center;
   }
   .scoreBubble{
-    display:inline-flex;align-items:center;justify-content:center;
-    min-width:34px;height:34px;padding:0 8px;margin:0 6px;
-    border-radius:8px;background:#111;color:#fff;
-    font-weight:800;font-size:20px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:34px;
+    height:34px;
+    padding:0 8px;
+    margin:0 6px;
+    border-radius:8px;
+    background:#111;
+    color:#fff;
+    font-weight:800;
+    font-size:20px;
   }
-  body.light-mode .scoreBubble{background:#e7e7e7;color:#111}
+  body.light-mode .scoreBubble{
+    background:#e7e7e7;
+    color:#111;
+  }
 
   .timer-row{
-    display:flex;align-items:center;justify-content:center;
-    gap:10px;margin:6px 0 0 0
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    margin:6px 0 0 0;
   }
-  #timer{font-size:3em}
+  #timer{
+    font-size:3em;
+  }
   .half-badge{
-    display:inline-block;padding:4px 10px;border-radius:999px;
-    background:#444;color:#fff;font-size:12px;letter-spacing:.3px
+    display:inline-block;
+    padding:4px 10px;
+    border-radius:999px;
+    background:#444;
+    color:#fff;
+    font-size:12px;
+    letter-spacing:.3px;
+  }
+  body.light-mode .half-badge{
+    background:#ccc;
+    color:#111;
   }
 
   .controls{
-    display:flex;justify-content:center;flex-wrap:wrap;
-    gap:6px;background:#2e2e2e;padding:10px
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:6px;
+    background:#2e2e2e;
+    padding:10px;
+  }
+  body.light-mode .controls{
+    background:#e0e0e0;
   }
   .controls button{
-    padding:6px 10px;border:none;border-radius:6px;
-    background:#444;color:#fff;cursor:pointer
+    padding:6px 10px;
+    border:none;
+    border-radius:6px;
+    background:#444;
+    color:#fff;
+    cursor:pointer;
+  }
+  body.light-mode .controls button{
+    background:#555;
+    color:#fff;
+  }
+  .controls input{
+    padding:6px 8px;
+    border-radius:6px;
+    border:none;
+    text-align:center;
   }
 
-  /* 🔥 NOVO — GRELHA RESPONSIVA AJUSTADA PARA IPAD */
+  /* Grelha dos jogadores */
   #players{
     display:grid;
     grid-template-columns:repeat(5,minmax(0,1fr));
     gap:18px;
     width:95%;
     max-width:1300px;
-    margin:12px auto;
+    margin:12px auto 20px auto;
     justify-items:center;
-    margin-bottom: calc(var(--timeline-h) + 20px);
   }
 
-  /* iPad Pro 1366px → 5 colunas */
-  @media (max-width:1366px){
-    #players{grid-template-columns:repeat(5,minmax(0,1fr));}
-  }
-
-  /* iPad Air (1180px) → 4 colunas */
-  @media (max-width:1180px){
+  /* iPad & afins: ajustar, mas manter muitas caixas visíveis */
+  @media (max-width:1200px){
     #players{grid-template-columns:repeat(4,minmax(0,1fr));}
   }
-
-  /* iPad Mini (1024px) → 4 colunas */
-  @media (max-width:1024px){
-    #players{grid-template-columns:repeat(4,minmax(0,1fr));}
-  }
-
-  /* Tablets mais pequenos (900px) → 3 colunas */
   @media (max-width:900px){
     #players{grid-template-columns:repeat(3,minmax(0,1fr));}
   }
-
-  /* Telemóvel grande (600px) → 2 colunas */
   @media (max-width:600px){
     #players{grid-template-columns:repeat(2,minmax(0,1fr));}
   }
 
   .player{
-    width:100%;max-width:260px;height:240px;border-radius:14px;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    cursor:pointer;transition:.2s;background:#c0392b;color:#fff;
-    position:relative;overflow:hidden
+    width:100%;
+    max-width:260px;
+    height:220px;
+    border-radius:14px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:0.2s;
+    background:#8b2c23;
+    color:#fff;
+    position:relative;
+    overflow:hidden;
+    box-sizing:border-box;
   }
-  .player.active{background:#2ecc71;color:#000}
-  .player strong{font-size:20px;margin-bottom:8px}
-  .player .time{font-size:40px;font-weight:bold;line-height:1}
-  .player .last{font-size:12px;opacity:.9;margin-top:6px}
+  .player.active{
+    background:#2ecc71;
+    color:#000;
+  }
 
-  .gk-badge{
-    position:absolute;top:8px;left:8px;width:28px;height:28px;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    background:rgba(0,0,0,0.35);
-    backdrop-filter:saturate(120%) blur(2px);
-    font-size:16px;line-height:1
+  .player strong{
+    font-size:18px;
+    margin-bottom:8px;
+    padding:0 4px;
   }
-  .card-badges{
-    position:absolute;top:8px;right:8px;
-    display:flex;gap:6px;align-items:center
+  .player .time{
+    font-size:40px;
+    font-weight:bold;
+    line-height:1;
   }
-  .badge-fouls{
-    min-width:22px;height:22px;border-radius:999px;
-    background:#444;color:#fff;font-weight:700;font-size:12px;
-    display:flex;align-items:center;justify-content:center;
-    padding:0 6px
+  .player .last{
+    font-size:12px;
+    opacity:.9;
+    margin-top:6px;
   }
-  .badge-yc,.badge-rc{
-    width:16px;height:22px;border-radius:3px;
-    border:1px solid rgba(0,0,0,.35)
-  }
-  .badge-yc{background:#f1c40f}
-  .badge-rc{background:#e74c3c}
 
-  .fatigue{
-    position:absolute;left:8px;right:8px;bottom:8px;
-    height:8px;border-radius:6px;
-    background:rgba(255,255,255,0.25)
+  .gk-icon{
+    position:absolute;
+    top:8px;
+    left:8px;
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,0.45);
+    font-size:18px;
   }
-  .fatigue-fill{height:100%;border-radius:6px;width:0%}
 
-  .player.limit{outline:3px solid #ff4d4d;box-shadow:0 0 0 3px rgba(255,77,77,0.35)}
-  .selectable{outline:3px dashed #fff; outline-offset:-4px}
+  .fatigue-container{
+    position:absolute;
+    left:8px;
+    right:8px;
+    bottom:8px;
+    height:8px;
+    border-radius:6px;
+    background:rgba(255,255,255,0.3);
+    overflow:hidden;
+  }
+  .fatigue-bar{
+    height:100%;
+    width:0%;
+    border-radius:6px;
+    background:#2ecc71;
+    transition:width 0.2s linear, background 0.2s linear;
+  }
+
+  .player.limit{
+    outline:3px solid #ff4d4d;
+    box-shadow:0 0 0 3px rgba(255,77,77,0.35);
+  }
 
   .summary{
-    width:90%;max-width:1100px;margin:18px auto calc(var(--timeline-h) + 20px) auto;
-    padding:0;background:#242424;border-radius:12px;
-    box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden
+    width:90%;
+    max-width:1100px;
+    margin:10px auto 30px auto;
+    padding:0;
+    background:#242424;
+    border-radius:12px;
+    box-shadow:0 8px 24px rgba(0,0,0,.35);
+    overflow:hidden;
+  }
+  body.light-mode .summary{
+    background:#ffffff;
+    box-shadow:0 4px 10px rgba(0,0,0,.1);
   }
   .summary h3{
-    margin:0;padding:12px 16px;background:#2f2f2f;
-    border-bottom:1px solid #3a3a3a;text-align:left
+    margin:0;
+    padding:12px 16px;
+    background:#2f2f2f;
+    border-bottom:1px solid #3a3a3a;
+    text-align:left;
   }
-  .summary table{width:100%;border-collapse:separate;border-spacing:0}
+  body.light-mode .summary h3{
+    background:#e0e0e0;
+    border-bottom:1px solid #ccc;
+    color:#111;
+  }
+  .summary table{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+  }
   .summary thead th{
-    position:sticky;top:0;background:#303030;z-index:1;
-    text-transform:uppercase;font-size:12px;letter-spacing:.4px;
-    color:#ddd;border-bottom:1px solid #3a3a3a;padding:10px 12px
+    position:sticky;
+    top:0;
+    background:#303030;
+    z-index:1;
+    text-transform:uppercase;
+    font-size:12px;
+    letter-spacing:.4px;
+    color:#ddd;
+    border-bottom:1px solid #3a3a3a;
+    padding:10px 12px;
   }
-  .summary tbody td{padding:10px 12px;border-bottom:1px solid #333}
-  .summary tbody tr:nth-child(even){background:rgba(255,255,255,0.03)}
-  .summary tbody tr:hover{background:rgba(255,255,255,0.06)}
-  .summary td:nth-child(1){text-align:left;font-weight:600}
-  .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700}
-  .pill.work-pos{color:#2ecc71;background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.35)}
-  .pill.work-neg{color:#e74c3c;background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.35)}
-    #editPanel{
-    position:fixed; right:-420px; top:20%; width:380px; height:60%;
-    background:rgba(0,0,0,0.92); border-left:2px solid #555;
+  body.light-mode .summary thead th{
+    background:#f0f0f0;
+    color:#222;
+    border-bottom:1px solid #ddd;
+  }
+  .summary tbody td{
+    padding:10px 12px;
+    border-bottom:1px solid #333;
+  }
+  body.light-mode .summary tbody td{
+    border-bottom:1px solid #e0e0e0;
+  }
+  .summary tbody tr:nth-child(even){
+    background:rgba(255,255,255,0.03);
+  }
+  body.light-mode .summary tbody tr:nth-child(even){
+    background:#fafafa;
+  }
+  .summary tbody tr:hover{
+    background:rgba(255,255,255,0.06);
+  }
+  body.light-mode .summary tbody tr:hover{
+    background:#f2f2f2;
+  }
+  .summary td:nth-child(1){
+    text-align:left;
+    font-weight:600;
+  }
+
+  .pill{
+    display:inline-block;
+    padding:4px 10px;
+    border-radius:999px;
+    font-weight:700;
+    font-size:12px;
+  }
+  .pill.work-pos{
+    color:#2ecc71;
+    background:rgba(46,204,113,.12);
+    border:1px solid rgba(46,204,113,.35);
+  }
+  .pill.work-neg{
+    color:#e74c3c;
+    background:rgba(231,76,60,.12);
+    border:1px solid rgba(231,76,60,.35);
+  }
+
+  /* Painel Editar nomes */
+  #editPanel{
+    position:fixed;
+    right:-420px;
+    top:20%;
+    width:380px;
+    height:60%;
+    background:rgba(0,0,0,0.96);
+    border-left:2px solid #555;
     border-radius:10px 0 0 10px;
-    padding:15px; box-shadow:-4px 0 8px rgba(0,0,0,.4);
-    transition:right .2s; z-index:999; overflow-y:auto
+    padding:15px;
+    box-shadow:-4px 0 8px rgba(0,0,0,.4);
+    transition:right .2s;
+    z-index:999;
+    overflow-y:auto;
   }
-  #editPanel.open{ right:0; }
+  #editPanel.open{
+    right:0;
+  }
   #editPanel .close-btn{
-    position:absolute; top:6px; right:8px;
-    background:transparent; border:none; color:#fff;
-    font-size:18px; cursor:pointer
+    position:absolute;
+    top:6px;
+    right:8px;
+    background:transparent;
+    border:none;
+    color:#fff;
+    font-size:18px;
+    cursor:pointer;
+  }
+  #editPanel h3{
+    margin:0 0 10px 0;
   }
   #editPanel .row{
-    display:flex;align-items:center;gap:8px;margin-bottom:8px
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  #editPanel .row span{
+    width:24px;
+    text-align:right;
+    color:#ccc;
+    font-size:13px;
   }
   #editPanel .row input[type="text"]{
-    flex:1;padding:6px;border-radius:6px;border:1px solid #777;
-    background:#1f1f1f;color:#fff
+    flex:1;
+    padding:6px;
+    border-radius:6px;
+    border:1px solid #777;
+    background:#1f1f1f;
+    color:#fff;
   }
   #editPanel .row label{
-    display:flex;align-items:center;gap:6px;
-    color:#ddd;font-size:13px;white-space:nowrap
+    display:flex;
+    align-items:center;
+    gap:4px;
+    color:#ddd;
+    font-size:13px;
   }
   #editPanel .save-btn{
-    width:100%; padding:8px; border:none; border-radius:6px;
-    background:#0078d7; color:#fff; cursor:pointer; margin-top:8px
+    width:100%;
+    padding:8px;
+    border:none;
+    border-radius:6px;
+    background:#0078d7;
+    color:#fff;
+    cursor:pointer;
+    margin-top:8px;
   }
-  #editPanel h3{ margin:0 0 10px 0; }
-
-  #historyPanel{
-    position:fixed; left:-420px; top:10%; width:380px; height:80%;
-    background:rgba(0,0,0,0.92); border-right:2px solid #555;
-    border-radius:0 10px 10px 0;
-    padding:15px; box-shadow:4px 0 8px rgba(0,0,0,.4);
-    transition:left .2s; z-index:999; overflow-y:auto
-  }
-  #historyPanel.open{ left:0; }
-  #historyPanel .close-btn{
-    position:absolute; top:6px; right:8px;
-    background:transparent; border:none; color:#fff;
-    font-size:18px; cursor:pointer
-  }
-  .hist-item{
-    background:#1f1f1f;border:1px solid #444;border-radius:8px;
-    padding:8px;margin-bottom:8px;text-align:left
-  }
-  .hist-actions{display:flex;gap:6px;margin-top:6px}
-  .hist-actions button{
-    padding:6px 8px;border:none;border-radius:6px;
-    background:#444;color:#fff;cursor:pointer;font-size:12px
-  }
-
-  #timelineBar{
-    position:fixed;left:0;right:0;bottom:0;
-    background:#222;border-top:1px solid #333;z-index:900;
-    min-height: var(--timeline-h);
-    padding:8px 10px;
-    box-shadow:0 -6px 16px rgba(0,0,0,.25)
-  }
-  #timelineBar .tl-actions{
-    display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:0
-  }
-  #timelineBar .tl-btn{
-    background:#3a3a3a;color:#fff;border:none;border-radius:8px;
-    padding:6px 10px;cursor:pointer;font-size:13px
-  }
-  #tlClear{
-    background:#a33;color:#fff;border:none;border-radius:8px;
-    padding:6px 10px;cursor:pointer
-  }
-  #timelineFeed{display:none}
-  .tl-gf{color:#2ecc71}.tl-ga{color:#e74c3c}.tl-fk{color:#f1c40f}.tl-yc{color:#f1c40f}.tl-rc{color:#e74c3c}
 </style>
 </head>
-<body>
 
+<body>
 <header>
   <h1>Game Control</h1>
   <div class="top-buttons">
     <button id="themeToggle" title="Tema">🌙</button>
     <button id="fullscreenBtn" title="Fullscreen">⛶</button>
     <button id="editNamesBtn" title="Editar nomes">👥</button>
-    <button id="presetsBtn" title="Presets">💾</button>
-    <button id="analyticsBtn" title="Análises">📊</button>
     <button id="printBtn" title="Exportar PNG">📸</button>
   </div>
 </header>
@@ -284,13 +433,11 @@
   <button id="resetBtn">Reset</button>
   <button id="addBtn">+</button>
   <button id="removeBtn">−</button>
-  <button id="saveGameBtn">Guardar Jogo</button>
-  <button id="historyBtn">Histórico</button>
 </div>
 
 <div id="players"></div>
 
-<div class="summary">
+<div class="summary" id="summaryCard">
   <h3>Resumo de Jogo</h3>
   <table>
     <thead>
@@ -318,154 +465,92 @@
   <button class="save-btn" id="saveNamesBtn">Guardar Alterações</button>
 </div>
 
-<!-- Painel Histórico -->
-<div id="historyPanel">
-  <button class="close-btn" id="closeHistory">❌</button>
-  <h3>Histórico de Jogos</h3>
-  <div id="historyList"></div>
-  <div style="margin-top:8px;display:flex;gap:6px;justify-content:center">
-    <button id="exportAllCsvBtn">Exportar CSV (tudo)</button>
-    <button id="clearHistoryBtn" style="background:#a33">Apagar Histórico</button>
-  </div>
-</div>
-
-<!-- Painel Presets -->
-<div id="presetsPanel" style="position:fixed; right:-420px; top:10%; width:380px; height:80%;
-  background:rgba(0,0,0,0.92); border-left:2px solid #555; border-radius:10px 0 0 10px;
-  padding:15px; box-shadow:-4px 0 8px rgba(0,0,0,.4); transition:right .2s; z-index:999; overflow-y:auto">
-  <button id="closePresets" style="position:absolute; top:6px; right:8px; background:transparent; border:none; color:#fff; font-size:18px; cursor:pointer">❌</button>
-  <h3 style="margin:0 0 10px 0;">Presets de Plantel</h3>
-
-  <div style="display:flex; gap:6px; margin-bottom:8px;">
-    <input id="presetName" placeholder="Nome do preset" style="flex:1;padding:6px;border-radius:6px;border:1px solid #777;background:#1f1f1f;color:#fff"/>
-    <button id="savePresetBtn" style="padding:6px 10px;border:none;border-radius:6px;background:#0078d7;color:#fff;cursor:pointer">Guardar</button>
-  </div>
-
-  <div>
-    <h4 style="margin:10px 0 6px 0;">Carregar</h4>
-    <div id="presetList"></div>
-  </div>
-</div>
-
-<!-- Painel Análises -->
-<div id="analyticsPanel" style="position:fixed; left:-520px; top:6%; width:480px; height:88%;
-  background:rgba(0,0,0,0.96); border-right:2px solid #555; border-radius:0 10px 10px 0;
-  padding:14px; box-shadow:4px 0 10px rgba(0,0,0,.45); transition:left .2s; z-index:999; overflow-y:auto">
-  <button id="closeAnalytics" style="position:absolute; top:6px; right:8px; background:transparent; border:none; color:#fff; font-size:18px; cursor:pointer">❌</button>
-  <h3 style="margin:0 0 10px 0;">Análises</h3>
-
-  <div id="anaQuintetos" style="margin-bottom:12px;"></div>
-  <div id="anaStints" style="margin-bottom:12px;"></div>
-  <div id="anaPartes" style="margin-bottom:12px;"></div>
-
-  <button id="exportAnalyticsCsv" style="padding:8px 10px;border:none;border-radius:6px;background:#0078d7;color:#fff;cursor:pointer;width:100%;margin-top:6px">
-    Exportar CSV
-  </button>
-</div>
-
-<!-- Timeline -->
-<div id="timelineBar">
-  <div class="tl-actions">
-    <button class="tl-btn" data-type="GF_A" title="Golo a favor">⚽ +</button>
-    <button class="tl-btn" data-type="GA_A" title="Golo sofrido">⚽ −</button>
-    <button class="tl-btn tl-player" data-type="FK_P" title="Falta (seleciona jogador)">❌ Falta</button>
-    <button class="tl-btn tl-player" data-type="YC_P" title="Amarelo (seleciona jogador)">🟨 Amarelo</button>
-    <button class="tl-btn tl-player" data-type="RC_P" title="Vermelho (seleciona jogador)">🟥 Vermelho</button>
-    <button id="tlClear" title="Limpar eventos">🧹</button>
-  </div>
-
-  <div id="timelineFeed"></div>
-</div><script>
+<script>
 /* ============================================================
-   VARIÁVEIS PRINCIPAIS
+   ESTADO PRINCIPAL
    ============================================================ */
-
 let duration = 20 * 60;
 let remaining = duration;
-let timerInterval;
+let timerInterval = null;
 let running = false;
 let firstHalf = true;
+
 let players = [];
 let theme = "dark";
+const maxOnField = 5;
 
-let maxOnField = 5; // Limite de jogadores em campo
-let fatigueIncreaseRate = 1; 
-let fatigueDecreaseRate = 2;
-
-let timeline = [];
-let gameHistory = [];
-let presets = [];
+const STORAGE_KEY = "gameControl_simple_v1";
 
 /* ============================================================
-   FUNÇÕES BASE
+   FUNÇÕES UTILITÁRIAS
    ============================================================ */
-
-function formatTime(sec) {
-  const s = Math.max(0, Math.abs(sec));
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+function pad(n){return String(n).padStart(2,"0");}
+function formatTime(sec){
+  sec = Math.max(0, Math.floor(sec));
+  const m = Math.floor(sec/60);
+  const s = sec % 60;
+  return `${pad(m)}:${pad(s)}`;
 }
 
-function updateTimerDisplay() {
+/* ============================================================
+   TIMER
+   ============================================================ */
+function updateTimerDisplay(){
   document.getElementById("timer").textContent = formatTime(remaining);
 }
-
-/* ============================================================
-   LÓGICA DO RELÓGIO
-   ============================================================ */
-
-function tick() {
+function updateHalfBadge(){
+  document.getElementById("halfBadge").textContent = firstHalf ? "1ª Parte" : "2ª Parte";
+}
+function tick(){
+  if(remaining <= 0){
+    pauseTimer();
+    return;
+  }
   remaining--;
-  updateTimerDisplay();
-
-  players.forEach(p => {
-    // FADIGA
-    if (!p.isGK) {
-      if (p.active) {
-        p.fatigue += fatigueIncreaseRate;
-      } else {
-        p.fatigue -= fatigueDecreaseRate;
-      }
-      p.fatigue = Math.max(0, Math.min(100, p.fatigue));
-    }
-
-    // TEMPOS
-    if (p.active) {
+  players.forEach(p=>{
+    if(p.active){
       p.seconds++;
-      if (firstHalf) p.part1++;
-      else p.part2++;
       p.rotationSecondsCurrent++;
-    } else {
+      if(firstHalf) p.part1++;
+      else p.part2++;
+      if(!p.isGK){
+        p.fatigue += 0.01 * (1 - p.fatigue); // aumenta devagar
+      }
+    }else{
       p.secondsOut++;
       p.rotationSecondsOut++;
+      if(!p.isGK){
+        p.fatigue -= 0.02 * p.fatigue; // recupera mais depressa
+      }
+    }
+    if(!p.isGK){
+      if(p.fatigue < 0) p.fatigue = 0;
+      if(p.fatigue > 1) p.fatigue = 1;
     }
   });
-
+  updateTimerDisplay();
   updatePlayersUI();
   updateSummary();
+  saveData();
 }
-
-function startTimer() {
-  if (running) return;
+function startTimer(){
+  if(running) return;
   running = true;
-  timerInterval = setInterval(tick, 1000);
+  clearInterval(timerInterval);
+  timerInterval = setInterval(tick,1000);
 }
-
-function pauseTimer() {
+function pauseTimer(){
   running = false;
   clearInterval(timerInterval);
+  saveData();
 }
-
-function resetTimer() {
+function resetTimer(){
   pauseTimer();
-
-  const mins = parseInt(document.getElementById("setMinutes").value) || 20;
+  const mins = parseInt(document.getElementById("setMinutes").value)||20;
   duration = mins * 60;
   remaining = duration;
   firstHalf = true;
-
-  players.forEach(p => {
+  players.forEach(p=>{
     p.seconds = 0;
     p.secondsOut = 0;
     p.part1 = 0;
@@ -473,163 +558,170 @@ function resetTimer() {
     p.rotations = 0;
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
-    p.startTime = 0;
     p.lastRotation = 0;
-    p.fatigue = 0;
+    if(!p.isGK) p.fatigue = 0;
   });
-
-  document.getElementById("halfBadge").textContent = "1ª Parte";
-
   updateTimerDisplay();
+  updateHalfBadge();
   updatePlayersUI();
   updateSummary();
+  saveData();
 }
-
-function intervalTimer() {
+function intervalTimer(){
   pauseTimer();
   firstHalf = false;
-  document.getElementById("halfBadge").textContent = "2ª Parte";
-
-  players.forEach(p => {
+  const mins = parseInt(document.getElementById("setMinutes").value)||20;
+  duration = mins * 60;
+  remaining = duration;
+  // reset tempos de rotação, mas manter acumulados
+  players.forEach(p=>{
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
-    p.lastRotation = 0;
-    if (!p.isGK) p.fatigue = Math.max(0, p.fatigue - 40);
+    if(!p.isGK){
+      p.fatigue *= 0.3; // intervalo baixa fadiga
+    }
   });
-
-  const mins = parseInt(document.getElementById("setMinutes").value) || 20;
-  remaining = mins * 60;
   updateTimerDisplay();
+  updateHalfBadge();
+  updatePlayersUI();
+  updateSummary();
+  saveData();
 }
 
 /* ============================================================
-   ALTERAR JOGADOR / ROTAÇÕES
+   JOGADORES
    ============================================================ */
+function fatigueColor(f){
+  if(f >= 0.7) return "#e74c3c";
+  if(f >= 0.4) return "#f1c40f";
+  return "#2ecc71";
+}
 
-function togglePlayer(id) {
-  const p = players.find(x => x.id === id);
-  if (!p) return;
+function buildPlayersDOM(){
+  const container = document.getElementById("players");
+  container.innerHTML = "";
+  players.forEach(p=>{
+    const div = document.createElement("div");
+    div.id = "player"+p.id;
+    div.className = "player " + (p.active ? "active" : "inactive");
+    div.innerHTML = `
+      <div class="gk-icon" style="display:${p.isGK?"flex":"none"}">🧤</div>
+      <strong class="name">${p.name}</strong>
+      <div class="time">00:00</div>
+      <div class="last"></div>
+      ${p.isGK ? "" : `<div class="fatigue-container"><div class="fatigue-bar" id="fatigue${p.id}"></div></div>`}
+    `;
+    div.onclick = ()=>togglePlayer(p.id);
+    container.appendChild(div);
+  });
+  updatePlayersUI();
+}
 
-  const currentlyOnField = players.filter(x => x.active).length;
+function updatePlayersUI(){
+  players.forEach(p=>{
+    const el = document.getElementById("player"+p.id);
+    if(!el) return;
+    el.className = "player " + (p.active ? "active" : "inactive");
+    const timeEl = el.querySelector(".time");
+    const lastEl = el.querySelector(".last");
+    const nameEl = el.querySelector(".name");
+    if(nameEl) nameEl.textContent = p.name + (p.isGK ? "" : "");
+    const displaySec = p.active ? p.rotationSecondsCurrent : p.rotationSecondsOut;
+    timeEl.textContent = formatTime(displaySec);
+    lastEl.textContent = (!p.active && p.lastRotation>0) ? ("Últ. rotação: " + formatTime(p.lastRotation)) : "";
+    if(!p.isGK){
+      const fb = document.getElementById("fatigue"+p.id);
+      if(fb){
+        fb.style.width = Math.round(p.fatigue*100) + "%";
+        fb.style.background = fatigueColor(p.fatigue);
+      }
+    }
+  });
+}
 
-  if (!p.active && currentlyOnField >= maxOnField) {
-    alert("Só podem estar 5 jogadores em campo.");
+function ensurePlayerCount(n){
+  // guardar nomes/gk se já existirem
+  const old = players || [];
+  players = [];
+  for(let i=1;i<=n;i++){
+    const prev = old[i-1];
+    players.push({
+      id:i,
+      name: prev ? prev.name : ("Jogador "+i),
+      active:false,
+      isGK: prev ? !!prev.isGK : (i===1),
+      seconds: prev ? prev.seconds : 0,
+      secondsOut: prev ? prev.secondsOut : 0,
+      part1: prev ? prev.part1 : 0,
+      part2: prev ? prev.part2 : 0,
+      rotations: prev ? prev.rotations : 0,
+      rotationSecondsCurrent:0,
+      rotationSecondsOut:0,
+      lastRotation: prev ? prev.lastRotation : 0,
+      fatigue: prev && !prev.isGK ? (prev.fatigue||0) : 0
+    });
+  }
+  buildPlayersDOM();
+  updateSummary();
+  saveData();
+}
+
+function activeCount(){
+  return players.reduce((a,p)=>a+(p.active?1:0),0);
+}
+
+function flashLimit(id){
+  const el = document.getElementById("player"+id);
+  if(!el) return;
+  el.classList.add("limit");
+  setTimeout(()=>el.classList.remove("limit"),600);
+}
+
+function togglePlayer(id){
+  const p = players.find(x=>x.id===id);
+  if(!p) return;
+  const currently = activeCount();
+
+  if(!p.active && currently >= maxOnField){
+    flashLimit(id);
     return;
   }
 
-  p.active = !p.active;
-
-  if (p.active) {
-    p.rotations++;
-    p.rotationSecondsCurrent = 0;
-    p.startTime = Date.now();
-  } else {
+  if(p.active){
+    // a sair
+    p.active = false;
     p.lastRotation = p.rotationSecondsCurrent;
+    p.rotationSecondsCurrent = 0;
+    p.rotationSecondsOut = 0;
+  } else {
+    // a entrar
+    p.active = true;
+    p.rotations++;
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
   }
 
   updatePlayersUI();
   updateSummary();
-}
-
-/* ============================================================
-   UI — CAIXAS DOS JOGADORES
-   ============================================================ */
-
-function fatigueColor(v) {
-  if (v < 30) return "#2ecc71";
-  if (v < 60) return "#f1c40f";
-  return "#e74c3c";
-}
-
-function updatePlayersUI() {
-  players.forEach(p => {
-    const box = document.getElementById("player" + p.id);
-    if (!box) return;
-
-    box.className = "player " + (p.active ? "active" : "inactive");
-
-    box.querySelector(".name").textContent = p.name;
-    box.querySelector(".time").textContent = formatTime(
-      p.active ? p.rotationSecondsCurrent : p.rotationSecondsOut
-    );
-
-    const bar = box.querySelector(".fatigue-bar");
-    bar.style.width = p.fatigue + "%";
-    bar.style.background = fatigueColor(p.fatigue);
-
-    const gkIcon = box.querySelector(".gk-icon");
-    gkIcon.style.display = p.isGK ? "block" : "none";
-  });
-}
-
-/* ============================================================
-   CRIAR / RECRIAR JOGADORES
-   ============================================================ */
-
-function createPlayers(count = 12) {
-  const container = document.getElementById("players");
-  container.innerHTML = "";
-  players = [];
-
-  for (let i = 1; i <= count; i++) {
-    const p = {
-      id: i,
-      name: "Jogador " + i,
-      active: false,
-      isGK: i === 1 ? true : false,
-      seconds: 0,
-      secondsOut: 0,
-      part1: 0,
-      part2: 0,
-      rotations: 0,
-      rotationSecondsCurrent: 0,
-      rotationSecondsOut: 0,
-      startTime: 0,
-      lastRotation: 0,
-      fatigue: 0,
-    };
-
-    players.push(p);
-
-    const div = document.createElement("div");
-    div.id = "player" + i;
-    div.className = "player inactive";
-
-    div.innerHTML = `
-      <div class="gk-icon">🧤</div>
-      <strong class="name">${p.name}</strong>
-      <div class="time">00:00</div>
-      <div class="fatigue-container"><div class="fatigue-bar"></div></div>
-    `;
-
-    div.onclick = () => togglePlayer(i);
-    container.appendChild(div);
-  }
-
-  updatePlayersUI();
+  saveData();
 }
 
 /* ============================================================
    RESUMO / TABELA
    ============================================================ */
-
-function updateSummary() {
+function updateSummary(){
   const tbody = document.getElementById("summaryBody");
   tbody.innerHTML = "";
-
-  players.forEach(p => {
+  players.forEach(p=>{
     const total = p.part1 + p.part2;
-    const avg = p.rotations > 0 ? total / p.rotations : 0;
-    const percent = ((total / (duration * 2)) * 100).toFixed(1);
-
+    const avg = p.rotations > 0 ? Math.floor(total / p.rotations) : 0;
+    const percent = ((total / (duration * (firstHalf?1:2))) * 100).toFixed(1);
     const workload = p.seconds - p.secondsOut;
-    const workloadClass = workload >= 0 ? "work-pos" : "work-neg";
-
+    const wClass = workload >=0 ? "work-pos" : "work-neg";
+    const wTxt = `${workload>=0?"+":""}${(workload/60).toFixed(1)}m`;
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${p.name}</td>
+      <td>${p.name}${p.isGK?' 🧤':''}</td>
       <td>${formatTime(p.part1)}</td>
       <td>${formatTime(p.part2)}</td>
       <td>${formatTime(total)}</td>
@@ -637,214 +729,339 @@ function updateSummary() {
       <td>${p.rotations}</td>
       <td>${formatTime(avg)}</td>
       <td>${percent}%</td>
-      <td class="${workloadClass}">${workload >= 0 ? "+" : ""}${(workload / 60).toFixed(1)}m</td>
+      <td><span class="pill ${wClass}">${wTxt}</span></td>
     `;
     tbody.appendChild(tr);
   });
 }
 
 /* ============================================================
-   EXPORTAR IMAGEM
+   TEMA & FULLSCREEN
    ============================================================ */
-
-function printScreen() {
-  const area = document.querySelector(".summary").cloneNode(true);
-  const teamTitle = document.createElement("h2");
-  teamTitle.textContent =
-    document.getElementById("teamA").value +
-    " vs " +
-    document.getElementById("teamB").value;
-
-  const wrapper = document.createElement("div");
-  wrapper.style.background = "#fff";
-  wrapper.style.padding = "20px";
-  wrapper.appendChild(teamTitle);
-  wrapper.appendChild(area);
-
-  html2canvas(wrapper).then(canvas => {
-    const link = document.createElement("a");
-    link.download = "gamecontrol.png";
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-  });
+function toggleTheme(){
+  document.body.classList.toggle("light-mode");
+  theme = document.body.classList.contains("light-mode") ? "light" : "dark";
+  document.getElementById("themeToggle").textContent = theme==="dark" ? "🌙" : "🌞";
+  saveData();
+}
+function toggleFullscreen(){
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
 }
 
 /* ============================================================
-   CONTINUA NA PARTE 4…
+   EDITAR NOMES
    ============================================================ */
+const editPanel = document.getElementById("editPanel");
+const editList = document.getElementById("editList");
 
-</script><script>
-/* ============================================================
-   GUARDAR E CARREGAR (AUTOSAVE)
-   ============================================================ */
-
-function saveData() {
-  const data = {
-    teamA: document.getElementById("teamA").value,
-    teamB: document.getElementById("teamB").value,
-    duration,
-    remaining,
-    firstHalf,
-    players,
-    timeline
-  };
-  localStorage.setItem("gameControlSave", JSON.stringify(data));
-}
-
-function loadData() {
-  const saved = localStorage.getItem("gameControlSave");
-  if (!saved) {
-    createPlayers(12);
-    return;
-  }
-
-  const data = JSON.parse(saved);
-
-  document.getElementById("teamA").value = data.teamA;
-  document.getElementById("teamB").value = data.teamB;
-
-  duration = data.duration;
-  remaining = data.remaining;
-  firstHalf = data.firstHalf;
-  players = data.players;
-  timeline = data.timeline || [];
-
-  recreatePlayersFromSave();
-  updateSummary();
-  updatePlayersUI();
-  updateTimerDisplay();
-}
-
-function recreatePlayersFromSave() {
-  const container = document.getElementById("players");
-  container.innerHTML = "";
-
-  players.forEach(p => {
-    const div = document.createElement("div");
-    div.id = "player" + p.id;
-    div.className = "player " + (p.active ? "active" : "inactive");
-
-    div.innerHTML = `
-      <div class="gk-icon" style="display:${p.isGK ? "block" : "none"}">🧤</div>
-      <strong class="name">${p.name}</strong>
-      <div class="time">00:00</div>
-      <div class="fatigue-container"><div class="fatigue-bar"></div></div>
+function openEditPanel(){
+  editList.innerHTML = "";
+  players.forEach(p=>{
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `
+      <span>${p.id}.</span>
+      <input type="text" id="nameEdit${p.id}" value="${p.name}">
+      <label><input type="checkbox" id="gkEdit${p.id}" ${p.isGK?"checked":""}/> 🧤 GR</label>
     `;
-
-    div.onclick = () => togglePlayer(p.id);
-    container.appendChild(div);
+    editList.appendChild(row);
   });
-
-  updatePlayersUI();
+  editPanel.classList.add("open");
 }
-
-/* ============================================================
-   TIMELINE (EVENTOS)
-   ============================================================ */
-
-function addTimelineEvent(type, playerId = null) {
-  const event = {
-    time: formatTime(duration - remaining),
-    type,
-    playerId,
-    playerName: playerId ? players.find(p => p.id === playerId).name : null
-  };
-
-  timeline.push(event);
-  renderTimeline();
+function closeEditPanel(){
+  editPanel.classList.remove("open");
+}
+function saveNamesFromPanel(){
+  players.forEach(p=>{
+    const v = document.getElementById("nameEdit"+p.id).value.trim();
+    const gk = document.getElementById("gkEdit"+p.id).checked;
+    if(v) p.name = v;
+    p.isGK = !!gk;
+    if(p.isGK) p.fatigue = 0;
+  });
+  closeEditPanel();
+  buildPlayersDOM();
+  updateSummary();
   saveData();
 }
 
-function renderTimeline() {
-  const list = document.getElementById("timelineEvents");
-  if (!list) return;
-
-  list.innerHTML = "";
-
-  timeline.forEach(ev => {
-    const li = document.createElement("li");
-    li.className = "timeline-item";
-
-    let icon = "";
-    if (ev.type === "goal") icon = "⚽";
-    if (ev.type === "yellow") icon = "🟨";
-    if (ev.type === "red") icon = "🟥";
-    if (ev.type === "foul") icon = "❗";
-
-    li.innerHTML = `
-      <div class="time">${ev.time}</div>
-      <div class="desc">${icon} ${ev.playerName || ""}</div>
-    `;
-    list.appendChild(li);
-  });
-}
-
 /* ============================================================
-   EVENTOS DO JOGO
+   AUTOSAVE
    ============================================================ */
-
-function selectPlayerForEvent(actionType) {
-  const modal = document.getElementById("playerSelectModal");
-  const list = document.getElementById("playerSelectList");
-
-  modal.style.display = "flex";
-  list.innerHTML = "";
-
-  players.forEach(p => {
-    const div = document.createElement("div");
-    div.className = "select-player-item";
-    div.textContent = p.name;
-    div.onclick = () => {
-      addTimelineEvent(actionType, p.id);
-      modal.style.display = "none";
-    };
-    list.appendChild(div);
-  });
+function saveData(){
+  const data = {
+    teamA: document.getElementById("teamA").value || "",
+    teamB: document.getElementById("teamB").value || "",
+    duration,
+    remaining,
+    firstHalf,
+    running:false, // ao recarregar não volta logo a contar
+    theme,
+    players
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-function closeModal() {
-  document.getElementById("playerSelectModal").style.display = "none";
-}
-
-/* ============================================================
-   FULLSCREEN
-   ============================================================ */
-
-function toggleFullscreen() {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen();
-  } else {
-    document.exitFullscreen();
+function loadData(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw){
+    players = [];
+    for(let i=1;i<=14;i++){
+      players.push({
+        id:i,
+        name:"Jogador "+i,
+        active:false,
+        isGK:(i===1),
+        seconds:0,
+        secondsOut:0,
+        part1:0,
+        part2:0,
+        rotations:0,
+        rotationSecondsCurrent:0,
+        rotationSecondsOut:0,
+        lastRotation:0,
+        fatigue:0
+      });
+    }
+    buildPlayersDOM();
+    updateTimerDisplay();
+    updateHalfBadge();
+    updateSummary();
+    return;
+  }
+  try{
+    const d = JSON.parse(raw);
+    document.getElementById("teamA").value = d.teamA || "";
+    document.getElementById("teamB").value = d.teamB || "";
+    duration = typeof d.duration==="number" ? d.duration : duration;
+    remaining = typeof d.remaining==="number" ? d.remaining : remaining;
+    firstHalf = typeof d.firstHalf==="boolean" ? d.firstHalf : true;
+    theme = d.theme || "dark";
+    players = (Array.isArray(d.players)?d.players:[]).map((p,i)=>({
+      id: p.id ?? (i+1),
+      name: p.name || ("Jogador "+(p.id ?? (i+1))),
+      active:false,
+      isGK: !!p.isGK,
+      seconds:p.seconds||0,
+      secondsOut:p.secondsOut||0,
+      part1:p.part1||0,
+      part2:p.part2||0,
+      rotations:p.rotations||0,
+      rotationSecondsCurrent:0,
+      rotationSecondsOut:0,
+      lastRotation:p.lastRotation||0,
+      fatigue: p.isGK ? 0 : (p.fatigue||0)
+    }));
+    if(players.length===0){
+      for(let i=1;i<=14;i++){
+        players.push({
+          id:i,
+          name:"Jogador "+i,
+          active:false,
+          isGK:(i===1),
+          seconds:0,
+          secondsOut:0,
+          part1:0,
+          part2:0,
+          rotations:0,
+          rotationSecondsCurrent:0,
+          rotationSecondsOut:0,
+          lastRotation:0,
+          fatigue:0
+        });
+      }
+    }
+    buildPlayersDOM();
+    updateTimerDisplay();
+    updateHalfBadge();
+    updateSummary();
+    if(theme==="light"){
+      document.body.classList.add("light-mode");
+      document.getElementById("themeToggle").textContent = "🌞";
+    }
+  }catch(e){
+    console.error(e);
+    localStorage.removeItem(STORAGE_KEY);
+    loadData();
   }
 }
 
 /* ============================================================
-   EVENTOS DOS BOTÕES
+   EXPORTAR PNG (NOME EQUIPAS + TABELA)
    ============================================================ */
+function exportPng(){
+  const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
+  const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
+  const title = `${teamA} vs ${teamB}`;
 
+  const headers = ["Jogador","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
+  const rows = players.map(p=>{
+    const total = p.part1 + p.part2;
+    const avg = p.rotations>0 ? Math.floor(total/p.rotations) : 0;
+    const percent = ((total/(duration*(firstHalf?1:2)))*100).toFixed(1)+"%";
+    const workload = p.seconds - p.secondsOut;
+    const wlTxt = `${workload>=0?"+":""}${(workload/60).toFixed(1)}m`;
+    return [
+      p.name+(p.isGK?' 🧤':''),
+      formatTime(p.part1),
+      formatTime(p.part2),
+      formatTime(total),
+      formatTime(p.secondsOut),
+      String(p.rotations),
+      formatTime(avg),
+      percent,
+      wlTxt
+    ];
+  });
+
+  const colWidths = [260,100,100,140,140,90,100,90,120];
+  const tableWidth = colWidths.reduce((a,b)=>a+b,0);
+  const margin = 20;
+  const rowH = 32, headerH = 36;
+  const titleH = 30;
+  const padding = 12;
+  const tableHeight = padding + headerH + rows.length*rowH + padding;
+  const canvasW = Math.max(900, tableWidth + margin*2);
+  const canvasH = margin + titleH + 10 + tableHeight + margin;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = canvasW;
+  canvas.height = canvasH;
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0,0,canvasW,canvasH);
+
+  ctx.fillStyle = "#000";
+  ctx.font = "bold 22px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(title, canvasW/2, margin + titleH/2);
+
+  const cardX = (canvasW - (tableWidth+padding*2))/2;
+  const cardY = margin + titleH + 10;
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "#cccccc";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  const r = 10;
+  ctx.moveTo(cardX+r,cardY);
+  ctx.lineTo(cardX+tableWidth+padding*2-r,cardY);
+  ctx.quadraticCurveTo(cardX+tableWidth+padding*2,cardY,cardX+tableWidth+padding*2,cardY+r);
+  ctx.lineTo(cardX+tableWidth+padding*2,cardY+tableHeight-r);
+  ctx.quadraticCurveTo(cardX+tableWidth+padding*2,cardY+tableHeight,cardX+tableWidth+padding*2-r,cardY+tableHeight);
+  ctx.lineTo(cardX+r,cardY+tableHeight);
+  ctx.quadraticCurveTo(cardX,cardY+tableHeight,cardX,cardY+tableHeight-r);
+  ctx.lineTo(cardX,cardY+r);
+  ctx.quadraticCurveTo(cardX,cardY,cardX+r,cardY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  let x = cardX+padding;
+  let y = cardY+padding;
+
+  // Header
+  ctx.fillStyle = "#eeeeee";
+  ctx.fillRect(x-1,y,tableWidth+2,headerH);
+  ctx.fillStyle = "#000";
+  ctx.font = "bold 14px Arial";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  let cx = x;
+  headers.forEach((h,i)=>{
+    ctx.fillText(h, cx+6, y+headerH/2);
+    cx += colWidths[i];
+  });
+
+  ctx.strokeStyle = "#cccccc";
+  ctx.beginPath();
+  ctx.moveTo(x,y);
+  ctx.lineTo(x+tableWidth,y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x,y+headerH);
+  ctx.lineTo(x+tableWidth,y+headerH);
+  ctx.stroke();
+
+  // Linhas
+  ctx.font = "13px Arial";
+  let rowY = y+headerH;
+  rows.forEach(row=>{
+    ctx.strokeStyle = "#e0e0e0";
+    ctx.beginPath();
+    ctx.moveTo(x,rowY+rowH);
+    ctx.lineTo(x+tableWidth,rowY+rowH);
+    ctx.stroke();
+
+    let cxx = x;
+    row.forEach((cell,i)=>{
+      const text = String(cell);
+      ctx.fillStyle = "#000";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      const maxW = colWidths[i]-10;
+      let t = text;
+      while(ctx.measureText(t).width > maxW && t.length>1){
+        t = t.slice(0,-1);
+      }
+      if(t!==text) t = t.slice(0,-1)+"…";
+      ctx.fillText(t, cxx+5, rowY+rowH/2);
+      ctx.strokeStyle="#ececec";
+      ctx.beginPath();
+      ctx.moveTo(cxx,rowY);
+      ctx.lineTo(cxx,rowY+rowH);
+      ctx.stroke();
+      cxx += colWidths[i];
+    });
+    ctx.beginPath();
+    ctx.moveTo(x+tableWidth,rowY);
+    ctx.lineTo(x+tableWidth,rowY+rowH);
+    ctx.stroke();
+
+    rowY += rowH;
+  });
+
+  const a = document.createElement("a");
+  const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+  a.download = `Resumo_${teamA.replace(/\s+/g,"_")}_vs_${teamB.replace(/\s+/g,"_")}_${ts}.png`;
+  a.href = canvas.toDataURL("image/png");
+  a.click();
+}
+
+/* ============================================================
+   SCORE (APENAS CONTADOR MANUAL SE QUISERES MAIS TARDE)
+   ============================================================ */
+function updateScoreUI(){
+  document.getElementById("scoreA").textContent = "0";
+  document.getElementById("scoreB").textContent = "0";
+}
+
+/* ============================================================
+   EVENTOS / BOOT
+   ============================================================ */
 document.getElementById("startBtn").onclick = startTimer;
 document.getElementById("pauseBtn").onclick = pauseTimer;
 document.getElementById("resetBtn").onclick = resetTimer;
 document.getElementById("intervalBtn").onclick = intervalTimer;
-document.getElementById("printBtn").onclick = printScreen;
+document.getElementById("addBtn").onclick = ()=>ensurePlayerCount(players.length+1);
+document.getElementById("removeBtn").onclick = ()=>{ if(players.length>1) ensurePlayerCount(players.length-1); };
+document.getElementById("themeToggle").onclick = toggleTheme;
 document.getElementById("fullscreenBtn").onclick = toggleFullscreen;
-document.getElementById("addBtn").onclick = () => createPlayers(players.length + 1);
-document.getElementById("removeBtn").onclick = () => {
-  if (players.length > 1) createPlayers(players.length - 1);
-};
+document.getElementById("printBtn").onclick = exportPng;
 
-document.getElementById("goalBtn").onclick = () => selectPlayerForEvent("goal");
-document.getElementById("yellowBtn").onclick = () => selectPlayerForEvent("yellow");
-document.getElementById("redBtn").onclick = () => selectPlayerForEvent("red");
-document.getElementById("foulBtn").onclick = () => selectPlayerForEvent("foul");
+document.getElementById("editNamesBtn").onclick = openEditPanel;
+document.getElementById("closePanel").onclick = closeEditPanel;
+document.getElementById("saveNamesBtn").onclick = saveNamesFromPanel;
 
-setInterval(saveData, 2500);
+window.addEventListener("beforeunload", saveData);
+setInterval(saveData, 5000);
 
-/* ============================================================
-   INICIAR
-   ============================================================ */
-
-window.onload = loadData;
+loadData();
+updateTimerDisplay();
+updateHalfBadge();
+updateScoreUI();
 </script>
 
 </body>
