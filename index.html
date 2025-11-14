@@ -141,13 +141,13 @@
     text-align:center;
   }
 
-  /* Grelha dos jogadores – mais juntas e a ocupar toda a largura */
+  /* Grelha dos jogadores – caixas mais finas e mais juntas */
   #players{
     display:grid;
     grid-template-columns:repeat(5,minmax(0,1fr));
-    gap:6px;
+    gap:4px;
     width:100%;
-    margin:12px 0 20px 0;
+    margin:8px 0 16px 0;
     justify-items:center;
   }
   @media (max-width:1200px){
@@ -162,9 +162,8 @@
 
   .player{
     width:100%;
-    /* sem max-width → usa todo o 1fr */
-    height:130px;
-    border-radius:14px;
+    height:100px; /* mais magras */
+    border-radius:10px;
     display:flex;
     flex-direction:column;
     align-items:center;
@@ -183,41 +182,41 @@
   }
 
   .player strong{
-    font-size:13px;
-    margin-bottom:3px;
+    font-size:12px;
+    margin-bottom:2px;
     padding:0 3px;
   }
   .player .time{
-    font-size:22px;
+    font-size:20px;
     font-weight:bold;
     line-height:1;
   }
   .player .last{
-    font-size:8.5px;
+    font-size:8px;
     opacity:.9;
-    margin-top:2px;
+    margin-top:1px;
   }
 
   .gk-icon{
     position:absolute;
     top:6px;
     left:6px;
-    width:22px;
-    height:22px;
+    width:20px;
+    height:20px;
     border-radius:50%;
     display:flex;
     align-items:center;
     justify-content:center;
     background:rgba(0,0,0,0.45);
-    font-size:14px;
+    font-size:13px;
   }
 
   .fatigue-container{
     position:absolute;
-    left:8px;
-    right:8px;
-    bottom:6px;
-    height:6px;
+    left:6px;
+    right:6px;
+    bottom:5px;
+    height:5px;
     border-radius:6px;
     background:rgba(255,255,255,0.3);
     overflow:hidden;
@@ -354,6 +353,7 @@
   .badge-yc{ background:#f1c40f; }
   .badge-rc{ background:#e74c3c; }
 
+  /* Painel editar nomes */
   #editPanel{
     position:fixed;
     right:-420px;
@@ -421,6 +421,7 @@
     margin-top:8px;
   }
 
+  /* Painel presets */
   #presetsPanel{
     position:fixed;
     right:-420px;
@@ -448,6 +449,7 @@
     cursor:pointer;
   }
 
+  /* Timeline fixa em baixo */
   #timelineBar{
     position:fixed;
     left:0;
@@ -549,6 +551,7 @@
   </table>
 </div>
 
+<!-- Painel Editar nomes -->
 <div id="editPanel">
   <button class="close-btn" id="closePanel">❌</button>
   <h3>Editar Jogadores</h3>
@@ -556,6 +559,7 @@
   <button class="save-btn" id="saveNamesBtn">Guardar Alterações</button>
 </div>
 
+<!-- Painel Presets -->
 <div id="presetsPanel">
   <button class="close-btn" id="closePresets">❌</button>
   <h3 style="margin:0 0 10px 0;">Presets de Plantel</h3>
@@ -569,6 +573,7 @@
   </div>
 </div>
 
+<!-- Timeline fixa -->
 <div id="timelineBar">
   <button class="tl-btn" data-type="GF_A">
     <span class="icon">⚽</span><span class="label">Golo +</span>
@@ -604,7 +609,9 @@ let scoreA = 0;
 let scoreB = 0;
 let pendingPlayerEvent = null;
 
-const STORAGE_KEY = "gameControl_withTimeline_andPresets_v1";
+let timeline = []; // ← eventos para a timeline + print
+
+const STORAGE_KEY = "gameControl_withTimelinePresets_v2";
 const PRESETS_KEY = "gc_presets_v1";
 
 function pad(n){return String(n).padStart(2,"0");}
@@ -621,6 +628,11 @@ function updateTimerDisplay(){
 function updateHalfBadge(){
   document.getElementById("halfBadge").textContent = firstHalf ? "1ª Parte" : "2ª Parte";
 }
+function updateScoreUI(){
+  document.getElementById("scoreA").textContent = scoreA;
+  document.getElementById("scoreB").textContent = scoreB;
+}
+
 function tick(){
   if(remaining <= 0){
     pauseTimer();
@@ -672,6 +684,7 @@ function resetTimer(){
   firstHalf = true;
   scoreA = 0;
   scoreB = 0;
+  timeline = [];
   players.forEach(p=>{
     p.seconds = 0;
     p.secondsOut = 0;
@@ -813,12 +826,29 @@ function flashLimit(id){
   setTimeout(()=>el.classList.remove("limit"),600);
 }
 
+/* ===== Timeline helpers ===== */
+function addTimelineEvent(ev){
+  timeline.push(ev);
+}
+
+/* Player events (falta, amarelo, vermelho) */
 function addPlayerEvent(type, playerId){
   const p = players.find(x=>x.id===playerId);
   if(!p) return;
   if(type==="FK_P") p.fouls = (p.fouls||0) + 1;
   if(type==="YC_P") p.yc = true;
   if(type==="RC_P") p.rc = true;
+
+  const half = firstHalf ? 1 : 2;
+  const clock = formatTime(remaining);
+  addTimelineEvent({
+    type,
+    half,
+    clock,
+    playerId,
+    ts: Date.now()
+  });
+
   updatePlayersUI();
   updateSummary();
   saveData();
@@ -884,6 +914,7 @@ function updateSummary(){
   });
 }
 
+/* Tema / fullscreen */
 function toggleTheme(){
   document.body.classList.toggle("light-mode");
   theme = document.body.classList.contains("light-mode") ? "light" : "dark";
@@ -895,6 +926,7 @@ function toggleFullscreen(){
   else document.exitFullscreen();
 }
 
+/* Painel editar nomes */
 const editPanel = document.getElementById("editPanel");
 const editList = document.getElementById("editList");
 
@@ -929,6 +961,7 @@ function saveNamesFromPanel(){
   saveData();
 }
 
+/* Presets */
 function getPresets(){
   return JSON.parse(localStorage.getItem(PRESETS_KEY) || "{}");
 }
@@ -998,6 +1031,7 @@ function loadPreset(name){
   alert("Preset carregado.");
 }
 
+/* Persistência */
 function saveData(){
   const data = {
     teamA: document.getElementById("teamA").value || "",
@@ -1008,7 +1042,8 @@ function saveData(){
     theme,
     players,
     scoreA,
-    scoreB
+    scoreB,
+    timeline
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
@@ -1053,6 +1088,7 @@ function loadData(){
     theme = d.theme || "dark";
     scoreA = typeof d.scoreA==="number" ? d.scoreA : 0;
     scoreB = typeof d.scoreB==="number" ? d.scoreB : 0;
+    timeline = Array.isArray(d.timeline) ? d.timeline : [];
 
     players = (Array.isArray(d.players)?d.players:[]).map((p,i)=>({
       id: p.id ?? (i+1),
@@ -1113,11 +1149,7 @@ function loadData(){
   }
 }
 
-function updateScoreUI(){
-  document.getElementById("scoreA").textContent = scoreA;
-  document.getElementById("scoreB").textContent = scoreB;
-}
-
+/* Export PNG com timeline em tags (tabela + eventos) */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
@@ -1149,9 +1181,102 @@ function exportPng(){
   const rowH = 32, headerH = 36;
   const titleH = 30;
   const padding = 12;
+
+  /* --- Preparar lines de timeline em estilo tags --- */
+  const canvasMeasure = document.createElement("canvas").getContext("2d");
+  canvasMeasure.font = "13px Arial";
+
+  function eventToTags(ev){
+    const tags = [];
+    const halfTxt = ev.half === 1 ? "1ª" : "2ª";
+    tags.push({
+      text: `${ev.clock} ${halfTxt}`,
+      bg: "#bdc3c7",
+      fg: "#000"
+    });
+    let etext, bg="#ecf0f1", fg="#000";
+    if(ev.type==="GF_A"){
+      etext="⚽ Golo +"; bg="#2ecc71"; fg="#000";
+    }else if(ev.type==="GA_A"){
+      etext="⚽ Golo −"; bg="#e74c3c"; fg="#fff";
+    }else if(ev.type==="FK_P"){
+      etext="❌ Falta"; bg="#7f8c8d"; fg="#fff";
+    }else if(ev.type==="YC_P"){
+      etext="🟨 Amarelo"; bg="#f1c40f"; fg="#000";
+    }else if(ev.type==="RC_P"){
+      etext="🟥 Vermelho"; bg="#e74c3c"; fg="#fff";
+    }else{
+      etext=ev.type;
+    }
+    tags.push({ text: etext, bg, fg });
+
+    if(ev.type==="GF_A" || ev.type==="GA_A"){
+      const ids = ev.activeIds || [];
+      ids.forEach(id=>{
+        const p = players.find(x=>x.id===id);
+        if(!p) return;
+        tags.push({
+          text: p.name + (p.isGK?' 🧤':''),
+          bg: "#ecf0f1",
+          fg: "#000"
+        });
+      });
+    }else if(ev.playerId){
+      const p = players.find(x=>x.id===ev.playerId);
+      if(p){
+        tags.push({
+          text: p.name + (p.isGK?' 🧤':''),
+          bg: "#ecf0f1",
+          fg: "#000"
+        });
+      }
+    }
+    return tags;
+  }
+
+  function layoutTimelineLines(events, maxWidth){
+    const lines = [];
+    const hPad = 10;
+    const vPad = 4;
+    const gap = 6;
+    events.forEach(ev=>{
+      const tags = eventToTags(ev);
+      let line = [];
+      let currentWidth = 0;
+      tags.forEach(tag=>{
+        const wText = canvasMeasure.measureText(tag.text).width;
+        const tagWidth = wText + hPad*2;
+        const extra = (line.length>0 ? gap : 0);
+        if(line.length>0 && currentWidth + extra + tagWidth > maxWidth){
+          lines.push(line);
+          line = [];
+          currentWidth = 0;
+        }
+        line.push({
+          ...tag,
+          width: tagWidth,
+          hPad,
+          vPad
+        });
+        currentWidth += (line.length>1 ? gap : 0) + tagWidth;
+      });
+      if(line.length>0){
+        lines.push(line);
+      }
+    });
+    return lines;
+  }
+
+  const innerTimelineWidth = tableWidth; // usar mesma largura da tabela
+  const tlLines = layoutTimelineLines(timeline, innerTimelineWidth);
+  const tlLineH = 26;
+  const timelineTitleH = 24;
+  const timelineCardHeight = padding + timelineTitleH + 4 + (tlLines.length * tlLineH) + padding;
+
   const tableHeight = padding + headerH + rows.length*rowH + padding;
-  const canvasW = Math.max(900, tableWidth + margin*2);
-  const canvasH = margin + titleH + 10 + tableHeight + margin;
+  const contentWidth = tableWidth + padding*2;
+  const canvasW = Math.max(900, contentWidth + margin*2);
+  const canvasH = margin + titleH + 10 + tableHeight + 16 + timelineCardHeight + margin;
 
   const canvas = document.createElement("canvas");
   canvas.width = canvasW;
@@ -1167,18 +1292,19 @@ function exportPng(){
   ctx.textBaseline = "middle";
   ctx.fillText(title, canvasW/2, margin + titleH/2);
 
-  const cardX = (canvasW - (tableWidth+padding*2))/2;
+  const cardX = (canvasW - contentWidth)/2;
   const cardY = margin + titleH + 10;
+
   ctx.fillStyle = "#ffffff";
   ctx.strokeStyle = "#cccccc";
   ctx.lineWidth = 1;
-  ctx.beginPath();
   const r = 10;
+  ctx.beginPath();
   ctx.moveTo(cardX+r,cardY);
-  ctx.lineTo(cardX+tableWidth+padding*2-r,cardY);
-  ctx.quadraticCurveTo(cardX+tableWidth+padding*2,cardY,cardX+tableWidth+padding*2,cardY+r);
-  ctx.lineTo(cardX+tableWidth+padding*2,cardY+tableHeight-r);
-  ctx.quadraticCurveTo(cardX+tableWidth+padding*2,cardY+tableHeight,cardX+tableWidth+padding*2-r,cardY+tableHeight);
+  ctx.lineTo(cardX+contentWidth-r,cardY);
+  ctx.quadraticCurveTo(cardX+contentWidth,cardY,cardX+contentWidth,cardY+r);
+  ctx.lineTo(cardX+contentWidth,cardY+tableHeight-r);
+  ctx.quadraticCurveTo(cardX+contentWidth,cardY+tableHeight,cardX+contentWidth-r,cardY+tableHeight);
   ctx.lineTo(cardX+r,cardY+tableHeight);
   ctx.quadraticCurveTo(cardX,cardY+tableHeight,cardX,cardY+tableHeight-r);
   ctx.lineTo(cardX,cardY+r);
@@ -1248,6 +1374,77 @@ function exportPng(){
     rowY += rowH;
   });
 
+  /* Card timeline por baixo da tabela */
+  const tlCardX = cardX;
+  const tlCardY = cardY + tableHeight + 16;
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "#cccccc";
+  ctx.lineWidth = 1;
+  const r2 = 10;
+  ctx.beginPath();
+  ctx.moveTo(tlCardX+r2,tlCardY);
+  ctx.lineTo(tlCardX+contentWidth-r2,tlCardY);
+  ctx.quadraticCurveTo(tlCardX+contentWidth,tlCardY,tlCardX+contentWidth,tlCardY+r2);
+  ctx.lineTo(tlCardX+contentWidth,tlCardY+timelineCardHeight-r2);
+  ctx.quadraticCurveTo(tlCardX+contentWidth,tlCardY+timelineCardHeight,tlCardX+contentWidth-r2,tlCardY+timelineCardHeight);
+  ctx.lineTo(tlCardX+r2,tlCardY+timelineCardHeight);
+  ctx.quadraticCurveTo(tlCardX,tlCardY+timelineCardHeight,tlCardX,tlCardY+timelineCardHeight-r2);
+  ctx.lineTo(tlCardX,tlCardY+r2);
+  ctx.quadraticCurveTo(tlCardX,tlCardY,tlCardX+r2,tlCardY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  let tx = tlCardX + padding;
+  let ty = tlCardY + padding;
+
+  ctx.fillStyle = "#000";
+  ctx.font = "bold 14px Arial";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("Timeline", tx, ty + timelineTitleH/2);
+
+  ctx.font = "13px Arial";
+  let lineY = ty + timelineTitleH + 4;
+
+  if(tlLines.length === 0){
+    ctx.fillStyle = "#666";
+    ctx.fillText("— sem eventos —", tx, lineY + tlLineH/2);
+  } else {
+    const gap = 6;
+    tlLines.forEach(line=>{
+      let cx2 = tx;
+      line.forEach(tag=>{
+        const th = tlLineH - 8;
+        const ty2 = lineY + (tlLineH - th)/2;
+        const tw = tag.width;
+        ctx.fillStyle = tag.bg;
+        ctx.strokeStyle = "#cccccc";
+        const rr = th/2;
+        ctx.beginPath();
+        ctx.moveTo(cx2+rr,ty2);
+        ctx.lineTo(cx2+tw-rr,ty2);
+        ctx.quadraticCurveTo(cx2+tw,ty2,cx2+tw,ty2+rr);
+        ctx.lineTo(cx2+tw,ty2+th-rr);
+        ctx.quadraticCurveTo(cx2+tw,ty2+th,cx2+tw-rr,ty2+th);
+        ctx.lineTo(cx2+rr,ty2+th);
+        ctx.quadraticCurveTo(cx2,ty2+th,cx2,ty2+th-rr);
+        ctx.lineTo(cx2,ty2+rr);
+        ctx.quadraticCurveTo(cx2,ty2,cx2+rr,ty2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = tag.fg;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(tag.text, cx2 + 10, ty2 + th/2);
+        cx2 += tw + gap;
+      });
+      lineY += tlLineH;
+    });
+  }
+
   const a = document.createElement("a");
   const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
   a.download = `Resumo_${teamA.replace(/\s+/g,"_")}_vs_${teamB.replace(/\s+/g,"_")}_${ts}.png`;
@@ -1255,9 +1452,23 @@ function exportPng(){
   a.click();
 }
 
+/* Timeline – botões */
 function handleTeamEvent(type){
+  const half = firstHalf ? 1 : 2;
+  const clock = formatTime(remaining);
+  const activeIds = players.filter(p=>p.active).map(p=>p.id);
+
   if(type==="GF_A") scoreA++;
   if(type==="GA_A") scoreB++;
+
+  addTimelineEvent({
+    type,
+    half,
+    clock,
+    activeIds,
+    ts: Date.now()
+  });
+
   updateScoreUI();
   saveData();
 }
@@ -1266,6 +1477,24 @@ function setPendingEvent(type){
   updatePlayersUI();
 }
 
+/* Vassoura – limpa marcador, sanções e timeline */
+document.getElementById("tlClearBtn").onclick = ()=>{
+  if(!confirm("Limpar marcador, faltas/cartões e timeline?")) return;
+  scoreA = 0;
+  scoreB = 0;
+  timeline = [];
+  players.forEach(p=>{
+    p.fouls = 0;
+    p.yc = false;
+    p.rc = false;
+  });
+  updateScoreUI();
+  updatePlayersUI();
+  updateSummary();
+  saveData();
+};
+
+/* Ligações de botões base */
 document.getElementById("startBtn").onclick = startTimer;
 document.getElementById("pauseBtn").onclick = pauseTimer;
 document.getElementById("resetBtn").onclick = resetTimer;
@@ -1290,6 +1519,7 @@ document.getElementById("closePresets").onclick = ()=>{
 };
 document.getElementById("savePresetBtn").onclick = savePreset;
 
+/* Timeline buttons */
 document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   const type = btn.dataset.type;
   if(!type) return;
@@ -1299,24 +1529,11 @@ document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
     btn.addEventListener("click", ()=>handleTeamEvent(type));
   }
 });
-document.getElementById("tlClearBtn").onclick = ()=>{
-  if(!confirm("Limpar marcador e faltas/cartões?")) return;
-  scoreA = 0;
-  scoreB = 0;
-  players.forEach(p=>{
-    p.fouls = 0;
-    p.yc = false;
-    p.rc = false;
-  });
-  updateScoreUI();
-  updatePlayersUI();
-  updateSummary();
-  saveData();
-};
 
 window.addEventListener("beforeunload", saveData);
 setInterval(saveData, 5000);
 
+/* Boot */
 loadData();
 updateTimerDisplay();
 updateHalfBadge();
