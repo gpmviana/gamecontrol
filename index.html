@@ -150,19 +150,25 @@
     text-align:center;
   }
 
-  /* BOTÃO PRINCIPAL – maior e mais destacado */
+  /* BOTÃO PRINCIPAL – cor muda com o estado */
   #startPauseBtn{
     padding:10px 26px;
     min-width:140px;
     font-size:16px;
     font-weight:700;
     border-radius:999px;
-    background:#0078d7;
+    background:#2ecc71; /* parado = verde (Iniciar) */
     color:#fff;
   }
   body.light-mode #startPauseBtn{
-    background:#0078d7;
+    background:#2ecc71;
     color:#fff;
+  }
+  #startPauseBtn.running{
+    background:#e74c3c; /* a contar = vermelho (Pausar) */
+  }
+  body.light-mode #startPauseBtn.running{
+    background:#e74c3c;
   }
 
   /* Grelha dos jogadores – mais finas e juntas */
@@ -782,6 +788,7 @@ function updateStartPauseLabel(){
   const btn = document.getElementById("startPauseBtn");
   if(!btn) return;
   btn.textContent = running ? "Pausar" : "Iniciar";
+  btn.classList.toggle("running", running);
 }
 
 function tick(){
@@ -1024,7 +1031,6 @@ function updateSummary(){
   tbody.innerHTML = "";
 
   const gameTime = computeGameTime();
-  const ideal = computeIdealPerPlayer(gameTime);
 
   players.forEach(p=>{
     const total = p.part1 + p.part2;
@@ -1411,6 +1417,7 @@ function loadData(){
     updateHalfBadge();
     updateSummary();
     updateScoreUI();
+    running = false; // nunca retomamos automaticamente
     updateStartPauseLabel();
 
     if(theme==="light"){
