@@ -146,6 +146,29 @@
     text-align:center;
   }
 
+  /* Botão principal Start/Pause */
+  #startPauseBtn{
+    padding:12px 28px;
+    font-size:20px;
+    font-weight:700;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    transition:0.2s;
+    box-shadow:0 4px 12px rgba(0,0,0,0.25);
+  }
+  .start-mode{
+    background:#2ecc71;
+    color:#000;
+  }
+  .pause-mode{
+    background:#f1c40f;
+    color:#000;
+  }
+  #startPauseBtn:active{
+    transform:scale(0.96);
+  }
+
   /* Grelha dos jogadores – mais finas e juntas */
   #players{
     display:grid;
@@ -627,8 +650,7 @@
 
 <div class="controls">
   <input id="setMinutes" type="number" value="20" min="1" style="width:60px;">
-  <button id="startBtn">Iniciar</button>
-  <button id="pauseBtn">Pausar</button>
+  <button id="startPauseBtn" class="start-mode">▶ Iniciar</button>
   <button id="intervalBtn">Intervalo</button>
   <button id="resetBtn">Reset</button>
   <button id="addBtn">+</button>
@@ -792,11 +814,13 @@ function startTimer(){
   running = true;
   clearInterval(timerInterval);
   timerInterval = setInterval(tick,1000);
+  updateStartPauseUI();
 }
 function pauseTimer(){
   running = false;
   clearInterval(timerInterval);
   saveData();
+  updateStartPauseUI();
 }
 function resetTimer(){
   pauseTimer();
@@ -1271,6 +1295,7 @@ function loadData(){
     updateHalfBadge();
     updateSummary();
     updateScoreUI();
+    updateStartPauseUI();
     return;
   }
   try{
@@ -1337,6 +1362,8 @@ function loadData(){
       document.body.classList.add("light-mode");
       document.getElementById("themeToggle").textContent = "🌞";
     }
+
+    updateStartPauseUI();
   }catch(e){
     console.error(e);
     localStorage.removeItem(STORAGE_KEY);
@@ -1531,9 +1558,25 @@ document.getElementById("tlClearBtn").onclick = ()=>{
   saveData();
 };
 
+/* Botão Start/Pause único */
+const startPauseBtn = document.getElementById("startPauseBtn");
+function updateStartPauseUI(){
+  if(running){
+    startPauseBtn.classList.remove("start-mode");
+    startPauseBtn.classList.add("pause-mode");
+    startPauseBtn.textContent = "⏸ Pausar";
+  }else{
+    startPauseBtn.classList.remove("pause-mode");
+    startPauseBtn.classList.add("start-mode");
+    startPauseBtn.textContent = "▶ Iniciar";
+  }
+}
+startPauseBtn.onclick = ()=>{
+  if(running) pauseTimer();
+  else startTimer();
+};
+
 /* Ligações de botões base */
-document.getElementById("startBtn").onclick = startTimer;
-document.getElementById("pauseBtn").onclick = pauseTimer;
 document.getElementById("resetBtn").onclick = resetTimer;
 document.getElementById("intervalBtn").onclick = intervalTimer;
 document.getElementById("addBtn").onclick = ()=>ensurePlayerCount(players.length+1);
@@ -1579,6 +1622,7 @@ loadData();
 updateTimerDisplay();
 updateHalfBadge();
 updateScoreUI();
+updateStartPauseUI();
 </script>
 </body>
 </html>
