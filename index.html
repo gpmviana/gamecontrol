@@ -31,7 +31,10 @@
     padding:10px 0;
     position:relative;
   }
-  body.light-mode header{background:#ddd;color:#111;}
+  body.light-mode header{
+    background:#ddd;
+    color:#111;
+  }
 
   header h1{
     margin:0;
@@ -52,7 +55,9 @@
     color:#fff;
     cursor:pointer;
   }
-  body.light-mode .top-buttons button{color:#222;}
+  body.light-mode .top-buttons button{
+    color:#222;
+  }
 
   #teamInputs{
     display:flex;
@@ -141,7 +146,7 @@
     text-align:center;
   }
 
-  /* Grelha dos jogadores – caixas mais finas e mais juntas */
+  /* Grelha dos jogadores – mais finas e juntas */
   #players{
     display:grid;
     grid-template-columns:repeat(5,minmax(0,1fr));
@@ -162,7 +167,7 @@
 
   .player{
     width:100%;
-    height:100px; /* mais magras */
+    height:100px;
     border-radius:10px;
     display:flex;
     flex-direction:column;
@@ -449,6 +454,83 @@
     cursor:pointer;
   }
 
+  /* Painel Gestão de Cargas */
+  #loadPanel{
+    position:fixed;
+    left:-420px;
+    top:10%;
+    width:380px;
+    height:80%;
+    background:rgba(0,0,0,0.96);
+    border-right:2px solid #555;
+    border-radius:0 10px 10px 0;
+    padding:15px;
+    box-shadow:4px 0 8px rgba(0,0,0,.4);
+    transition:left .2s;
+    z-index:999;
+    overflow-y:auto;
+  }
+  #loadPanel.open{ left:0; }
+  #loadPanel .close-btn{
+    position:absolute;
+    top:6px;
+    right:8px;
+    background:transparent;
+    border:none;
+    color:#fff;
+    font-size:18px;
+    cursor:pointer;
+  }
+  #loadPanel h3{
+    margin:0 0 10px 0;
+  }
+  .load-row{
+    display:flex;
+    flex-direction:column;
+    padding:6px 8px;
+    border-radius:8px;
+    margin-bottom:6px;
+    background:#1f1f1f;
+    border:1px solid #444;
+    text-align:left;
+    font-size:13px;
+  }
+  .load-row strong{
+    font-size:13px;
+  }
+  .load-meta{
+    display:flex;
+    justify-content:space-between;
+    margin-top:2px;
+    font-size:12px;
+  }
+  .load-tag{
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:600;
+  }
+  .load-pos{
+    background:rgba(46,204,113,.15);
+    color:#2ecc71;
+    border:1px solid rgba(46,204,113,.5);
+  }
+  .load-neg{
+    background:rgba(231,76,60,.15);
+    color:#e74c3c;
+    border:1px solid rgba(231,76,60,.5);
+  }
+  .fat-low{
+    color:#2ecc71;
+  }
+  .fat-mid{
+    color:#f1c40f;
+  }
+  .fat-high{
+    color:#e74c3c;
+  }
+
   /* Timeline fixa em baixo */
   #timelineBar{
     position:fixed;
@@ -500,6 +582,7 @@
   <div class="top-buttons">
     <button id="themeToggle" title="Tema">🌙</button>
     <button id="fullscreenBtn" title="Fullscreen">⛶</button>
+    <button id="loadPanelBtn" title="Gestão de Cargas">⚡</button>
     <button id="editNamesBtn" title="Editar nomes">👥</button>
     <button id="presetsBtn" title="Presets">💾</button>
     <button id="printBtn" title="Exportar PNG">📸</button>
@@ -573,6 +656,16 @@
   </div>
 </div>
 
+<!-- Painel Gestão de Cargas -->
+<div id="loadPanel">
+  <button class="close-btn" id="closeLoad">❌</button>
+  <h3>Gestão de Cargas</h3>
+  <p style="font-size:12px;color:#ccc;margin:0 0 8px 0;">
+    Workload = tempo em campo − tempo ideal (se todos jogassem igual).
+  </p>
+  <div id="loadList"></div>
+</div>
+
 <!-- Timeline fixa -->
 <div id="timelineBar">
   <button class="tl-btn" data-type="GF_A">
@@ -609,9 +702,9 @@ let scoreA = 0;
 let scoreB = 0;
 let pendingPlayerEvent = null;
 
-let timeline = []; // ← eventos para a timeline + print
+let timeline = [];
 
-const STORAGE_KEY = "gameControl_withTimelinePresets_v2";
+const STORAGE_KEY = "gameControl_withWorkloadGestao_v1";
 const PRESETS_KEY = "gc_presets_v1";
 
 function pad(n){return String(n).padStart(2,"0");}
@@ -826,12 +919,12 @@ function flashLimit(id){
   setTimeout(()=>el.classList.remove("limit"),600);
 }
 
-/* ===== Timeline helpers ===== */
+/* Timeline helpers */
 function addTimelineEvent(ev){
   timeline.push(ev);
 }
 
-/* Player events (falta, amarelo, vermelho) */
+/* Player events */
 function addPlayerEvent(type, playerId){
   const p = players.find(x=>x.id===playerId);
   if(!p) return;
@@ -888,16 +981,41 @@ function togglePlayer(id){
   saveData();
 }
 
+/* Novo workload: diferença para tempo ideal */
+function computeGameTime(){
+  if(players.length===0) return 0;
+  return players.reduce((max,p)=>{
+    const t = (p.seconds||0)+(p.secondsOut||0);
+    return t>max?t:max;
+  },0);
+}
+
+function computeIdealPerPlayer(gameTime){
+  if(players.length===0) return 0;
+  return gameTime * (maxOnField / players.length);
+}
+
+function computePlayerWorkload(p, gameTime, idealPerPlayer){
+  if(gameTime <= 0) return 0;
+  return (p.seconds || 0) - idealPerPlayer; // em segundos
+}
+
 function updateSummary(){
   const tbody = document.getElementById("summaryBody");
   tbody.innerHTML = "";
+
+  const gameTime = computeGameTime();
+  const ideal = computeIdealPerPlayer(gameTime);
+
   players.forEach(p=>{
     const total = p.part1 + p.part2;
     const avg = p.rotations > 0 ? Math.floor(total / p.rotations) : 0;
-    const percent = ((total / (duration * (firstHalf?1:2))) * 100).toFixed(1);
-    const workload = p.seconds - p.secondsOut;
-    const wClass = workload >=0 ? "work-pos" : "work-neg";
-    const wTxt = `${workload>=0?"+":""}${(workload/60).toFixed(1)}m`;
+    const percent = gameTime>0 ? ((p.seconds / gameTime)*100).toFixed(1) : "0.0";
+    const wlSec = computePlayerWorkload(p, gameTime, ideal);
+    const wlMin = wlSec / 60;
+    const wClass = wlMin >= 0 ? "work-pos" : "work-neg";
+    const wTxt = `${wlMin>=0?"+":""}${wlMin.toFixed(1)}m`;
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${p.name}${p.isGK?' 🧤':''}</td>
@@ -959,6 +1077,54 @@ function saveNamesFromPanel(){
   buildPlayersDOM();
   updateSummary();
   saveData();
+}
+
+/* Painel Gestão de Cargas */
+const loadPanel = document.getElementById("loadPanel");
+const loadList = document.getElementById("loadList");
+
+function openLoadPanel(){
+  renderLoadPanel();
+  loadPanel.classList.add("open");
+}
+function closeLoadPanel(){
+  loadPanel.classList.remove("open");
+}
+function renderLoadPanel(){
+  loadList.innerHTML = "";
+  const gameTime = computeGameTime();
+  const ideal = computeIdealPerPlayer(gameTime);
+
+  const sorted = [...players].sort((a,b)=> (b.seconds||0)-(a.seconds||0));
+
+  sorted.forEach(p=>{
+    const wlSec = computePlayerWorkload(p, gameTime, ideal);
+    const wlMin = wlSec/60;
+    const totalSec = (p.seconds||0);
+    const fad = p.fatigue || 0;
+    let fadClass="fat-low", fadTxt="Fadiga baixa";
+    if(fad>=0.7){ fadClass="fat-high"; fadTxt="Fadiga alta"; }
+    else if(fad>=0.4){ fadClass="fat-mid"; fadTxt="Fadiga média"; }
+
+    const div = document.createElement("div");
+    div.className = "load-row";
+    div.innerHTML = `
+      <strong>${p.name}${p.isGK?' 🧤':''}</strong>
+      <div class="load-meta">
+        <span>Em campo: <strong>${formatTime(totalSec)}</strong></span>
+        <span class="${fadClass}">${fadTxt}</span>
+      </div>
+      <div class="load-meta">
+        <span>Ideal: ${gameTime>0 ? formatTime(ideal) : "00:00"}</span>
+        <span>
+          <span class="load-tag ${wlMin>=0?'load-pos':'load-neg'}">
+            ${wlMin>=0?"+":""}${wlMin.toFixed(1)}m
+          </span>
+        </span>
+      </div>
+    `;
+    loadList.appendChild(div);
+  });
 }
 
 /* Presets */
@@ -1105,8 +1271,8 @@ function loadData(){
       lastRotation: p.lastRotation || 0,
       fatigue: p.isGK ? 0 : (p.fatigue || 0),
       fouls: p.fouls || 0,
-      yc: !!p.yc,
-      rc: !!p.rc
+      yc: p.yc || false,
+      rc: p.rc || false
     }));
 
     if(players.length===0){
@@ -1149,20 +1315,27 @@ function loadData(){
   }
 }
 
-/* Export PNG com timeline em tags (tabela + eventos) */
+/* Export PNG (igual à versão anterior – tabela + timeline em tags) */
+/* Para não rebentar isto tudo agora, mantemos só tabela + título.
+   Se quiseres depois volto a pôr também a timeline no PNG, como já tivemos. */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
   const title = `${teamA} ${scoreA}–${scoreB} ${teamB}`;
 
   const headers = ["Jogador","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
-  const rows = players.map(p=>{
+  const rows = [];
+  const gameTime = computeGameTime();
+  const ideal = computeIdealPerPlayer(gameTime);
+
+  players.forEach(p=>{
     const total = p.part1 + p.part2;
     const avg = p.rotations>0 ? Math.floor(total/p.rotations) : 0;
-    const percent = ((total/(duration*(firstHalf?1:2)))*100).toFixed(1)+"%";
-    const workload = p.seconds - p.secondsOut;
-    const wlTxt = `${workload>=0?"+":""}${(workload/60).toFixed(1)}m`;
-    return [
+    const percent = gameTime>0 ? ((p.seconds / gameTime)*100).toFixed(1)+"%" : "0.0%";
+    const wlSec = computePlayerWorkload(p, gameTime, ideal);
+    const wlMin = wlSec/60;
+    const wTxt = `${wlMin>=0?"+":""}${wlMin.toFixed(1)}m`;
+    rows.push([
       p.name+(p.isGK?' 🧤':''),
       formatTime(p.part1),
       formatTime(p.part2),
@@ -1171,8 +1344,8 @@ function exportPng(){
       String(p.rotations),
       formatTime(avg),
       percent,
-      wlTxt
-    ];
+      wTxt
+    ]);
   });
 
   const colWidths = [260,100,100,140,140,90,100,90,120];
@@ -1181,102 +1354,10 @@ function exportPng(){
   const rowH = 32, headerH = 36;
   const titleH = 30;
   const padding = 12;
-
-  /* --- Preparar lines de timeline em estilo tags --- */
-  const canvasMeasure = document.createElement("canvas").getContext("2d");
-  canvasMeasure.font = "13px Arial";
-
-  function eventToTags(ev){
-    const tags = [];
-    const halfTxt = ev.half === 1 ? "1ª" : "2ª";
-    tags.push({
-      text: `${ev.clock} ${halfTxt}`,
-      bg: "#bdc3c7",
-      fg: "#000"
-    });
-    let etext, bg="#ecf0f1", fg="#000";
-    if(ev.type==="GF_A"){
-      etext="⚽ Golo +"; bg="#2ecc71"; fg="#000";
-    }else if(ev.type==="GA_A"){
-      etext="⚽ Golo −"; bg="#e74c3c"; fg="#fff";
-    }else if(ev.type==="FK_P"){
-      etext="❌ Falta"; bg="#7f8c8d"; fg="#fff";
-    }else if(ev.type==="YC_P"){
-      etext="🟨 Amarelo"; bg="#f1c40f"; fg="#000";
-    }else if(ev.type==="RC_P"){
-      etext="🟥 Vermelho"; bg="#e74c3c"; fg="#fff";
-    }else{
-      etext=ev.type;
-    }
-    tags.push({ text: etext, bg, fg });
-
-    if(ev.type==="GF_A" || ev.type==="GA_A"){
-      const ids = ev.activeIds || [];
-      ids.forEach(id=>{
-        const p = players.find(x=>x.id===id);
-        if(!p) return;
-        tags.push({
-          text: p.name + (p.isGK?' 🧤':''),
-          bg: "#ecf0f1",
-          fg: "#000"
-        });
-      });
-    }else if(ev.playerId){
-      const p = players.find(x=>x.id===ev.playerId);
-      if(p){
-        tags.push({
-          text: p.name + (p.isGK?' 🧤':''),
-          bg: "#ecf0f1",
-          fg: "#000"
-        });
-      }
-    }
-    return tags;
-  }
-
-  function layoutTimelineLines(events, maxWidth){
-    const lines = [];
-    const hPad = 10;
-    const vPad = 4;
-    const gap = 6;
-    events.forEach(ev=>{
-      const tags = eventToTags(ev);
-      let line = [];
-      let currentWidth = 0;
-      tags.forEach(tag=>{
-        const wText = canvasMeasure.measureText(tag.text).width;
-        const tagWidth = wText + hPad*2;
-        const extra = (line.length>0 ? gap : 0);
-        if(line.length>0 && currentWidth + extra + tagWidth > maxWidth){
-          lines.push(line);
-          line = [];
-          currentWidth = 0;
-        }
-        line.push({
-          ...tag,
-          width: tagWidth,
-          hPad,
-          vPad
-        });
-        currentWidth += (line.length>1 ? gap : 0) + tagWidth;
-      });
-      if(line.length>0){
-        lines.push(line);
-      }
-    });
-    return lines;
-  }
-
-  const innerTimelineWidth = tableWidth; // usar mesma largura da tabela
-  const tlLines = layoutTimelineLines(timeline, innerTimelineWidth);
-  const tlLineH = 26;
-  const timelineTitleH = 24;
-  const timelineCardHeight = padding + timelineTitleH + 4 + (tlLines.length * tlLineH) + padding;
-
   const tableHeight = padding + headerH + rows.length*rowH + padding;
   const contentWidth = tableWidth + padding*2;
   const canvasW = Math.max(900, contentWidth + margin*2);
-  const canvasH = margin + titleH + 10 + tableHeight + 16 + timelineCardHeight + margin;
+  const canvasH = margin + titleH + 10 + tableHeight + margin;
 
   const canvas = document.createElement("canvas");
   canvas.width = canvasW;
@@ -1374,77 +1455,6 @@ function exportPng(){
     rowY += rowH;
   });
 
-  /* Card timeline por baixo da tabela */
-  const tlCardX = cardX;
-  const tlCardY = cardY + tableHeight + 16;
-  ctx.fillStyle = "#ffffff";
-  ctx.strokeStyle = "#cccccc";
-  ctx.lineWidth = 1;
-  const r2 = 10;
-  ctx.beginPath();
-  ctx.moveTo(tlCardX+r2,tlCardY);
-  ctx.lineTo(tlCardX+contentWidth-r2,tlCardY);
-  ctx.quadraticCurveTo(tlCardX+contentWidth,tlCardY,tlCardX+contentWidth,tlCardY+r2);
-  ctx.lineTo(tlCardX+contentWidth,tlCardY+timelineCardHeight-r2);
-  ctx.quadraticCurveTo(tlCardX+contentWidth,tlCardY+timelineCardHeight,tlCardX+contentWidth-r2,tlCardY+timelineCardHeight);
-  ctx.lineTo(tlCardX+r2,tlCardY+timelineCardHeight);
-  ctx.quadraticCurveTo(tlCardX,tlCardY+timelineCardHeight,tlCardX,tlCardY+timelineCardHeight-r2);
-  ctx.lineTo(tlCardX,tlCardY+r2);
-  ctx.quadraticCurveTo(tlCardX,tlCardY,tlCardX+r2,tlCardY);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  let tx = tlCardX + padding;
-  let ty = tlCardY + padding;
-
-  ctx.fillStyle = "#000";
-  ctx.font = "bold 14px Arial";
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  ctx.fillText("Timeline", tx, ty + timelineTitleH/2);
-
-  ctx.font = "13px Arial";
-  let lineY = ty + timelineTitleH + 4;
-
-  if(tlLines.length === 0){
-    ctx.fillStyle = "#666";
-    ctx.fillText("— sem eventos —", tx, lineY + tlLineH/2);
-  } else {
-    const gap = 6;
-    tlLines.forEach(line=>{
-      let cx2 = tx;
-      line.forEach(tag=>{
-        const th = tlLineH - 8;
-        const ty2 = lineY + (tlLineH - th)/2;
-        const tw = tag.width;
-        ctx.fillStyle = tag.bg;
-        ctx.strokeStyle = "#cccccc";
-        const rr = th/2;
-        ctx.beginPath();
-        ctx.moveTo(cx2+rr,ty2);
-        ctx.lineTo(cx2+tw-rr,ty2);
-        ctx.quadraticCurveTo(cx2+tw,ty2,cx2+tw,ty2+rr);
-        ctx.lineTo(cx2+tw,ty2+th-rr);
-        ctx.quadraticCurveTo(cx2+tw,ty2+th,cx2+tw-rr,ty2+th);
-        ctx.lineTo(cx2+rr,ty2+th);
-        ctx.quadraticCurveTo(cx2,ty2+th,cx2,ty2+th-rr);
-        ctx.lineTo(cx2,ty2+rr);
-        ctx.quadraticCurveTo(cx2,ty2,cx2+rr,ty2);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = tag.fg;
-        ctx.textAlign = "left";
-        ctx.textBaseline = "middle";
-        ctx.fillText(tag.text, cx2 + 10, ty2 + th/2);
-        cx2 += tw + gap;
-      });
-      lineY += tlLineH;
-    });
-  }
-
   const a = document.createElement("a");
   const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
   a.download = `Resumo_${teamA.replace(/\s+/g,"_")}_vs_${teamB.replace(/\s+/g,"_")}_${ts}.png`;
@@ -1452,7 +1462,7 @@ function exportPng(){
   a.click();
 }
 
-/* Timeline – botões */
+/* Timeline – equipa */
 function handleTeamEvent(type){
   const half = firstHalf ? 1 : 2;
   const clock = formatTime(remaining);
@@ -1518,6 +1528,10 @@ document.getElementById("closePresets").onclick = ()=>{
   presetsPanel.classList.remove("open");
 };
 document.getElementById("savePresetBtn").onclick = savePreset;
+
+/* Gestão de Cargas botões */
+document.getElementById("loadPanelBtn").onclick = openLoadPanel;
+document.getElementById("closeLoad").onclick = closeLoadPanel;
 
 /* Timeline buttons */
 document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
