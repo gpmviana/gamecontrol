@@ -7,7 +7,7 @@
 
 <style>
   :root {
-    --timeline-h: 54px; /* altura da barra da timeline em baixo */
+    --timeline-h: 54px;
   }
 
   body{
@@ -18,7 +18,6 @@
     text-align:center;
     padding-bottom: calc(var(--timeline-h) + 10px);
   }
-
   body.light-mode{
     background:#f5f5f5;
     color:#222;
@@ -142,17 +141,15 @@
     text-align:center;
   }
 
-  /* Grelha dos jogadores */
+  /* Grelha dos jogadores – mais juntas e a ocupar toda a largura */
   #players{
     display:grid;
     grid-template-columns:repeat(5,minmax(0,1fr));
-    gap:10px; /* mais juntas */
-    width:95%;
-    max-width:1300px;
-    margin:12px auto 20px auto;
+    gap:6px;
+    width:100%;
+    margin:12px 0 20px 0;
     justify-items:center;
   }
-
   @media (max-width:1200px){
     #players{grid-template-columns:repeat(4,minmax(0,1fr));}
   }
@@ -165,8 +162,8 @@
 
   .player{
     width:100%;
-    max-width:140px;   /* mais estreito: encaixa 5 por linha em iPad Air */
-    height:130px;      /* mais baixo */
+    /* sem max-width → usa todo o 1fr */
+    height:130px;
     border-radius:14px;
     display:flex;
     flex-direction:column;
@@ -328,7 +325,6 @@
     border:1px solid rgba(231,76,60,.35);
   }
 
-  /* Badges de faltas / cartões */
   .card-badges{
     position:absolute;
     top:6px;
@@ -358,7 +354,6 @@
   .badge-yc{ background:#f1c40f; }
   .badge-rc{ background:#e74c3c; }
 
-  /* Painel Editar nomes */
   #editPanel{
     position:fixed;
     right:-420px;
@@ -374,9 +369,7 @@
     z-index:999;
     overflow-y:auto;
   }
-  #editPanel.open{
-    right:0;
-  }
+  #editPanel.open{ right:0; }
   #editPanel .close-btn{
     position:absolute;
     top:6px;
@@ -428,7 +421,6 @@
     margin-top:8px;
   }
 
-  /* Painel Presets */
   #presetsPanel{
     position:fixed;
     right:-420px;
@@ -456,7 +448,6 @@
     cursor:pointer;
   }
 
-  /* Timeline (apenas botões) */
   #timelineBar{
     position:fixed;
     left:0;
@@ -491,14 +482,9 @@
     background:#666;
     color:#fff;
   }
-  .tl-btn span.icon{
-    font-size:16px;
-  }
-  .tl-btn span.label{
-    font-size:12px;
-  }
+  .tl-btn span.icon{font-size:16px;}
+  .tl-btn span.label{font-size:12px;}
 
-  /* Estado de seleção de jogador para evento */
   .player.selectEvent{
     outline:3px dashed #fff;
     outline-offset:-3px;
@@ -563,7 +549,6 @@
   </table>
 </div>
 
-<!-- Painel Editar nomes -->
 <div id="editPanel">
   <button class="close-btn" id="closePanel">❌</button>
   <h3>Editar Jogadores</h3>
@@ -571,23 +556,19 @@
   <button class="save-btn" id="saveNamesBtn">Guardar Alterações</button>
 </div>
 
-<!-- Painel Presets -->
 <div id="presetsPanel">
   <button class="close-btn" id="closePresets">❌</button>
   <h3 style="margin:0 0 10px 0;">Presets de Plantel</h3>
-
   <div style="display:flex; gap:6px; margin-bottom:8px;">
     <input id="presetName" placeholder="Nome do preset" style="flex:1;padding:6px;border-radius:6px;border:1px solid #777;background:#1f1f1f;color:#fff"/>
     <button id="savePresetBtn" style="padding:6px 10px;border:none;border-radius:6px;background:#0078d7;color:#fff;cursor:pointer">Guardar</button>
   </div>
-
   <div>
     <h4 style="margin:10px 0 6px 0;">Carregar</h4>
     <div id="presetList"></div>
   </div>
 </div>
 
-<!-- Timeline (só botões) -->
 <div id="timelineBar">
   <button class="tl-btn" data-type="GF_A">
     <span class="icon">⚽</span><span class="label">Golo +</span>
@@ -604,12 +585,12 @@
   <button class="tl-btn tl-player" data-type="RC_P">
     <span class="icon">🟥</span><span class="label">Vermelho</span>
   </button>
+  <button class="tl-btn" id="tlClearBtn">
+    <span class="icon">🧹</span><span class="label">Limpar</span>
+  </button>
 </div>
 
 <script>
-/* ============================================================
-   ESTADO PRINCIPAL
-   ============================================================ */
 let duration = 20 * 60;
 let remaining = duration;
 let timerInterval = null;
@@ -619,18 +600,13 @@ let firstHalf = true;
 let players = [];
 let theme = "dark";
 const maxOnField = 5;
-
 let scoreA = 0;
 let scoreB = 0;
-
 let pendingPlayerEvent = null;
 
 const STORAGE_KEY = "gameControl_withTimeline_andPresets_v1";
 const PRESETS_KEY = "gc_presets_v1";
 
-/* ============================================================
-   FUNÇÕES UTILITÁRIAS
-   ============================================================ */
 function pad(n){return String(n).padStart(2,"0");}
 function formatTime(sec){
   sec = Math.max(0, Math.floor(sec));
@@ -639,9 +615,6 @@ function formatTime(sec){
   return `${pad(m)}:${pad(s)}`;
 }
 
-/* ============================================================
-   TIMER
-   ============================================================ */
 function updateTimerDisplay(){
   document.getElementById("timer").textContent = formatTime(remaining);
 }
@@ -741,9 +714,6 @@ function intervalTimer(){
   saveData();
 }
 
-/* ============================================================
-   JOGADORES
-   ============================================================ */
 function fatigueColor(f){
   if(f >= 0.7) return "#e74c3c";
   if(f >= 0.4) return "#f1c40f";
@@ -888,9 +858,6 @@ function togglePlayer(id){
   saveData();
 }
 
-/* ============================================================
-   RESUMO / TABELA
-   ============================================================ */
 function updateSummary(){
   const tbody = document.getElementById("summaryBody");
   tbody.innerHTML = "";
@@ -917,9 +884,6 @@ function updateSummary(){
   });
 }
 
-/* ============================================================
-   TEMA & FULLSCREEN
-   ============================================================ */
 function toggleTheme(){
   document.body.classList.toggle("light-mode");
   theme = document.body.classList.contains("light-mode") ? "light" : "dark";
@@ -931,9 +895,6 @@ function toggleFullscreen(){
   else document.exitFullscreen();
 }
 
-/* ============================================================
-   EDITAR NOMES
-   ============================================================ */
 const editPanel = document.getElementById("editPanel");
 const editList = document.getElementById("editList");
 
@@ -968,9 +929,6 @@ function saveNamesFromPanel(){
   saveData();
 }
 
-/* ============================================================
-   PRESETS
-   ============================================================ */
 function getPresets(){
   return JSON.parse(localStorage.getItem(PRESETS_KEY) || "{}");
 }
@@ -1040,9 +998,6 @@ function loadPreset(name){
   alert("Preset carregado.");
 }
 
-/* ============================================================
-   AUTOSAVE
-   ============================================================ */
 function saveData(){
   const data = {
     teamA: document.getElementById("teamA").value || "",
@@ -1057,7 +1012,6 @@ function saveData(){
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
-
 function loadData(){
   const raw = localStorage.getItem(STORAGE_KEY);
   if(!raw){
@@ -1159,9 +1113,11 @@ function loadData(){
   }
 }
 
-/* ============================================================
-   EXPORTAR PNG
-   ============================================================ */
+function updateScoreUI(){
+  document.getElementById("scoreA").textContent = scoreA;
+  document.getElementById("scoreB").textContent = scoreB;
+}
+
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
@@ -1245,7 +1201,6 @@ function exportPng(){
     ctx.fillText(h, cx+6, y+headerH/2);
     cx += colWidths[i];
   });
-
   ctx.strokeStyle = "#cccccc";
   ctx.beginPath();
   ctx.moveTo(x,y);
@@ -1300,17 +1255,6 @@ function exportPng(){
   a.click();
 }
 
-/* ============================================================
-   SCORE
-   ============================================================ */
-function updateScoreUI(){
-  document.getElementById("scoreA").textContent = scoreA;
-  document.getElementById("scoreB").textContent = scoreB;
-}
-
-/* ============================================================
-   TIMELINE (apenas lógica dos botões)
-   ============================================================ */
 function handleTeamEvent(type){
   if(type==="GF_A") scoreA++;
   if(type==="GA_A") scoreB++;
@@ -1322,9 +1266,6 @@ function setPendingEvent(type){
   updatePlayersUI();
 }
 
-/* ============================================================
-   EVENTOS / BOOT
-   ============================================================ */
 document.getElementById("startBtn").onclick = startTimer;
 document.getElementById("pauseBtn").onclick = pauseTimer;
 document.getElementById("resetBtn").onclick = resetTimer;
@@ -1339,7 +1280,6 @@ document.getElementById("editNamesBtn").onclick = openEditPanel;
 document.getElementById("closePanel").onclick = closeEditPanel;
 document.getElementById("saveNamesBtn").onclick = saveNamesFromPanel;
 
-/* Presets UI */
 const presetsPanel = document.getElementById("presetsPanel");
 document.getElementById("presetsBtn").onclick = ()=>{
   renderPresetList();
@@ -1350,15 +1290,29 @@ document.getElementById("closePresets").onclick = ()=>{
 };
 document.getElementById("savePresetBtn").onclick = savePreset;
 
-/* Timeline buttons */
 document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   const type = btn.dataset.type;
+  if(!type) return;
   if(btn.classList.contains("tl-player")){
     btn.addEventListener("click", ()=>setPendingEvent(type));
   }else{
     btn.addEventListener("click", ()=>handleTeamEvent(type));
   }
 });
+document.getElementById("tlClearBtn").onclick = ()=>{
+  if(!confirm("Limpar marcador e faltas/cartões?")) return;
+  scoreA = 0;
+  scoreB = 0;
+  players.forEach(p=>{
+    p.fouls = 0;
+    p.yc = false;
+    p.rc = false;
+  });
+  updateScoreUI();
+  updatePlayersUI();
+  updateSummary();
+  saveData();
+};
 
 window.addEventListener("beforeunload", saveData);
 setInterval(saveData, 5000);
@@ -1368,6 +1322,5 @@ updateTimerDisplay();
 updateHalfBadge();
 updateScoreUI();
 </script>
-
 </body>
 </html>
