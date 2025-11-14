@@ -7,7 +7,7 @@
 
 <style>
   :root {
-    --timeline-h: 0px;
+    --timeline-h: 54px; /* altura da barra da timeline em baixo */
   }
 
   body{
@@ -146,7 +146,7 @@
   #players{
     display:grid;
     grid-template-columns:repeat(5,minmax(0,1fr));
-    gap:14px;
+    gap:10px; /* mais juntas */
     width:95%;
     max-width:1300px;
     margin:12px auto 20px auto;
@@ -165,8 +165,8 @@
 
   .player{
     width:100%;
-    max-width:150px;   /* mais estreito p/ caber bem em iPad Air */
-    height:135px;      /* mais baixo */
+    max-width:140px;   /* mais estreito: encaixa 5 por linha em iPad Air */
+    height:130px;      /* mais baixo */
     border-radius:14px;
     display:flex;
     flex-direction:column;
@@ -186,17 +186,17 @@
   }
 
   .player strong{
-    font-size:14px;
-    margin-bottom:4px;
-    padding:0 4px;
+    font-size:13px;
+    margin-bottom:3px;
+    padding:0 3px;
   }
   .player .time{
-    font-size:24px;
+    font-size:22px;
     font-weight:bold;
     line-height:1;
   }
   .player .last{
-    font-size:9px;
+    font-size:8.5px;
     opacity:.9;
     margin-top:2px;
   }
@@ -328,6 +328,36 @@
     border:1px solid rgba(231,76,60,.35);
   }
 
+  /* Badges de faltas / cartões */
+  .card-badges{
+    position:absolute;
+    top:6px;
+    right:6px;
+    display:flex;
+    gap:4px;
+    align-items:center;
+  }
+  .badge-fouls{
+    min-width:16px;
+    height:18px;
+    border-radius:999px;
+    background:#444;
+    color:#fff;
+    font-size:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 5px;
+  }
+  .badge-yc, .badge-rc{
+    width:12px;
+    height:18px;
+    border-radius:2px;
+    border:1px solid rgba(0,0,0,.4);
+  }
+  .badge-yc{ background:#f1c40f; }
+  .badge-rc{ background:#e74c3c; }
+
   /* Painel Editar nomes */
   #editPanel{
     position:fixed;
@@ -397,6 +427,82 @@
     cursor:pointer;
     margin-top:8px;
   }
+
+  /* Painel Presets */
+  #presetsPanel{
+    position:fixed;
+    right:-420px;
+    top:10%;
+    width:380px;
+    height:80%;
+    background:rgba(0,0,0,0.96);
+    border-left:2px solid #555;
+    border-radius:10px 0 0 10px;
+    padding:15px;
+    box-shadow:-4px 0 8px rgba(0,0,0,.4);
+    transition:right .2s;
+    z-index:999;
+    overflow-y:auto;
+  }
+  #presetsPanel.open{ right:0; }
+  #presetsPanel .close-btn{
+    position:absolute;
+    top:6px;
+    right:8px;
+    background:transparent;
+    border:none;
+    color:#fff;
+    font-size:18px;
+    cursor:pointer;
+  }
+
+  /* Timeline (apenas botões) */
+  #timelineBar{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    height:var(--timeline-h);
+    background:#212121;
+    border-top:1px solid #444;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    z-index:900;
+  }
+  body.light-mode #timelineBar{
+    background:#f0f0f0;
+    border-top:1px solid #ccc;
+  }
+  .tl-btn{
+    border:none;
+    border-radius:999px;
+    padding:6px 10px;
+    font-size:14px;
+    cursor:pointer;
+    background:#3b3b3b;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  body.light-mode .tl-btn{
+    background:#666;
+    color:#fff;
+  }
+  .tl-btn span.icon{
+    font-size:16px;
+  }
+  .tl-btn span.label{
+    font-size:12px;
+  }
+
+  /* Estado de seleção de jogador para evento */
+  .player.selectEvent{
+    outline:3px dashed #fff;
+    outline-offset:-3px;
+  }
 </style>
 </head>
 
@@ -407,6 +513,7 @@
     <button id="themeToggle" title="Tema">🌙</button>
     <button id="fullscreenBtn" title="Fullscreen">⛶</button>
     <button id="editNamesBtn" title="Editar nomes">👥</button>
+    <button id="presetsBtn" title="Presets">💾</button>
     <button id="printBtn" title="Exportar PNG">📸</button>
   </div>
 </header>
@@ -464,6 +571,41 @@
   <button class="save-btn" id="saveNamesBtn">Guardar Alterações</button>
 </div>
 
+<!-- Painel Presets -->
+<div id="presetsPanel">
+  <button class="close-btn" id="closePresets">❌</button>
+  <h3 style="margin:0 0 10px 0;">Presets de Plantel</h3>
+
+  <div style="display:flex; gap:6px; margin-bottom:8px;">
+    <input id="presetName" placeholder="Nome do preset" style="flex:1;padding:6px;border-radius:6px;border:1px solid #777;background:#1f1f1f;color:#fff"/>
+    <button id="savePresetBtn" style="padding:6px 10px;border:none;border-radius:6px;background:#0078d7;color:#fff;cursor:pointer">Guardar</button>
+  </div>
+
+  <div>
+    <h4 style="margin:10px 0 6px 0;">Carregar</h4>
+    <div id="presetList"></div>
+  </div>
+</div>
+
+<!-- Timeline (só botões) -->
+<div id="timelineBar">
+  <button class="tl-btn" data-type="GF_A">
+    <span class="icon">⚽</span><span class="label">Golo +</span>
+  </button>
+  <button class="tl-btn" data-type="GA_A">
+    <span class="icon">⚽</span><span class="label">Golo −</span>
+  </button>
+  <button class="tl-btn tl-player" data-type="FK_P">
+    <span class="icon">❌</span><span class="label">Falta</span>
+  </button>
+  <button class="tl-btn tl-player" data-type="YC_P">
+    <span class="icon">🟨</span><span class="label">Amarelo</span>
+  </button>
+  <button class="tl-btn tl-player" data-type="RC_P">
+    <span class="icon">🟥</span><span class="label">Vermelho</span>
+  </button>
+</div>
+
 <script>
 /* ============================================================
    ESTADO PRINCIPAL
@@ -478,7 +620,13 @@ let players = [];
 let theme = "dark";
 const maxOnField = 5;
 
-const STORAGE_KEY = "gameControl_simple_v2";
+let scoreA = 0;
+let scoreB = 0;
+
+let pendingPlayerEvent = null;
+
+const STORAGE_KEY = "gameControl_withTimeline_andPresets_v1";
+const PRESETS_KEY = "gc_presets_v1";
 
 /* ============================================================
    FUNÇÕES UTILITÁRIAS
@@ -549,6 +697,8 @@ function resetTimer(){
   duration = mins * 60;
   remaining = duration;
   firstHalf = true;
+  scoreA = 0;
+  scoreB = 0;
   players.forEach(p=>{
     p.seconds = 0;
     p.secondsOut = 0;
@@ -560,11 +710,15 @@ function resetTimer(){
     p.lastRotation = 0;
     if(!p.isGK) p.fatigue = 0;
     p.active = false;
+    p.fouls = 0;
+    p.yc = false;
+    p.rc = false;
   });
   updateTimerDisplay();
   updateHalfBadge();
   updatePlayersUI();
   updateSummary();
+  updateScoreUI();
   saveData();
 }
 function intervalTimer(){
@@ -603,8 +757,12 @@ function buildPlayersDOM(){
     const div = document.createElement("div");
     div.id = "player"+p.id;
     div.className = "player " + (p.active ? "active" : "inactive");
+    const foulsHTML = p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : "";
+    const ycHTML = p.yc ? `<span class="badge-yc" title="Amarelo"></span>` : "";
+    const rcHTML = p.rc ? `<span class="badge-rc" title="Vermelho"></span>` : "";
     div.innerHTML = `
       <div class="gk-icon" style="display:${p.isGK?"flex":"none"}">🧤</div>
+      <div class="card-badges">${foulsHTML}${ycHTML}${rcHTML}</div>
       <strong class="name">${p.name}</strong>
       <div class="time">00:00</div>
       <div class="last"></div>
@@ -620,7 +778,7 @@ function updatePlayersUI(){
   players.forEach(p=>{
     const el = document.getElementById("player"+p.id);
     if(!el) return;
-    el.className = "player " + (p.active ? "active" : "inactive");
+    el.className = "player " + (p.active ? "active" : "inactive") + (pendingPlayerEvent ? " selectEvent" : "");
     const timeEl = el.querySelector(".time");
     const lastEl = el.querySelector(".last");
     const nameEl = el.querySelector(".name");
@@ -634,6 +792,13 @@ function updatePlayersUI(){
         fb.style.width = Math.round(p.fatigue*100) + "%";
         fb.style.background = fatigueColor(p.fatigue);
       }
+    }
+    const badges = el.querySelector(".card-badges");
+    if(badges){
+      badges.innerHTML =
+        (p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : "") +
+        (p.yc ? `<span class="badge-yc" title="Amarelo"></span>` : "") +
+        (p.rc ? `<span class="badge-rc" title="Vermelho"></span>` : "");
     }
   });
 }
@@ -656,7 +821,10 @@ function ensurePlayerCount(n){
       rotationSecondsCurrent: prev ? (prev.rotationSecondsCurrent||0) : 0,
       rotationSecondsOut: prev ? (prev.rotationSecondsOut||0) : 0,
       lastRotation: prev ? (prev.lastRotation||0) : 0,
-      fatigue: prev && !prev.isGK ? (prev.fatigue||0) : 0
+      fatigue: prev && !prev.isGK ? (prev.fatigue||0) : 0,
+      fouls: prev ? (prev.fouls||0) : 0,
+      yc: prev ? !!prev.yc : false,
+      rc: prev ? !!prev.rc : false
     });
   }
   buildPlayersDOM();
@@ -675,7 +843,25 @@ function flashLimit(id){
   setTimeout(()=>el.classList.remove("limit"),600);
 }
 
+function addPlayerEvent(type, playerId){
+  const p = players.find(x=>x.id===playerId);
+  if(!p) return;
+  if(type==="FK_P") p.fouls = (p.fouls||0) + 1;
+  if(type==="YC_P") p.yc = true;
+  if(type==="RC_P") p.rc = true;
+  updatePlayersUI();
+  updateSummary();
+  saveData();
+}
+
 function togglePlayer(id){
+  if(pendingPlayerEvent){
+    addPlayerEvent(pendingPlayerEvent, id);
+    pendingPlayerEvent = null;
+    updatePlayersUI();
+    return;
+  }
+
   const p = players.find(x=>x.id===id);
   if(!p) return;
   const currently = activeCount();
@@ -783,6 +969,78 @@ function saveNamesFromPanel(){
 }
 
 /* ============================================================
+   PRESETS
+   ============================================================ */
+function getPresets(){
+  return JSON.parse(localStorage.getItem(PRESETS_KEY) || "{}");
+}
+function setPresets(obj){
+  localStorage.setItem(PRESETS_KEY, JSON.stringify(obj));
+}
+function renderPresetList(){
+  const list = document.getElementById("presetList");
+  const all = getPresets();
+  const keys = Object.keys(all);
+  if(keys.length===0){
+    list.innerHTML = '<div style="color:#ccc">Sem presets.</div>';
+    return;
+  }
+  list.innerHTML = "";
+  keys.forEach(name=>{
+    const row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.gap = "6px";
+    row.style.marginBottom = "6px";
+    row.innerHTML = `
+      <div style="flex:1;background:#1f1f1f;border:1px solid #444;border-radius:6px;padding:6px;color:#fff;">${name}</div>
+      <button data-name="${name}" class="btnLoad" style="padding:6px 8px;border:none;border-radius:6px;background:#444;color:#fff;cursor:pointer;font-size:12px">Carregar</button>
+      <button data-name="${name}" class="btnDel" style="padding:6px 8px;border:none;border-radius:6px;background:#a33;color:#fff;cursor:pointer;font-size:12px">Apagar</button>
+    `;
+    list.appendChild(row);
+  });
+  list.querySelectorAll(".btnLoad").forEach(b=>b.onclick=()=>loadPreset(b.dataset.name));
+  list.querySelectorAll(".btnDel").forEach(b=>b.onclick=()=>{
+    const all = getPresets();
+    delete all[b.dataset.name];
+    setPresets(all);
+    renderPresetList();
+  });
+}
+function savePreset(){
+  const nm = (document.getElementById("presetName").value || "").trim();
+  if(!nm){
+    alert("Dá um nome ao preset.");
+    return;
+  }
+  const data = {
+    size: players.length,
+    roster: players.map(p=>({ name: p.name, isGK: !!p.isGK }))
+  };
+  const all = getPresets();
+  all[nm] = data;
+  setPresets(all);
+  renderPresetList();
+  alert("Preset guardado.");
+}
+function loadPreset(name){
+  const all = getPresets();
+  const p = all[name];
+  if(!p) return;
+  ensurePlayerCount(p.size || 14);
+  players.forEach((pl,i)=>{
+    const src = p.roster[i];
+    if(!src) return;
+    pl.name = src.name || pl.name;
+    pl.isGK = !!src.isGK;
+    if(pl.isGK) pl.fatigue = 0;
+  });
+  buildPlayersDOM();
+  updateSummary();
+  saveData();
+  alert("Preset carregado.");
+}
+
+/* ============================================================
    AUTOSAVE
    ============================================================ */
 function saveData(){
@@ -792,9 +1050,10 @@ function saveData(){
     duration,
     remaining,
     firstHalf,
-    running:false,
     theme,
-    players
+    players,
+    scoreA,
+    scoreB
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
@@ -817,13 +1076,17 @@ function loadData(){
         rotationSecondsCurrent:0,
         rotationSecondsOut:0,
         lastRotation:0,
-        fatigue:0
+        fatigue:0,
+        fouls:0,
+        yc:false,
+        rc:false
       });
     }
     buildPlayersDOM();
     updateTimerDisplay();
     updateHalfBadge();
     updateSummary();
+    updateScoreUI();
     return;
   }
   try{
@@ -834,6 +1097,8 @@ function loadData(){
     remaining = typeof d.remaining==="number" ? d.remaining : remaining;
     firstHalf = typeof d.firstHalf==="boolean" ? d.firstHalf : true;
     theme = d.theme || "dark";
+    scoreA = typeof d.scoreA==="number" ? d.scoreA : 0;
+    scoreB = typeof d.scoreB==="number" ? d.scoreB : 0;
 
     players = (Array.isArray(d.players)?d.players:[]).map((p,i)=>({
       id: p.id ?? (i+1),
@@ -848,7 +1113,10 @@ function loadData(){
       rotationSecondsCurrent: p.rotationSecondsCurrent || 0,
       rotationSecondsOut: p.rotationSecondsOut || 0,
       lastRotation: p.lastRotation || 0,
-      fatigue: p.isGK ? 0 : (p.fatigue || 0)
+      fatigue: p.isGK ? 0 : (p.fatigue || 0),
+      fouls: p.fouls || 0,
+      yc: !!p.yc,
+      rc: !!p.rc
     }));
 
     if(players.length===0){
@@ -866,7 +1134,10 @@ function loadData(){
           rotationSecondsCurrent:0,
           rotationSecondsOut:0,
           lastRotation:0,
-          fatigue:0
+          fatigue:0,
+          fouls:0,
+          yc:false,
+          rc:false
         });
       }
     }
@@ -875,6 +1146,7 @@ function loadData(){
     updateTimerDisplay();
     updateHalfBadge();
     updateSummary();
+    updateScoreUI();
 
     if(theme==="light"){
       document.body.classList.add("light-mode");
@@ -893,7 +1165,7 @@ function loadData(){
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
-  const title = `${teamA} vs ${teamB}`;
+  const title = `${teamA} ${scoreA}–${scoreB} ${teamB}`;
 
   const headers = ["Jogador","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
   const rows = players.map(p=>{
@@ -1029,11 +1301,25 @@ function exportPng(){
 }
 
 /* ============================================================
-   SCORE (placeholder, se quiseres evoluir depois)
+   SCORE
    ============================================================ */
 function updateScoreUI(){
-  document.getElementById("scoreA").textContent = "0";
-  document.getElementById("scoreB").textContent = "0";
+  document.getElementById("scoreA").textContent = scoreA;
+  document.getElementById("scoreB").textContent = scoreB;
+}
+
+/* ============================================================
+   TIMELINE (apenas lógica dos botões)
+   ============================================================ */
+function handleTeamEvent(type){
+  if(type==="GF_A") scoreA++;
+  if(type==="GA_A") scoreB++;
+  updateScoreUI();
+  saveData();
+}
+function setPendingEvent(type){
+  pendingPlayerEvent = type;
+  updatePlayersUI();
 }
 
 /* ============================================================
@@ -1052,6 +1338,27 @@ document.getElementById("printBtn").onclick = exportPng;
 document.getElementById("editNamesBtn").onclick = openEditPanel;
 document.getElementById("closePanel").onclick = closeEditPanel;
 document.getElementById("saveNamesBtn").onclick = saveNamesFromPanel;
+
+/* Presets UI */
+const presetsPanel = document.getElementById("presetsPanel");
+document.getElementById("presetsBtn").onclick = ()=>{
+  renderPresetList();
+  presetsPanel.classList.add("open");
+};
+document.getElementById("closePresets").onclick = ()=>{
+  presetsPanel.classList.remove("open");
+};
+document.getElementById("savePresetBtn").onclick = savePreset;
+
+/* Timeline buttons */
+document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
+  const type = btn.dataset.type;
+  if(btn.classList.contains("tl-player")){
+    btn.addEventListener("click", ()=>setPendingEvent(type));
+  }else{
+    btn.addEventListener("click", ()=>handleTeamEvent(type));
+  }
+});
 
 window.addEventListener("beforeunload", saveData);
 setInterval(saveData, 5000);
