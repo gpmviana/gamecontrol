@@ -171,7 +171,7 @@
     background:#e74c3c;
   }
 
-  /* Grelha dos jogadores – mais finas e juntas */
+  /* Grelha dos jogadores – finas e juntas */
   #players{
     display:grid;
     grid-template-columns:repeat(5,minmax(0,1fr));
@@ -762,6 +762,8 @@ let scoreB = 0;
 let pendingPlayerEvent = null;
 
 let timeline = [];
+let lastOffId = null;
+let lastOffTime = 0;
 
 const STORAGE_KEY = "gameControl_withWorkloadGestao_v1";
 const PRESETS_KEY = "gc_presets_v1";
@@ -868,6 +870,8 @@ function resetTimer(){
     p.yc = false;
     p.rc = false;
   });
+  lastOffId = null;
+  lastOffTime = 0;
   updateTimerDisplay();
   updateHalfBadge();
   updatePlayersUI();
@@ -891,6 +895,8 @@ function intervalTimer(){
       p.fatigue *= 0.3;
     }
   });
+  lastOffId = null;
+  lastOffTime = 0;
   updateTimerDisplay();
   updateHalfBadge();
   updatePlayersUI();
@@ -1247,6 +1253,35 @@ function addTimelineEvent(ev){
   timeline.push(ev);
 }
 
+function describeEvent(ev){
+  const halfStr = ev.half === 2 ? "2ªP" : "1ªP";
+  let label = "";
+  if(ev.type === "GF_A") label = "Golo a favor";
+  else if(ev.type === "GA_A") label = "Golo sofrido";
+  else if(ev.type === "FK_P") label = "Falta";
+  else if(ev.type === "YC_P") label = "Cartão amarelo";
+  else if(ev.type === "RC_P") label = "Cartão vermelho";
+  else label = ev.type;
+
+  let extra = "";
+
+  if(ev.type === "GF_A" || ev.type === "GA_A"){
+    const ids = ev.activeIds || [];
+    const names = ids.map(id=>{
+      const p = players.find(x=>x.id===id);
+      return p ? (p.name + (p.isGK ? " 🧤" : "")) : ("#"+id);
+    });
+    if(names.length){
+      extra = " — Em campo: " + names.join(", ");
+    }
+  }else if(ev.type === "FK_P" || ev.type === "YC_P" || ev.type === "RC_P"){
+    const p = players.find(x=>x.id===ev.playerId);
+    if(p) extra = " — " + p.name + (p.isGK ? " 🧤" : "");
+  }
+
+  return `${halfStr} ${ev.clock} • ${label}${extra}`;
+}
+
 /* Player events */
 function addPlayerEvent(type, playerId){
   const p = players.find(x=>x.id===playerId);
@@ -1273,6 +1308,7 @@ function addPlayerEvent(type, playerId){
   saveData();
 }
 
+/* TOGGLE PLAYER – rotações só quando há troca real (não clicar só no mesmo) */
 function togglePlayer(id){
   if(pendingPlayerEvent){
     addPlayerEvent(pendingPlayerEvent, id);
@@ -1285,21 +1321,39 @@ function togglePlayer(id){
   if(!p) return;
   const currently = activeCount();
 
-  if(!p.active && currently >= maxOnField){
-    flashLimit(id);
-    return;
-  }
-
   if(p.active){
+    const wasFull = (currently === maxOnField);
     p.active = false;
     p.lastRotation = p.rotationSecondsCurrent;
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
+
+    if(wasFull){
+      lastOffId = p.id;
+      lastOffTime = Date.now();
+    }
   } else {
+    if(currently >= maxOnField){
+      flashLimit(id);
+      return;
+    }
     p.active = true;
-    p.rotations++;
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
+
+    const now = Date.now();
+    const recent = (now - lastOffTime) <= 10000; // 10s janela
+    const isSelf = (lastOffId === p.id);
+
+    // só não conta rotação se foi o MESMO jogador a sair e entrar logo de seguida
+    if(!(recent && isSelf)){
+      p.rotations++;
+    }
+
+    if(!recent){
+      lastOffId = null;
+      lastOffTime = 0;
+    }
   }
 
   updatePlayersUI();
@@ -1417,7 +1471,7 @@ function loadData(){
     updateHalfBadge();
     updateSummary();
     updateScoreUI();
-    running = false; // nunca retomamos automaticamente
+    running = false;
     updateStartPauseLabel();
 
     if(theme==="light"){
@@ -1431,7 +1485,7 @@ function loadData(){
   }
 }
 
-/* Export PNG – tabela + título */
+/* Export PNG – tabela + timeline */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
@@ -1461,6 +1515,10 @@ function exportPng(){
     ]);
   });
 
+  const eventLines = timeline.length
+    ? timeline.map(describeEvent)
+    : ["Sem eventos"];
+
   const colWidths = [260,100,100,140,140,90,100,90,120];
   const tableWidth = colWidths.reduce((a,b)=>a+b,0);
   const margin = 20;
@@ -1468,9 +1526,15 @@ function exportPng(){
   const titleH = 30;
   const padding = 12;
   const tableHeight = padding + headerH + rows.length*rowH + padding;
+
+  const tlHeaderH = 26;
+  const tlLineH = 18;
+  const tlPadding = 12;
+  const timelineHeight = tlPadding + tlHeaderH + eventLines.length*tlLineH + tlPadding;
+
   const contentWidth = tableWidth + padding*2;
   const canvasW = Math.max(900, contentWidth + margin*2);
-  const canvasH = margin + titleH + 10 + tableHeight + margin;
+  const canvasH = margin + titleH + 10 + tableHeight + 10 + timelineHeight + margin;
 
   const canvas = document.createElement("canvas");
   canvas.width = canvasW;
@@ -1489,6 +1553,7 @@ function exportPng(){
   const cardX = (canvasW - contentWidth)/2;
   const cardY = margin + titleH + 10;
 
+  // Cartão da tabela
   ctx.fillStyle = "#ffffff";
   ctx.strokeStyle = "#cccccc";
   ctx.lineWidth = 1;
@@ -1566,6 +1631,44 @@ function exportPng(){
     ctx.stroke();
 
     rowY += rowH;
+  });
+
+  // Cartão da timeline
+  const tlX = cardX;
+  const tlY = cardY + tableHeight + 10;
+
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "#cccccc";
+  ctx.lineWidth = 1;
+  const r2 = 10;
+  ctx.beginPath();
+  ctx.moveTo(tlX+r2,tlY);
+  ctx.lineTo(tlX+contentWidth-r2,tlY);
+  ctx.quadraticCurveTo(tlX+contentWidth,tlY,tlX+contentWidth,tlY+r2);
+  ctx.lineTo(tlX+contentWidth,tlY+timelineHeight-r2);
+  ctx.quadraticCurveTo(tlX+contentWidth,tlY+timelineHeight,tlX+contentWidth-r2,tlY+timelineHeight);
+  ctx.lineTo(tlX+r2,tlY+timelineHeight);
+  ctx.quadraticCurveTo(tlX,tlY+timelineHeight,tlX,tlY+timelineHeight-r2);
+  ctx.lineTo(tlX,tlY+r2);
+  ctx.quadraticCurveTo(tlX,tlY,tlX+r2,tlY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  let tx = tlX + padding;
+  let ty = tlY + tlPadding;
+
+  ctx.fillStyle = "#000";
+  ctx.font = "bold 14px Arial";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("Timeline", tx, ty + tlHeaderH/2);
+
+  ctx.font = "12px Arial";
+  let lineY = ty + tlHeaderH + 4;
+  eventLines.forEach(line=>{
+    ctx.fillText(line, tx, lineY + tlLineH/2);
+    lineY += tlLineH;
   });
 
   const a = document.createElement("a");
