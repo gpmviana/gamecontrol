@@ -1308,7 +1308,7 @@ function addPlayerEvent(type, playerId){
   saveData();
 }
 
-/* TOGGLE PLAYER – rotações só quando há troca real (não clicar só no mesmo) */
+/* TOGGLE PLAYER – rotações só quando há troca real */
 function togglePlayer(id){
   if(pendingPlayerEvent){
     addPlayerEvent(pendingPlayerEvent, id);
@@ -1322,16 +1322,24 @@ function togglePlayer(id){
   const currently = activeCount();
 
   if(p.active){
-    const wasFull = (currently === maxOnField);
+    if(currently === 0){
+      p.active = false;
+      updatePlayersUI();
+      updateSummary();
+      if(document.getElementById("loadPanel").classList.contains("open")){
+        renderLoadPanel();
+      }
+      saveData();
+      return;
+    }
     p.active = false;
     p.lastRotation = p.rotationSecondsCurrent;
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
 
-    if(wasFull){
-      lastOffId = p.id;
-      lastOffTime = Date.now();
-    }
+    lastOffId = p.id;
+    lastOffTime = Date.now();
+
   } else {
     if(currently >= maxOnField){
       flashLimit(id);
@@ -1342,17 +1350,17 @@ function togglePlayer(id){
     p.rotationSecondsOut = 0;
 
     const now = Date.now();
-    const recent = (now - lastOffTime) <= 10000; // 10s janela
+    const recent = (now - lastOffTime) <= 10000;
     const isSelf = (lastOffId === p.id);
 
-    // só não conta rotação se foi o MESMO jogador a sair e entrar logo de seguida
-    if(!(recent && isSelf)){
-      p.rotations++;
-    }
-
-    if(!recent){
+    if(recent){
+      if(!isSelf){
+        p.rotations++;
+      }
       lastOffId = null;
       lastOffTime = 0;
+    }else{
+      p.rotations++;
     }
   }
 
@@ -1641,14 +1649,15 @@ function exportPng(){
   ctx.strokeStyle = "#cccccc";
   ctx.lineWidth = 1;
   const r2 = 10;
+  const timelineCardH = timelineHeight;
   ctx.beginPath();
   ctx.moveTo(tlX+r2,tlY);
   ctx.lineTo(tlX+contentWidth-r2,tlY);
   ctx.quadraticCurveTo(tlX+contentWidth,tlY,tlX+contentWidth,tlY+r2);
-  ctx.lineTo(tlX+contentWidth,tlY+timelineHeight-r2);
-  ctx.quadraticCurveTo(tlX+contentWidth,tlY+timelineHeight,tlX+contentWidth-r2,tlY+timelineHeight);
-  ctx.lineTo(tlX+r2,tlY+timelineHeight);
-  ctx.quadraticCurveTo(tlX,tlY+timelineHeight,tlX,tlY+timelineHeight-r2);
+  ctx.lineTo(tlX+contentWidth,tlY+timelineCardH-r2);
+  ctx.quadraticCurveTo(tlX+contentWidth,tlY+timelineCardH,tlX+contentWidth-r2,tlY+timelineCardH);
+  ctx.lineTo(tlX+r2,tlY+timelineCardH);
+  ctx.quadraticCurveTo(tlX,tlY+timelineCardH,tlX,tlY+timelineCardH-r2);
   ctx.lineTo(tlX,tlY+r2);
   ctx.quadraticCurveTo(tlX,tlY,tlX+r2,tlY);
   ctx.closePath();
