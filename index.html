@@ -58,9 +58,38 @@
   body.light-mode .top-buttons button{
     color:#222;
   }
-  .top-buttons button:disabled{
-    opacity:0.4;
-    cursor:default;
+
+  /* BOTÃO FLUTUANTE INICIAR/PAUSAR */
+  #floatingPlayBtn{
+    position:fixed;
+    top:64px;           /* logo abaixo do header / ícones */
+    right:16px;
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    border:none;
+    font-size:30px;
+    font-weight:bold;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    z-index:1200;
+    box-shadow:0 4px 12px rgba(0,0,0,0.5);
+    transition:background 0.2s, box-shadow 0.2s, transform 0.1s;
+  }
+  #floatingPlayBtn.running{
+    background:#e74c3c;
+    color:#fff;
+    box-shadow:0 0 14px rgba(231,76,60,0.8);
+  }
+  #floatingPlayBtn.paused{
+    background:#2ecc71;
+    color:#000;
+    box-shadow:0 0 14px rgba(46,204,113,0.8);
+  }
+  #floatingPlayBtn:active{
+    transform:scale(0.95);
   }
 
   #teamInputs{
@@ -150,28 +179,7 @@
     text-align:center;
   }
 
-  /* BOTÃO PRINCIPAL – cor muda com o estado */
-  #startPauseBtn{
-    padding:10px 26px;
-    min-width:140px;
-    font-size:16px;
-    font-weight:700;
-    border-radius:999px;
-    background:#2ecc71; /* parado = verde (Iniciar) */
-    color:#fff;
-  }
-  body.light-mode #startPauseBtn{
-    background:#2ecc71;
-    color:#fff;
-  }
-  #startPauseBtn.running{
-    background:#e74c3c; /* a contar = vermelho (Pausar) */
-  }
-  body.light-mode #startPauseBtn.running{
-    background:#e74c3c;
-  }
-
-  /* Grelha dos jogadores – finas e juntas */
+  /* Grelha dos jogadores – mais finas e juntas */
   #players{
     display:grid;
     grid-template-columns:repeat(5,minmax(0,1fr));
@@ -507,7 +515,7 @@
     cursor:pointer;
   }
   #loadPanel h3{
-    margin:0 0 8px 0;
+    margin:0 0 10px 0;
   }
   .load-row{
     display:flex;
@@ -536,17 +544,12 @@
     font-size:11px;
     font-weight:600;
   }
-  .load-sub{
-    background:rgba(52,152,219,.15);
-    color:#3498db;
-    border:1px solid rgba(52,152,219,.5);
-  }
-  .load-ideal{
+  .load-pos{
     background:rgba(46,204,113,.15);
     color:#2ecc71;
     border:1px solid rgba(46,204,113,.5);
   }
-  .load-over{
+  .load-neg{
     background:rgba(231,76,60,.15);
     color:#e74c3c;
     border:1px solid rgba(231,76,60,.5);
@@ -640,6 +643,9 @@
   </div>
 </header>
 
+<!-- Botão flutuante Iniciar/Pausar -->
+<button id="floatingPlayBtn" class="paused" title="Iniciar / Pausar">⏵</button>
+
 <div id="teamInputs">
   <span class="scoreBubble" id="scoreA">0</span>
   <input id="teamA" placeholder="Equipa A" />
@@ -655,7 +661,7 @@
 
 <div class="controls">
   <input id="setMinutes" type="number" value="20" min="1" style="width:60px;">
-  <button id="startPauseBtn">Iniciar</button>
+  <!-- start/pause removidos, agora só no botão flutuante -->
   <button id="intervalBtn">Intervalo</button>
   <button id="resetBtn">Reset</button>
   <button id="addBtn">+</button>
@@ -710,11 +716,8 @@
 <div id="loadPanel">
   <button class="close-btn" id="closeLoad">❌</button>
   <h3>Gestão de Cargas</h3>
-  <p style="font-size:12px;color:#ccc;margin:0 0 4px 0;">
-    Workload compara o tempo em campo com o tempo ideal (se todos jogassem igual).
-  </p>
   <p style="font-size:12px;color:#ccc;margin:0 0 8px 0;">
-    Tags: <strong>Subutilizado</strong> (≤ −10%), <strong>Zona Ideal</strong> (±10%), <strong>Sobrecarregado</strong> (≥ +10%).
+    Workload = tempo em campo − tempo ideal (se todos jogassem igual).
   </p>
   <div id="loadList"></div>
 </div>
@@ -762,11 +765,12 @@ let scoreB = 0;
 let pendingPlayerEvent = null;
 
 let timeline = [];
-let lastOffId = null;
-let lastOffTime = 0;
 
 const STORAGE_KEY = "gameControl_withWorkloadGestao_v1";
 const PRESETS_KEY = "gc_presets_v1";
+
+/* Botão flutuante */
+const floatingPlayBtn = document.getElementById("floatingPlayBtn");
 
 function pad(n){return String(n).padStart(2,"0");}
 function formatTime(sec){
@@ -786,11 +790,19 @@ function updateScoreUI(){
   document.getElementById("scoreA").textContent = scoreA;
   document.getElementById("scoreB").textContent = scoreB;
 }
-function updateStartPauseLabel(){
-  const btn = document.getElementById("startPauseBtn");
-  if(!btn) return;
-  btn.textContent = running ? "Pausar" : "Iniciar";
-  btn.classList.toggle("running", running);
+
+/* Actualiza aparência do botão flutuante */
+function updateFloatingPlayBtn(){
+  if(!floatingPlayBtn) return;
+  if(running){
+    floatingPlayBtn.classList.remove("paused");
+    floatingPlayBtn.classList.add("running");
+    floatingPlayBtn.textContent = "⏸";
+  }else{
+    floatingPlayBtn.classList.remove("running");
+    floatingPlayBtn.classList.add("paused");
+    floatingPlayBtn.textContent = "⏵";
+  }
 }
 
 function tick(){
@@ -823,9 +835,6 @@ function tick(){
   updateTimerDisplay();
   updatePlayersUI();
   updateSummary();
-  if(document.getElementById("loadPanel").classList.contains("open")){
-    renderLoadPanel();
-  }
   saveData();
 }
 function startTimer(){
@@ -833,19 +842,14 @@ function startTimer(){
   running = true;
   clearInterval(timerInterval);
   timerInterval = setInterval(tick,1000);
-  updateStartPauseLabel();
+  updateFloatingPlayBtn();
 }
 function pauseTimer(){
   running = false;
   clearInterval(timerInterval);
-  updateStartPauseLabel();
+  updateFloatingPlayBtn();
   saveData();
 }
-function toggleStartPause(){
-  if(running) pauseTimer();
-  else startTimer();
-}
-
 function resetTimer(){
   pauseTimer();
   const mins = parseInt(document.getElementById("setMinutes").value)||20;
@@ -870,16 +874,12 @@ function resetTimer(){
     p.yc = false;
     p.rc = false;
   });
-  lastOffId = null;
-  lastOffTime = 0;
   updateTimerDisplay();
   updateHalfBadge();
   updatePlayersUI();
   updateSummary();
   updateScoreUI();
-  if(document.getElementById("loadPanel").classList.contains("open")){
-    renderLoadPanel();
-  }
+  updateFloatingPlayBtn();
   saveData();
 }
 function intervalTimer(){
@@ -895,15 +895,10 @@ function intervalTimer(){
       p.fatigue *= 0.3;
     }
   });
-  lastOffId = null;
-  lastOffTime = 0;
   updateTimerDisplay();
   updateHalfBadge();
   updatePlayersUI();
   updateSummary();
-  if(document.getElementById("loadPanel").classList.contains("open")){
-    renderLoadPanel();
-  }
   saveData();
 }
 
@@ -992,9 +987,6 @@ function ensurePlayerCount(n){
   }
   buildPlayersDOM();
   updateSummary();
-  if(document.getElementById("loadPanel").classList.contains("open")){
-    renderLoadPanel();
-  }
   saveData();
 }
 
@@ -1009,7 +1001,69 @@ function flashLimit(id){
   setTimeout(()=>el.classList.remove("limit"),600);
 }
 
-/* Workload helpers */
+/* Timeline helpers */
+function addTimelineEvent(ev){
+  timeline.push(ev);
+}
+
+/* Player events */
+function addPlayerEvent(type, playerId){
+  const p = players.find(x=>x.id===playerId);
+  if(!p) return;
+  if(type==="FK_P") p.fouls = (p.fouls||0) + 1;
+  if(type==="YC_P") p.yc = true;
+  if(type==="RC_P") p.rc = true;
+
+  const half = firstHalf ? 1 : 2;
+  const clock = formatTime(remaining);
+  addTimelineEvent({
+    type,
+    half,
+    clock,
+    playerId,
+    ts: Date.now()
+  });
+
+  updatePlayersUI();
+  updateSummary();
+  saveData();
+}
+
+function togglePlayer(id){
+  if(pendingPlayerEvent){
+    addPlayerEvent(pendingPlayerEvent, id);
+    pendingPlayerEvent = null;
+    updatePlayersUI();
+    return;
+  }
+
+  const p = players.find(x=>x.id===id);
+  if(!p) return;
+  const currently = activeCount();
+
+  if(!p.active && currently >= maxOnField){
+    flashLimit(id);
+    return;
+  }
+
+  if(p.active){
+    p.active = false;
+    p.lastRotation = p.rotationSecondsCurrent;
+    p.rotationSecondsCurrent = 0;
+    p.rotationSecondsOut = 0;
+  } else {
+    p.active = true;
+    p.rotations++;
+    p.rotationSecondsCurrent = 0;
+    p.rotationSecondsOut = 0;
+  }
+
+  updatePlayersUI();
+  updateSummary();
+  saveData();
+}
+
+/* Workload inteligente */
 function computeGameTime(){
   if(players.length===0) return 0;
   return players.reduce((max,p)=>{
@@ -1017,33 +1071,30 @@ function computeGameTime(){
     return t>max?t:max;
   },0);
 }
+
 function computeIdealPerPlayer(gameTime){
   if(players.length===0) return 0;
   return gameTime * (maxOnField / players.length);
 }
-function computePlayerWorkloadSec(p, gameTime){
-  const ideal = computeIdealPerPlayer(gameTime);
-  return (p.seconds || 0) - ideal;
-}
-function computePlayerWorkloadPerc(p, gameTime){
-  const ideal = computeIdealPerPlayer(gameTime);
-  if(ideal <= 0) return 0;
-  return ((p.seconds || 0) - ideal) / ideal * 100;
+
+function computePlayerWorkload(p, gameTime, idealPerPlayer){
+  if(gameTime <= 0) return 0;
+  return (p.seconds || 0) - idealPerPlayer;
 }
 
-/* Tabela principal */
 function updateSummary(){
   const tbody = document.getElementById("summaryBody");
   tbody.innerHTML = "";
 
   const gameTime = computeGameTime();
+  const ideal = computeIdealPerPlayer(gameTime);
 
   players.forEach(p=>{
     const total = p.part1 + p.part2;
     const avg = p.rotations > 0 ? Math.floor(total / p.rotations) : 0;
     const percent = gameTime>0 ? ((p.seconds / gameTime)*100).toFixed(1) : "0.0";
-    const wlSec = computePlayerWorkloadSec(p, gameTime);
-    const wlMin = wlSec/60;
+    const wlSec = computePlayerWorkload(p, gameTime, ideal);
+    const wlMin = wlSec / 60;
     const wClass = wlMin >= 0 ? "work-pos" : "work-neg";
     const wTxt = `${wlMin>=0?"+":""}${wlMin.toFixed(1)}m`;
 
@@ -1107,9 +1158,6 @@ function saveNamesFromPanel(){
   closeEditPanel();
   buildPlayersDOM();
   updateSummary();
-  if(document.getElementById("loadPanel").classList.contains("open")){
-    renderLoadPanel();
-  }
   saveData();
 }
 
@@ -1132,22 +1180,8 @@ function renderLoadPanel(){
   const sorted = [...players].sort((a,b)=> (b.seconds||0)-(a.seconds||0));
 
   sorted.forEach(p=>{
-    const wlSec = computePlayerWorkloadSec(p, gameTime);
+    const wlSec = computePlayerWorkload(p, gameTime, ideal);
     const wlMin = wlSec/60;
-    const wlPerc = computePlayerWorkloadPerc(p, gameTime);
-
-    let tagLabel, tagClass;
-    if(wlPerc <= -10){
-      tagLabel = "Subutilizado";
-      tagClass = "load-sub";
-    }else if(wlPerc >= 10){
-      tagLabel = "Sobrecarregado";
-      tagClass = "load-over";
-    }else{
-      tagLabel = "Zona Ideal";
-      tagClass = "load-ideal";
-    }
-
     const totalSec = (p.seconds||0);
     const fad = p.fatigue || 0;
     let fadClass="fat-low", fadTxt="Fadiga baixa";
@@ -1165,8 +1199,8 @@ function renderLoadPanel(){
       <div class="load-meta">
         <span>Ideal: ${gameTime>0 ? formatTime(ideal) : "00:00"}</span>
         <span>
-          <span class="load-tag ${tagClass}">
-            ${tagLabel} (${wlMin>=0?"+":""}${wlMin.toFixed(1)}m)
+          <span class="load-tag ${wlMin>=0?'load-pos':'load-neg'}">
+            ${wlMin>=0?"+":""}${wlMin.toFixed(1)}m
           </span>
         </span>
       </div>
@@ -1241,135 +1275,8 @@ function loadPreset(name){
   });
   buildPlayersDOM();
   updateSummary();
-  if(document.getElementById("loadPanel").classList.contains("open")){
-    renderLoadPanel();
-  }
   saveData();
   alert("Preset carregado.");
-}
-
-/* Timeline helpers */
-function addTimelineEvent(ev){
-  timeline.push(ev);
-}
-
-function describeEvent(ev){
-  const halfStr = ev.half === 2 ? "2ªP" : "1ªP";
-  let label = "";
-  if(ev.type === "GF_A") label = "Golo a favor";
-  else if(ev.type === "GA_A") label = "Golo sofrido";
-  else if(ev.type === "FK_P") label = "Falta";
-  else if(ev.type === "YC_P") label = "Cartão amarelo";
-  else if(ev.type === "RC_P") label = "Cartão vermelho";
-  else label = ev.type;
-
-  let extra = "";
-
-  if(ev.type === "GF_A" || ev.type === "GA_A"){
-    const ids = ev.activeIds || [];
-    const names = ids.map(id=>{
-      const p = players.find(x=>x.id===id);
-      return p ? (p.name + (p.isGK ? " 🧤" : "")) : ("#"+id);
-    });
-    if(names.length){
-      extra = " — Em campo: " + names.join(", ");
-    }
-  }else if(ev.type === "FK_P" || ev.type === "YC_P" || ev.type === "RC_P"){
-    const p = players.find(x=>x.id===ev.playerId);
-    if(p) extra = " — " + p.name + (p.isGK ? " 🧤" : "");
-  }
-
-  return `${halfStr} ${ev.clock} • ${label}${extra}`;
-}
-
-/* Player events */
-function addPlayerEvent(type, playerId){
-  const p = players.find(x=>x.id===playerId);
-  if(!p) return;
-  if(type==="FK_P") p.fouls = (p.fouls||0) + 1;
-  if(type==="YC_P") p.yc = true;
-  if(type==="RC_P") p.rc = true;
-
-  const half = firstHalf ? 1 : 2;
-  const clock = formatTime(remaining);
-  addTimelineEvent({
-    type,
-    half,
-    clock,
-    playerId,
-    ts: Date.now()
-  });
-
-  updatePlayersUI();
-  updateSummary();
-  if(document.getElementById("loadPanel").classList.contains("open")){
-    renderLoadPanel();
-  }
-  saveData();
-}
-
-/* TOGGLE PLAYER – rotações só quando há troca real */
-function togglePlayer(id){
-  if(pendingPlayerEvent){
-    addPlayerEvent(pendingPlayerEvent, id);
-    pendingPlayerEvent = null;
-    updatePlayersUI();
-    return;
-  }
-
-  const p = players.find(x=>x.id===id);
-  if(!p) return;
-  const currently = activeCount();
-
-  if(p.active){
-    if(currently === 0){
-      p.active = false;
-      updatePlayersUI();
-      updateSummary();
-      if(document.getElementById("loadPanel").classList.contains("open")){
-        renderLoadPanel();
-      }
-      saveData();
-      return;
-    }
-    p.active = false;
-    p.lastRotation = p.rotationSecondsCurrent;
-    p.rotationSecondsCurrent = 0;
-    p.rotationSecondsOut = 0;
-
-    lastOffId = p.id;
-    lastOffTime = Date.now();
-
-  } else {
-    if(currently >= maxOnField){
-      flashLimit(id);
-      return;
-    }
-    p.active = true;
-    p.rotationSecondsCurrent = 0;
-    p.rotationSecondsOut = 0;
-
-    const now = Date.now();
-    const recent = (now - lastOffTime) <= 10000;
-    const isSelf = (lastOffId === p.id);
-
-    if(recent){
-      if(!isSelf){
-        p.rotations++;
-      }
-      lastOffId = null;
-      lastOffTime = 0;
-    }else{
-      p.rotations++;
-    }
-  }
-
-  updatePlayersUI();
-  updateSummary();
-  if(document.getElementById("loadPanel").classList.contains("open")){
-    renderLoadPanel();
-  }
-  saveData();
 }
 
 /* Persistência */
@@ -1417,7 +1324,7 @@ function loadData(){
     updateHalfBadge();
     updateSummary();
     updateScoreUI();
-    updateStartPauseLabel();
+    updateFloatingPlayBtn();
     return;
   }
   try{
@@ -1479,13 +1386,12 @@ function loadData(){
     updateHalfBadge();
     updateSummary();
     updateScoreUI();
-    running = false;
-    updateStartPauseLabel();
 
     if(theme==="light"){
       document.body.classList.add("light-mode");
       document.getElementById("themeToggle").textContent = "🌞";
     }
+    updateFloatingPlayBtn();
   }catch(e){
     console.error(e);
     localStorage.removeItem(STORAGE_KEY);
@@ -1493,7 +1399,7 @@ function loadData(){
   }
 }
 
-/* Export PNG – tabela + timeline */
+/* Export PNG – tabela + título */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
@@ -1502,12 +1408,13 @@ function exportPng(){
   const headers = ["Jogador","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
   const rows = [];
   const gameTime = computeGameTime();
+  const ideal = computeIdealPerPlayer(gameTime);
 
   players.forEach(p=>{
     const total = p.part1 + p.part2;
     const avg = p.rotations>0 ? Math.floor(total/p.rotations) : 0;
     const percent = gameTime>0 ? ((p.seconds / gameTime)*100).toFixed(1)+"%" : "0.0%";
-    const wlSec = computePlayerWorkloadSec(p, gameTime);
+    const wlSec = computePlayerWorkload(p, gameTime, ideal);
     const wlMin = wlSec/60;
     const wTxt = `${wlMin>=0?"+":""}${wlMin.toFixed(1)}m`;
     rows.push([
@@ -1523,10 +1430,6 @@ function exportPng(){
     ]);
   });
 
-  const eventLines = timeline.length
-    ? timeline.map(describeEvent)
-    : ["Sem eventos"];
-
   const colWidths = [260,100,100,140,140,90,100,90,120];
   const tableWidth = colWidths.reduce((a,b)=>a+b,0);
   const margin = 20;
@@ -1534,15 +1437,9 @@ function exportPng(){
   const titleH = 30;
   const padding = 12;
   const tableHeight = padding + headerH + rows.length*rowH + padding;
-
-  const tlHeaderH = 26;
-  const tlLineH = 18;
-  const tlPadding = 12;
-  const timelineHeight = tlPadding + tlHeaderH + eventLines.length*tlLineH + tlPadding;
-
   const contentWidth = tableWidth + padding*2;
   const canvasW = Math.max(900, contentWidth + margin*2);
-  const canvasH = margin + titleH + 10 + tableHeight + 10 + timelineHeight + margin;
+  const canvasH = margin + titleH + 10 + tableHeight + margin;
 
   const canvas = document.createElement("canvas");
   canvas.width = canvasW;
@@ -1561,7 +1458,6 @@ function exportPng(){
   const cardX = (canvasW - contentWidth)/2;
   const cardY = margin + titleH + 10;
 
-  // Cartão da tabela
   ctx.fillStyle = "#ffffff";
   ctx.strokeStyle = "#cccccc";
   ctx.lineWidth = 1;
@@ -1641,45 +1537,6 @@ function exportPng(){
     rowY += rowH;
   });
 
-  // Cartão da timeline
-  const tlX = cardX;
-  const tlY = cardY + tableHeight + 10;
-
-  ctx.fillStyle = "#ffffff";
-  ctx.strokeStyle = "#cccccc";
-  ctx.lineWidth = 1;
-  const r2 = 10;
-  const timelineCardH = timelineHeight;
-  ctx.beginPath();
-  ctx.moveTo(tlX+r2,tlY);
-  ctx.lineTo(tlX+contentWidth-r2,tlY);
-  ctx.quadraticCurveTo(tlX+contentWidth,tlY,tlX+contentWidth,tlY+r2);
-  ctx.lineTo(tlX+contentWidth,tlY+timelineCardH-r2);
-  ctx.quadraticCurveTo(tlX+contentWidth,tlY+timelineCardH,tlX+contentWidth-r2,tlY+timelineCardH);
-  ctx.lineTo(tlX+r2,tlY+timelineCardH);
-  ctx.quadraticCurveTo(tlX,tlY+timelineCardH,tlX,tlY+timelineCardH-r2);
-  ctx.lineTo(tlX,tlY+r2);
-  ctx.quadraticCurveTo(tlX,tlY,tlX+r2,tlY);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  let tx = tlX + padding;
-  let ty = tlY + tlPadding;
-
-  ctx.fillStyle = "#000";
-  ctx.font = "bold 14px Arial";
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  ctx.fillText("Timeline", tx, ty + tlHeaderH/2);
-
-  ctx.font = "12px Arial";
-  let lineY = ty + tlHeaderH + 4;
-  eventLines.forEach(line=>{
-    ctx.fillText(line, tx, lineY + tlLineH/2);
-    lineY += tlLineH;
-  });
-
   const a = document.createElement("a");
   const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
   a.download = `Resumo_${teamA.replace(/\s+/g,"_")}_vs_${teamB.replace(/\s+/g,"_")}_${ts}.png`;
@@ -1726,14 +1583,10 @@ document.getElementById("tlClearBtn").onclick = ()=>{
   updateScoreUI();
   updatePlayersUI();
   updateSummary();
-  if(document.getElementById("loadPanel").classList.contains("open")){
-    renderLoadPanel();
-  }
   saveData();
 };
 
 /* Ligações de botões base */
-document.getElementById("startPauseBtn").onclick = toggleStartPause;
 document.getElementById("resetBtn").onclick = resetTimer;
 document.getElementById("intervalBtn").onclick = intervalTimer;
 document.getElementById("addBtn").onclick = ()=>ensurePlayerCount(players.length+1);
@@ -1771,6 +1624,14 @@ document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   }
 });
 
+/* Clique no botão flutuante */
+if(floatingPlayBtn){
+  floatingPlayBtn.onclick = ()=>{
+    if(running) pauseTimer();
+    else startTimer();
+  };
+}
+
 window.addEventListener("beforeunload", saveData);
 setInterval(saveData, 5000);
 
@@ -1779,7 +1640,7 @@ loadData();
 updateTimerDisplay();
 updateHalfBadge();
 updateScoreUI();
-updateStartPauseLabel();
+updateFloatingPlayBtn();
 </script>
 </body>
 </html>
