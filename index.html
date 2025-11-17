@@ -59,39 +59,6 @@
     color:#222;
   }
 
-  /* BOTÃO FLUTUANTE INICIAR/PAUSAR */
-  #floatingPlayBtn{
-    position:fixed;
-    top:64px;           /* logo abaixo do header / ícones */
-    right:16px;
-    width:70px;
-    height:70px;
-    border-radius:50%;
-    border:none;
-    font-size:30px;
-    font-weight:bold;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    z-index:1200;
-    box-shadow:0 4px 12px rgba(0,0,0,0.5);
-    transition:background 0.2s, box-shadow 0.2s, transform 0.1s;
-  }
-  #floatingPlayBtn.running{
-    background:#e74c3c;
-    color:#fff;
-    box-shadow:0 0 14px rgba(231,76,60,0.8);
-  }
-  #floatingPlayBtn.paused{
-    background:#2ecc71;
-    color:#000;
-    box-shadow:0 0 14px rgba(46,204,113,0.8);
-  }
-  #floatingPlayBtn:active{
-    transform:scale(0.95);
-  }
-
   #teamInputs{
     display:flex;
     justify-content:center;
@@ -143,10 +110,16 @@
     color:#fff;
     font-size:12px;
     letter-spacing:.3px;
+    transition:transform 0.15s ease, box-shadow 0.15s ease;
   }
   body.light-mode .half-badge{
     background:#ccc;
     color:#111;
+  }
+  /* pequeno destaque quando carregas Intervalo */
+  .half-badge.pulse{
+    box-shadow:0 0 10px #e67e22;
+    transform:scale(1.05);
   }
 
   .controls{
@@ -177,6 +150,20 @@
     border-radius:6px;
     border:none;
     text-align:center;
+  }
+
+  /* Destaque específico para o botão Intervalo */
+  #intervalBtn{
+    min-width:110px;
+    font-weight:700;
+    background:#e67e22;
+  }
+  #intervalBtn:hover{
+    filter:brightness(1.1);
+  }
+  body.light-mode #intervalBtn{
+    background:#ff9800;
+    color:#fff;
   }
 
   /* Grelha dos jogadores – mais finas e juntas */
@@ -643,9 +630,6 @@
   </div>
 </header>
 
-<!-- Botão flutuante Iniciar/Pausar -->
-<button id="floatingPlayBtn" class="paused" title="Iniciar / Pausar">⏵</button>
-
 <div id="teamInputs">
   <span class="scoreBubble" id="scoreA">0</span>
   <input id="teamA" placeholder="Equipa A" />
@@ -661,7 +645,8 @@
 
 <div class="controls">
   <input id="setMinutes" type="number" value="20" min="1" style="width:60px;">
-  <!-- start/pause removidos, agora só no botão flutuante -->
+  <button id="startBtn">Iniciar</button>
+  <button id="pauseBtn">Pausar</button>
   <button id="intervalBtn">Intervalo</button>
   <button id="resetBtn">Reset</button>
   <button id="addBtn">+</button>
@@ -769,9 +754,6 @@ let timeline = [];
 const STORAGE_KEY = "gameControl_withWorkloadGestao_v1";
 const PRESETS_KEY = "gc_presets_v1";
 
-/* Botão flutuante */
-const floatingPlayBtn = document.getElementById("floatingPlayBtn");
-
 function pad(n){return String(n).padStart(2,"0");}
 function formatTime(sec){
   sec = Math.max(0, Math.floor(sec));
@@ -789,20 +771,6 @@ function updateHalfBadge(){
 function updateScoreUI(){
   document.getElementById("scoreA").textContent = scoreA;
   document.getElementById("scoreB").textContent = scoreB;
-}
-
-/* Actualiza aparência do botão flutuante */
-function updateFloatingPlayBtn(){
-  if(!floatingPlayBtn) return;
-  if(running){
-    floatingPlayBtn.classList.remove("paused");
-    floatingPlayBtn.classList.add("running");
-    floatingPlayBtn.textContent = "⏸";
-  }else{
-    floatingPlayBtn.classList.remove("running");
-    floatingPlayBtn.classList.add("paused");
-    floatingPlayBtn.textContent = "⏵";
-  }
 }
 
 function tick(){
@@ -842,12 +810,10 @@ function startTimer(){
   running = true;
   clearInterval(timerInterval);
   timerInterval = setInterval(tick,1000);
-  updateFloatingPlayBtn();
 }
 function pauseTimer(){
   running = false;
   clearInterval(timerInterval);
-  updateFloatingPlayBtn();
   saveData();
 }
 function resetTimer(){
@@ -879,7 +845,6 @@ function resetTimer(){
   updatePlayersUI();
   updateSummary();
   updateScoreUI();
-  updateFloatingPlayBtn();
   saveData();
 }
 function intervalTimer(){
@@ -900,6 +865,10 @@ function intervalTimer(){
   updatePlayersUI();
   updateSummary();
   saveData();
+
+  const hb = document.getElementById("halfBadge");
+  hb.classList.add("pulse");
+  setTimeout(()=>hb.classList.remove("pulse"), 500);
 }
 
 function fatigueColor(f){
@@ -1071,12 +1040,10 @@ function computeGameTime(){
     return t>max?t:max;
   },0);
 }
-
 function computeIdealPerPlayer(gameTime){
   if(players.length===0) return 0;
   return gameTime * (maxOnField / players.length);
 }
-
 function computePlayerWorkload(p, gameTime, idealPerPlayer){
   if(gameTime <= 0) return 0;
   return (p.seconds || 0) - idealPerPlayer;
@@ -1324,7 +1291,6 @@ function loadData(){
     updateHalfBadge();
     updateSummary();
     updateScoreUI();
-    updateFloatingPlayBtn();
     return;
   }
   try{
@@ -1391,7 +1357,6 @@ function loadData(){
       document.body.classList.add("light-mode");
       document.getElementById("themeToggle").textContent = "🌞";
     }
-    updateFloatingPlayBtn();
   }catch(e){
     console.error(e);
     localStorage.removeItem(STORAGE_KEY);
@@ -1587,6 +1552,8 @@ document.getElementById("tlClearBtn").onclick = ()=>{
 };
 
 /* Ligações de botões base */
+document.getElementById("startBtn").onclick = startTimer;
+document.getElementById("pauseBtn").onclick = pauseTimer;
 document.getElementById("resetBtn").onclick = resetTimer;
 document.getElementById("intervalBtn").onclick = intervalTimer;
 document.getElementById("addBtn").onclick = ()=>ensurePlayerCount(players.length+1);
@@ -1624,14 +1591,6 @@ document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   }
 });
 
-/* Clique no botão flutuante */
-if(floatingPlayBtn){
-  floatingPlayBtn.onclick = ()=>{
-    if(running) pauseTimer();
-    else startTimer();
-  };
-}
-
 window.addEventListener("beforeunload", saveData);
 setInterval(saveData, 5000);
 
@@ -1640,7 +1599,6 @@ loadData();
 updateTimerDisplay();
 updateHalfBadge();
 updateScoreUI();
-updateFloatingPlayBtn();
 </script>
 </body>
 </html>
