@@ -235,6 +235,60 @@
             border:1px solid #2f2f2f;
         }
 
+        /* SEÇÕES ABAIXO DO HERO */
+        .section{
+            width:100%;
+            box-sizing:border-box;
+            padding: 10px 32px 0;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .section-title{
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .section-sub{
+            font-size: 14px;
+            opacity:0.8;
+            margin-bottom: 18px;
+            max-width: 720px;
+        }
+
+        .section-grid{
+            display:grid;
+            grid-template-columns: repeat(3,minmax(0,1fr));
+            gap:16px;
+        }
+
+        .feature-card{
+            background:#121212;
+            border-radius: 14px;
+            padding:14px 16px;
+            border:1px solid #242424;
+            font-size:13px;
+            line-height:1.5;
+        }
+
+        .feature-title{
+            font-weight:600;
+            margin-bottom:6px;
+            font-size:14px;
+        }
+
+        .feature-badge{
+            display:inline-block;
+            font-size:11px;
+            padding:2px 8px;
+            border-radius:999px;
+            background:#181818;
+            border:1px solid #2a2a2a;
+            margin-bottom:4px;
+            opacity:.9;
+        }
+
         /* FOOTER */
         footer {
             width: 100%;
@@ -263,6 +317,12 @@
                 width:100%;
                 justify-content:center;
             }
+            .section{
+                padding: 0 20px;
+            }
+            .section-grid{
+                grid-template-columns: repeat(2,minmax(0,1fr));
+            }
         }
 
         @media (max-width:600px){
@@ -276,6 +336,9 @@
             }
             .hero-title{
                 font-size:34px;
+            }
+            .section-grid{
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -374,6 +437,81 @@
             </div>
         </div>
     </div>
+
+    <!-- SECÇÃO: PARA QUEM É -->
+    <section class="section">
+        <div class="section-title">Para quem é o Game Control?</div>
+        <div class="section-sub">
+            Pensado para treinadores que querem tomar decisões rápidas no banco sem andar com folhas de Excel, cronómetros e canetas a voar.
+        </div>
+
+        <div class="section-grid">
+            <div class="feature-card">
+                <div class="feature-badge">Formação</div>
+                <div class="feature-title">Treinadores de formação (Sub-13 a Sub-19)</div>
+                Optimiza a distribuição de minutos, garante equidade e acompanha a evolução dos atletas ao longo da época.
+            </div>
+            <div class="feature-card">
+                <div class="feature-badge">Competitivo</div>
+                <div class="feature-title">Equipas que jogam para ganhar</div>
+                Mantém os jogadores chave frescos, evita picos de fadiga e dá-te segurança nas rotações em momentos decisivos.
+            </div>
+            <div class="feature-card">
+                <div class="feature-badge">Staff</div>
+                <div class="feature-title">Clubes com staff reduzido</div>
+                Quando és treinador, diretor e team manager ao mesmo tempo, precisas de uma ferramenta simples que faça o “trabalho sujo” por ti.
+            </div>
+        </div>
+    </section>
+
+    <!-- SECÇÃO: O QUE CONSEGUES CONTROLAR -->
+    <section class="section">
+        <div class="section-title">O que consegues controlar durante o jogo</div>
+        <div class="section-sub">
+            Tudo o que precisas num só ecrã, pensado para tablet no banco: clicar, trocar, ver e decidir — sem perder o jogo de vista.
+        </div>
+
+        <div class="section-grid">
+            <div class="feature-card">
+                <div class="feature-title">Tempo em campo e fora</div>
+                Cada jogador com o seu relógio: tempo em campo, tempo fora, 1.ª e 2.ª parte, médias por rotação e percentagem de jogo.
+            </div>
+            <div class="feature-card">
+                <div class="feature-title">Workload e fadiga</div>
+                Cálculo automático do workload em relação ao ideal e barra de fadiga visual para te avisar quem está a precisar de descanso.
+            </div>
+            <div class="feature-card">
+                <div class="feature-title">Resumo final exportável</div>
+                No fim do jogo, exporta um resumo em PNG com todos os minutos, workload e rotações para partilhar com staff ou atletas.
+            </div>
+        </div>
+    </section>
+
+    <!-- SECÇÃO: COMO FUNCIONA O ACESSO -->
+    <section class="section">
+        <div class="section-title">Como funciona o acesso?</div>
+        <div class="section-sub">
+            O Game Control está atualmente disponível com acesso controlado. Cada clube ou treinador recebe um login próprio.
+        </div>
+
+        <div class="section-grid">
+            <div class="feature-card">
+                <div class="feature-badge">1</div>
+                <div class="feature-title">Pede acesso</div>
+                Entra em contacto por email ou Instagram com o teu nome, clube e escalão onde pretendes usar a aplicação.
+            </div>
+            <div class="feature-card">
+                <div class="feature-badge">2</div>
+                <div class="feature-title">Criamos o teu login</div>
+                É gerada uma conta específica para ti / teu clube, com utilizador e palavra-passe exclusivos.
+            </div>
+            <div class="feature-card">
+                <div class="feature-badge">3</div>
+                <div class="feature-title">Usa em jogo</div>
+                Acede via browser (idealmente em tablet), faz login e começa a gerir minutos e cargas de forma profissional.
+            </div>
+        </div>
+    </section>
 
     <!-- FOOTER (CONTACTOS) -->
     <footer>
