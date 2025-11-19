@@ -47,6 +47,11 @@
             color: #000;
         }
 
+        .nav-links {
+            opacity: 0.8;
+            font-size: 14px;
+        }
+
         .invite-btn {
             background: transparent;
             border: 1px solid #444;
@@ -230,106 +235,51 @@
             border:1px solid #2f2f2f;
         }
 
-        /* GENERIC SECTION */
+        /* SEÇÕES GERAIS */
         .section{
             width:100%;
-            padding:40px 32px 10px;
+            padding: 24px 32px 0;
             box-sizing:border-box;
-            border-top:1px solid #181818;
-        }
-
-        .section-inner{
-            max-width:1040px;
+            max-width:1100px;
             margin:0 auto;
         }
 
-        .section h2{
+        .section-title{
             font-size:24px;
-            margin:0 0 10px 0;
+            font-weight:700;
+            margin-bottom:18px;
         }
 
         .section-sub{
-            opacity:0.8;
             font-size:14px;
-            line-height:1.6;
-            max-width:640px;
+            opacity:.8;
             margin-bottom:20px;
+            max-width:640px;
         }
 
-        .section-grid{
-            display:flex;
-            flex-wrap:wrap;
+        /* FAQ */
+        .faq-grid{
+            display:grid;
+            grid-template-columns:repeat(2,minmax(0,1fr));
             gap:16px;
-            margin-top:10px;
         }
 
-        .section-card{
-            background:#131313;
+        .faq-item{
+            background:#111111;
             border-radius:14px;
             padding:16px 18px;
             border:1px solid #222;
-            flex:1;
-            min-width:230px;
-            box-sizing:border-box;
-        }
-
-        .section-card h3{
-            font-size:15px;
-            margin:0 0 8px 0;
-        }
-
-        .section-card ul{
-            margin:0;
-            padding-left:16px;
-            font-size:13px;
-            opacity:0.9;
-            line-height:1.5;
-        }
-
-        .section-card li+li{
-            margin-top:4px;
-        }
-
-        /* COMO OBTER ACESSO – passos */
-        .step-list{
-            list-style:none;
-            padding:0;
-            margin:0;
-            display:flex;
-            flex-direction:column;
-            gap:12px;
-        }
-
-        .step-item{
-            display:flex;
-            gap:10px;
-            align-items:flex-start;
-        }
-
-        .step-badge{
-            width:22px;
-            height:22px;
-            border-radius:50%;
-            background:#1f1f1f;
-            border:1px solid #333;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-size:12px;
-            color:#ccc;
-            flex-shrink:0;
-        }
-
-        .step-body h3{
             font-size:14px;
-            margin:0 0 4px 0;
+            line-height:1.5;
         }
 
-        .step-body p{
-            margin:0;
-            font-size:13px;
-            opacity:0.85;
-            line-height:1.5;
+        .faq-q{
+            font-weight:600;
+            margin-bottom:6px;
+        }
+
+        .faq-a{
+            opacity:.85;
         }
 
         /* FOOTER */
@@ -360,6 +310,15 @@
                 width:100%;
                 justify-content:center;
             }
+            .section{
+                padding:24px 20px 0;
+            }
+        }
+
+        @media (max-width:800px){
+            .faq-grid{
+                grid-template-columns:1fr;
+            }
         }
 
         @media (max-width:600px){
@@ -387,9 +346,7 @@
             GAME CONTROL
         </div>
 
-        <button class="invite-btn" onclick="document.getElementById('acesso').scrollIntoView({behavior:'smooth'});">
-            Acesso por convite
-        </button>
+        <button class="invite-btn">Acesso por convite</button>
     </div>
 
     <!-- HERO -->
@@ -474,91 +431,56 @@
         </div>
     </div>
 
-    <!-- SECÇÃO: PARA QUEM É -->
-    <section class="section" id="para-quem">
-        <div class="section-inner">
-            <h2>Para quem é o Game Control?</h2>
-            <p class="section-sub">
-                O Game Control foi pensado para treinadores e staff que querem decidir com dados,
-                sem precisar de levar folhas de cálculo ou cronómetros extra para o banco.
-            </p>
+    <!-- FAQ -->
+    <section class="section" id="faq">
+        <h2 class="section-title">FAQ</h2>
+        <p class="section-sub">
+            Algumas das perguntas mais frequentes sobre a Game Control.
+        </p>
 
-            <div class="section-grid">
-                <div class="section-card">
-                    <h3>Treinadores de formação</h3>
-                    <ul>
-                        <li>Assegurar que todos os atletas têm minutos de qualidade.</li>
-                        <li>Gerir rotações em escalões de competição intensa.</li>
-                        <li>Reduzir conflitos sobre “quem joga mais” com dados claros.</li>
-                    </ul>
-                </div>
-
-                <div class="section-card">
-                    <h3>Clubes e academias</h3>
-                    <ul>
-                        <li>Padronizar a forma como os minutos são geridos em todos os escalões.</li>
-                        <li>Monitorizar workload ao longo da época.</li>
-                        <li>Facilitar o feedback entre coordenação e treinadores.</li>
-                    </ul>
-                </div>
-
-                <div class="section-card">
-                    <h3>Analistas de desempenho</h3>
-                    <ul>
-                        <li>Recolher dados de tempo de jogo em tempo real.</li>
-                        <li>Exportar resumos para análise pós-jogo.</li>
-                        <li>Complementar outras métricas físicas e táticas.</li>
-                    </ul>
+        <div class="faq-grid">
+            <div class="faq-item">
+                <div class="faq-q">📌 Como obtenho acesso à Game Control?</div>
+                <div class="faq-a">
+                    O acesso é concedido apenas a treinadores autorizados. Cada utilizador recebe um login exclusivo.
                 </div>
             </div>
-        </div>
-    </section>
 
-    <!-- SECÇÃO: COMO OBTER ACESSO -->
-    <section class="section" id="acesso">
-        <div class="section-inner">
-            <h2>Como obter acesso?</h2>
-            <p class="section-sub">
-                Neste momento o Game Control funciona por convite. Cada treinador ou clube recebe um
-                acesso próprio, configurado manualmente, para garantir acompanhamento próximo e feedback
-                directo sobre a ferramenta.
-            </p>
+            <div class="faq-item">
+                <div class="faq-q">📌 Em que dispositivos funciona?</div>
+                <div class="faq-a">
+                    Foi pensado para tablet (idealmente iPad), mas funciona também em computador e telemóvel.
+                </div>
+            </div>
 
-            <ol class="step-list">
-                <li class="step-item">
-                    <div class="step-badge">1</div>
-                    <div class="step-body">
-                        <h3>Entra em contacto</h3>
-                        <p>
-                            Envia um email para <strong>viana10gfc@gmail.com</strong> ou uma mensagem no Instagram
-                            para <strong>@gpmviana</strong> com uma breve descrição da tua equipa
-                            (escalao, clube, contexto competitivo).
-                        </p>
-                    </div>
-                </li>
+            <div class="faq-item">
+                <div class="faq-q">📌 A app guarda automaticamente os dados do jogo?</div>
+                <div class="faq-a">
+                    Sim. O sistema guarda tudo no dispositivo do utilizador, garantindo que não perdes informação mesmo ao trocar de ecrã.
+                </div>
+            </div>
 
-                <li class="step-item">
-                    <div class="step-badge">2</div>
-                    <div class="step-body">
-                        <h3>Definimos o acesso</h3>
-                        <p>
-                            Recebes informação sobre condições de utilização e valores por época
-                            ou por clube, bem como credenciais de acesso dedicadas.
-                        </p>
-                    </div>
-                </li>
+            <div class="faq-item">
+                <div class="faq-q">📌 A timeline e estatísticas podem ser exportadas?</div>
+                <div class="faq-a">
+                    Sim. Podes gerar um ficheiro PNG com tempos, rotações, eventos e outras métricas do jogo.
+                </div>
+            </div>
 
-                <li class="step-item">
-                    <div class="step-badge">3</div>
-                    <div class="step-body">
-                        <h3>Começas a usar em jogo</h3>
-                        <p>
-                            Após validação, o teu login fica activo e podes usar o Game Control
-                            em qualquer dispositivo com ligação à internet, directamente a partir do navegador.
-                        </p>
-                    </div>
-                </li>
-            </ol>
+            <div class="faq-item">
+                <div class="faq-q">📌 Quantos jogadores posso gerir?</div>
+                <div class="faq-a">
+                    Não existe limite fixo. A aplicação foi otimizada para cerca de 12 atletas por questões práticas de jogo, 
+                    mas podes adicionar mais jogadores se precisares.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-q">📌 Preciso de internet para usar?</div>
+                <div class="faq-a">
+                    Apenas para fazer login. Depois disso, podes utilizar a app normalmente mesmo sem ligação à internet.
+                </div>
+            </div>
         </div>
     </section>
 
