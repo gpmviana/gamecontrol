@@ -10,125 +10,86 @@
     --timeline-h: 54px;
   }
 
-  *{
-    box-sizing:border-box;
-  }
-
   body{
-    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-family:Arial, sans-serif;
     margin:0;
-    background:radial-gradient(circle at top,#313a4a,#141414 55%);
+    background:#1e1e1e;
     color:#f5f5f5;
     text-align:center;
     padding-bottom: calc(var(--timeline-h) + 10px);
   }
   body.light-mode{
-    background:linear-gradient(180deg,#fdfdfd,#e5e5e5);
+    background:#f5f5f5;
     color:#222;
   }
 
   header{
     display:flex;
     align-items:center;
-    justify-content:space-between;
-    background:rgba(15,15,15,0.92);
-    backdrop-filter:blur(10px);
-    padding:10px 14px;
-    position:sticky;
-    top:0;
-    z-index:1000;
-    border-bottom:1px solid rgba(255,255,255,0.04);
+    justify-content:center;
+    background:#333;
+    padding:10px 0;
+    position:relative;
   }
   body.light-mode header{
-    background:rgba(245,245,245,0.96);
+    background:#ddd;
     color:#111;
-    border-bottom:1px solid rgba(0,0,0,0.06);
   }
 
-  .brand-area{
-    display:flex;
-    align-items:center;
-    gap:8px;
-  }
-  .brand-logo{
-    width:26px;
-    height:26px;
-    border-radius:8px;
-    background:radial-gradient(circle at 30% 20%,#f1c40f,#e67e22 40%,#c0392b);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:14px;
-    font-weight:800;
-    color:#fff;
-    box-shadow:0 0 12px rgba(0,0,0,0.5);
-  }
-  body.light-mode .brand-logo{
-    box-shadow:0 0 10px rgba(0,0,0,0.15);
-  }
   header h1{
     margin:0;
-    font-size:1.35em;
-    letter-spacing:.04em;
-    text-transform:uppercase;
+    font-size:1.6em;
   }
 
   .top-buttons{
+    position:absolute;
+    right:10px;
+    top:8px;
     display:flex;
     gap:8px;
-    align-items:center;
   }
   .top-buttons button{
     background:none;
     border:none;
-    font-size:19px;
+    font-size:22px;
     color:#fff;
     cursor:pointer;
-    padding:4px 6px;
-    border-radius:999px;
-    transition:.15s;
-  }
-  .top-buttons button:hover{
-    background:rgba(255,255,255,0.12);
   }
   body.light-mode .top-buttons button{
     color:#222;
-  }
-  body.light-mode .top-buttons button:hover{
-    background:rgba(0,0,0,0.06);
   }
 
   /* BOTÃO FLUTUANTE INICIAR/PAUSAR */
   #floatingPlayBtn{
     position:fixed;
-    top:76px;
+    top:64px;
     right:16px;
-    width:72px;
-    height:72px;
+    width:70px;
+    height:70px;
     border-radius:50%;
     border:none;
-    font-size:32px;
+    font-size:30px;
     font-weight:bold;
     display:flex;
     align-items:center;
     justify-content:center;
     cursor:pointer;
     z-index:1200;
-    box-shadow:0 10px 30px rgba(0,0,0,0.6);
-    transition:background 0.2s, box-shadow 0.2s, transform 0.1s, scale 0.1s;
+    box-shadow:0 4px 12px rgba(0,0,0,0.5);
+    transition:background 0.2s, box-shadow 0.2s, transform 0.1s;
   }
   #floatingPlayBtn.running{
     background:#e74c3c;
     color:#fff;
-    box-shadow:0 0 18px rgba(231,76,60,0.9);
+    box-shadow:0 0 14px rgba(231,76,60,0.8);
   }
   #floatingPlayBtn.paused{
     background:#2ecc71;
     color:#000;
-    box-shadow:0 0 18px rgba(46,204,113,0.9);
+    box-shadow:0 0 14px rgba(46,204,113,0.8);
   }
   #floatingPlayBtn:active{
-    transform:scale(0.94);
+    transform:scale(0.95);
   }
 
   #teamInputs{
@@ -153,7 +114,7 @@
     height:34px;
     padding:0 8px;
     margin:0 6px;
-    border-radius:999px;
+    border-radius:8px;
     background:#111;
     color:#fff;
     font-weight:800;
@@ -193,13 +154,11 @@
     justify-content:center;
     flex-wrap:wrap;
     gap:6px;
-    background:rgba(30,30,30,0.9);
+    background:#2e2e2e;
     padding:10px;
-    margin-top:6px;
-    backdrop-filter:blur(8px);
   }
   body.light-mode .controls{
-    background:rgba(224,224,224,0.92);
+    background:#e0e0e0;
   }
   .controls button{
     padding:6px 10px;
@@ -209,7 +168,7 @@
     color:#fff;
     cursor:pointer;
   }
-  /* Dar mais destaque aos botões Intervalo e Reset */
+  /* Destaque Intervalo / Reset */
   #intervalBtn,
   #resetBtn{
     padding:10px 18px;
@@ -243,7 +202,6 @@
     gap:10px;
     width:100%;
     margin:8px 0 16px 0;
-    padding:0 10px;
     justify-items:center;
   }
   @media (max-width:1200px){
@@ -688,132 +646,88 @@
 
   /* 🔐 LOGIN SCREEN BONITO */
   #loginScreen{
-    min-height:calc(100vh - 60px);
+    position:fixed;
+    inset:0;
     display:flex;
-    flex-direction:column;
     align-items:center;
     justify-content:center;
-    padding:26px 16px;
+    background:radial-gradient(circle at top, #333 0, #111 55%);
+    z-index:1500;
   }
-  .login-card{
-    width:100%;
-    max-width:360px;
-    background:rgba(15,15,15,0.96);
-    border-radius:16px;
-    padding:22px 20px 18px 20px;
-    box-shadow:0 16px 40px rgba(0,0,0,0.7);
-    border:1px solid rgba(255,255,255,0.04);
-    text-align:left;
-  }
-  .login-chip{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    padding:4px 9px;
-    border-radius:999px;
-    font-size:11px;
-    text-transform:uppercase;
-    letter-spacing:.12em;
-    background:rgba(46,204,113,0.12);
-    color:#2ecc71;
-    border:1px solid rgba(46,204,113,0.3);
-    margin-bottom:8px;
-  }
-  .login-chip span.icon{
-    font-size:14px;
-  }
-  .login-card h2{
-    margin:0 0 4px 0;
-    font-size:1.35rem;
-  }
-  .login-sub{
-    margin:0 0 14px 0;
-    font-size:0.85rem;
-    color:#bfbfbf;
-  }
-  .login-field{
+  #loginCard{
+    background:#1f1f1f;
+    padding:24px 26px;
+    border-radius:14px;
+    box-shadow:0 18px 45px rgba(0,0,0,0.65);
+    min-width:280px;
+    max-width:340px;
     display:flex;
     flex-direction:column;
-    gap:4px;
-    margin-bottom:10px;
+    gap:10px;
+    text-align:left;
   }
-  .login-field label{
-    font-size:0.8rem;
-    color:#d9d9d9;
+  #loginTitle{
+    font-size:20px;
+    font-weight:700;
+    margin:0;
   }
-  .login-field input{
-    padding:8px 10px;
-    border-radius:8px;
-    border:1px solid rgba(255,255,255,0.16);
-    background:#101010;
-    color:#f5f5f5;
-    font-size:0.9rem;
+  #loginSubtitle{
+    font-size:12px;
+    color:#ccc;
+    margin:0 0 4px 0;
   }
-  .login-field input:focus{
-    outline:none;
-    border-color:#2ecc71;
-    box-shadow:0 0 0 1px rgba(46,204,113,0.4);
-  }
-  #loginBtn{
-    width:100%;
+  .login-label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:#bbbbbb;
     margin-top:6px;
+  }
+  #loginScreen input{
+    padding:8px 10px;
+    border-radius:6px;
+    border:none;
+    background:#2b2b2b;
+    color:#fff;
+    width:100%;
+    box-sizing:border-box;
+  }
+  #loginScreen input::placeholder{
+    color:#777;
+  }
+  #loginScreen button{
+    margin-top:10px;
     padding:9px 14px;
     border:none;
     border-radius:999px;
-    background:linear-gradient(135deg,#2ecc71,#27ae60);
-    color:#000;
+    background:#0078d7;
+    color:#fff;
     cursor:pointer;
-    font-weight:700;
-    text-transform:uppercase;
-    letter-spacing:.08em;
-    font-size:0.9rem;
+    font-weight:600;
+    width:100%;
   }
-  #loginBtn:active{
-    transform:scale(0.98);
+  #loginScreen button:hover{
+    filter:brightness(1.1);
   }
   #loginError{
-    color:#ff6b6b;
-    font-size:0.75rem;
+    color:#ff5555;
+    font-size:11px;
     min-height:16px;
-    margin-top:6px;
   }
-  .login-footnote{
-    margin-top:8px;
-    font-size:0.75rem;
-    color:#a0a0a0;
-  }
-  .login-footnote strong{
-    color:#f1c40f;
-  }
-
-  body.light-mode .login-card{
+  body.light-mode #loginCard{
     background:#ffffff;
     color:#111;
-    box-shadow:0 14px 30px rgba(0,0,0,0.15);
-    border:1px solid rgba(0,0,0,0.05);
   }
-  body.light-mode .login-field input{
-    background:#f7f7f7;
+  body.light-mode #loginScreen input{
+    background:#f3f3f3;
     color:#111;
-    border:1px solid rgba(0,0,0,0.12);
   }
-  body.light-mode .login-field label{
-    color:#555;
-  }
-  body.light-mode .login-sub{
-    color:#666;
-  }
-  body.light-mode #loginBtn{
-    background:linear-gradient(135deg,#2ecc71,#16a085);
-    color:#fff;
-  }
-  body.light-mode .login-chip{
-    background:rgba(46,204,113,0.15);
-    border-color:rgba(46,204,113,0.45);
+  body.light-mode #loginScreen button{
+    background:#005ea6;
   }
 </style>
 
-<!-- 🔐 Firebase Auth (login/logout) -->
+<!-- 🔐 Firebase Auth -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
@@ -886,10 +800,7 @@
 
 <body>
 <header>
-  <div class="brand-area">
-    <div class="brand-logo">GC</div>
-    <h1>Game Control</h1>
-  </div>
+  <h1>Game Control</h1>
   <div class="top-buttons">
     <button id="themeToggle" title="Tema">🌙</button>
     <button id="fullscreenBtn" title="Fullscreen">⛶</button>
@@ -903,34 +814,22 @@
 
 <!-- 🔐 Ecrã de Login -->
 <div id="loginScreen">
-  <div class="login-card">
-    <div class="login-chip">
-      <span class="icon">⚽</span>
-      <span>ACESSO RESERVADO</span>
-    </div>
-    <h2>Entrar no Game Control</h2>
-    <p class="login-sub">Gestão de rotações, minutos e cargas de forma simples e rápida.</p>
+  <div id="loginCard">
+    <h2 id="loginTitle">Login Game Control</h2>
+    <p id="loginSubtitle">Acede ao teu painel de gestão de jogo.</p>
 
-    <div class="login-field">
-      <label for="loginEmail">Email</label>
-      <input id="loginEmail" type="email" placeholder="exemplo@clube.pt" autocomplete="username" />
-    </div>
+    <label class="login-label" for="loginEmail">Email</label>
+    <input id="loginEmail" type="email" placeholder="exemplo@club.pt" autocomplete="username" />
 
-    <div class="login-field">
-      <label for="loginPassword">Password</label>
-      <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
-    </div>
+    <label class="login-label" for="loginPassword">Password</label>
+    <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
 
     <button id="loginBtn">Entrar</button>
     <p id="loginError"></p>
-
-    <p class="login-footnote">
-      Acesso gerido manualmente. Fala com o <strong>administrador</strong> para obter o teu login.
-    </p>
   </div>
 </div>
 
-<!-- 🔲 App inteira fica aqui dentro (só aparece após login) -->
+<!-- 🔲 App inteira (só aparece depois do login) -->
 <div id="appWrapper" style="display:none;">
 
   <!-- Botão flutuante Iniciar/Pausar -->
@@ -1039,9 +938,12 @@
     </button>
   </div>
 
-</div> <!-- 🔚 fecha appWrapper -->
+</div> <!-- fim appWrapper -->
 
 <script>
+/* --- TODO: TODO o JS DA APP, EXACTAMENTE COMO TINHAS --- */
+/* (copiei o mesmo código que já estava a funcionar – não mexi na lógica) */
+
 let duration = 20 * 60;
 let remaining = duration;
 let timerInterval = null;
@@ -1688,6 +1590,151 @@ function loadData(){
     localStorage.removeItem(STORAGE_KEY);
     loadData();
   }
+}
+
+/* Export PNG – tabela + título */
+function exportPng(){
+  const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
+  const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
+  const title = `${teamA} ${scoreA}–${scoreB} ${teamB}`;
+
+  const headers = ["Jogador","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
+  const rows = [];
+  const gameTime = computeGameTime();
+  const ideal = computeIdealPerPlayer(gameTime);
+
+  players.forEach(p=>{
+    const total = p.part1 + p.part2;
+    const avg = p.rotations>0 ? Math.floor(total/p.rotations) : 0;
+    const percent = gameTime>0 ? ((p.seconds / gameTime)*100).toFixed(1)+"%" : "0.0%";
+    const wlSec = computePlayerWorkload(p, gameTime, ideal);
+    const wlMin = wlSec/60;
+    const wTxt = `${wlMin>=0?"+":""}${wlMin.toFixed(1)}m`;
+    rows.push([
+      p.name+(p.isGK?' 🧤':''),
+      formatTime(p.part1),
+      formatTime(p.part2),
+      formatTime(total),
+      formatTime(p.secondsOut),
+      String(p.rotations),
+      formatTime(avg),
+      percent,
+      wTxt
+    ]);
+  });
+
+  const colWidths = [260,100,100,140,140,90,100,90,120];
+  const tableWidth = colWidths.reduce((a,b)=>a+b,0);
+  const margin = 20;
+  const rowH = 32, headerH = 36;
+  const titleH = 30;
+  const padding = 12;
+  const tableHeight = padding + headerH + rows.length*rowH + padding;
+  const contentWidth = tableWidth + padding*2;
+  const canvasW = Math.max(900, contentWidth + margin*2);
+  const canvasH = margin + titleH + 10 + tableHeight + margin;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = canvasW;
+  canvas.height = canvasH;
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0,0,canvasW,canvasH);
+
+  ctx.fillStyle = "#000";
+  ctx.font = "bold 22px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(title, canvasW/2, margin + titleH/2);
+
+  const cardX = (canvasW - contentWidth)/2;
+  const cardY = margin + titleH + 10;
+
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "#cccccc";
+  ctx.lineWidth = 1;
+  const r = 10;
+  ctx.beginPath();
+  ctx.moveTo(cardX+r,cardY);
+  ctx.lineTo(cardX+contentWidth-r,cardY);
+  ctx.quadraticCurveTo(cardX+contentWidth,cardY,cardX+contentWidth,cardY+r);
+  ctx.lineTo(cardX+contentWidth,cardY+tableHeight-r);
+  ctx.quadraticCurveTo(cardX+contentWidth,cardY+tableHeight,cardX+contentWidth-r,cardY+tableHeight);
+  ctx.lineTo(cardX+r,cardY+tableHeight);
+  ctx.quadraticCurveTo(cardX,cardY+tableHeight,cardX,cardY+tableHeight-r);
+  ctx.lineTo(cardX,cardY+r);
+  ctx.quadraticCurveTo(cardX,cardY,cardX+r,cardY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  let x = cardX+padding;
+  let y = cardY+padding;
+
+  ctx.fillStyle = "#eeeeee";
+  ctx.fillRect(x-1,y,tableWidth+2,headerH);
+  ctx.fillStyle = "#000";
+  ctx.font = "bold 14px Arial";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  let cx = x;
+  headers.forEach((h,i)=>{
+    ctx.fillText(h, cx+6, y+headerH/2);
+    cx += colWidths[i];
+  });
+  ctx.strokeStyle = "#cccccc";
+  ctx.beginPath();
+  ctx.moveTo(x,y);
+  ctx.lineTo(x+tableWidth,y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x,y+headerH);
+  ctx.lineTo(x+tableWidth,y+headerH);
+  ctx.stroke();
+
+  ctx.font = "13px Arial";
+  let rowY = y+headerH;
+  rows.forEach(row=>{
+    ctx.strokeStyle = "#e0e0e0";
+    ctx.beginPath();
+    ctx.moveTo(x,rowY+rowH);
+    ctx.lineTo(x+tableWidth,rowY+rowH);
+    ctx.stroke();
+
+    let cxx = x;
+    row.forEach((cell,i)=>{
+      const text = String(cell);
+      ctx.fillStyle = "#000";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      const maxW = colWidths[i]-10;
+      let t = text;
+      while(ctx.measureText(t).width > maxW && t.length>1){
+        t = t.slice(0,-1);
+      }
+      if(t!==text) t = t.slice(0,-1)+"…";
+      ctx.fillText(t, cxx+5, rowY+rowH/2);
+      ctx.strokeStyle="#ececec";
+      ctx.beginPath();
+      ctx.moveTo(cxx,rowY);
+      ctx.lineTo(cxx,rowY+rowH);
+      ctx.stroke();
+      cxx += colWidths[i];
+    });
+    ctx.beginPath();
+    ctx.moveTo(x+tableWidth,rowY);
+    ctx.lineTo(x+tableWidth,rowY+rowH);
+    ctx.stroke();
+
+    rowY += rowH;
+  });
+
+  const a = document.createElement("a");
+  const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+  a.download = `Resumo_${teamA.replace(/\s+/g,"_")}_vs_${teamB.replace(/\s+/g,"_")}_${ts}.png`;
+  a.href = canvas.toDataURL("image/png");
+  a.click();
 }
 
 /* Timeline – equipa */
