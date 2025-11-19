@@ -1,398 +1,209 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Game Control – Gestão de Minutos no Futsal</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Game Control – Futsal Minutes Manager</title>
 
-  <style>
-    :root{
-      --bg-dark:#050509;
-      --bg-card:#111119;
-      --accent:#2ecc71;
-      --accent-soft:rgba(46,204,113,0.12);
-      --text-main:#f5f5f5;
-      --text-muted:#b3b3c2;
-      --border-soft:#262636;
-    }
-    *{
-      box-sizing:border-box;
-    }
-    body{
-      margin:0;
-      font-family:system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background:radial-gradient(circle at top, #1a1a2e 0, #050509 45%, #000 100%);
-      color:var(--text-main);
-      min-height:100vh;
-      display:flex;
-      flex-direction:column;
-    }
-    header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:14px 5vw;
-    }
-    .logo{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      font-weight:700;
-      letter-spacing:0.05em;
-      text-transform:uppercase;
-      font-size:14px;
-    }
-    .logo-mark{
-      width:26px;
-      height:26px;
-      border-radius:8px;
-      background:linear-gradient(135deg, #2ecc71, #27ae60);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:15px;
-    }
-    nav{
-      display:flex;
-      gap:16px;
-      font-size:13px;
-      color:var(--text-muted);
-    }
-    .tag-beta{
-      padding:4px 8px;
-      border-radius:999px;
-      border:1px solid var(--accent-soft);
-      background:rgba(0,0,0,0.5);
-      font-size:11px;
-      text-transform:uppercase;
-      letter-spacing:0.08em;
-    }
+    <style>
+        body {
+            margin: 0;
+            font-family: "Inter", sans-serif;
+            background: #0d0d0d;
+            color: white;
+        }
 
-    main{
-      flex:1;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:20px 5vw 40px;
-    }
-    .layout{
-      display:grid;
-      grid-template-columns: minmax(0,1.2fr) minmax(0,1fr);
-      gap:40px;
-      max-width:1100px;
-      width:100%;
-      align-items:center;
-    }
-    @media(max-width:900px){
-      .layout{
-        grid-template-columns:1fr;
-        text-align:center;
-      }
-      .hero-actions{
-        justify-content:center;
-      }
-    }
+        /* NAVBAR */
+        .navbar {
+            width: 100%;
+            padding: 20px 40px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-    .hero-title{
-      font-size:clamp(2.1rem, 3vw, 2.8rem);
-      line-height:1.1;
-      margin-bottom:12px;
-    }
-    .hero-title span.highlight{
-      color:var(--accent);
-    }
-    .hero-subtitle{
-      color:var(--text-muted);
-      font-size:0.95rem;
-      max-width:440px;
-    }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 20px;
+        }
 
-    .hero-badges{
-      display:flex;
-      flex-wrap:wrap;
-      gap:6px;
-      margin:16px 0 18px 0;
-      font-size:11px;
-      color:var(--text-muted);
-    }
-    .hero-badges span{
-      padding:4px 8px;
-      border-radius:999px;
-      border:1px solid var(--border-soft);
-      background:rgba(0,0,0,0.4);
-    }
+        .logo-icon {
+            background: #40c463;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-weight: 800;
+            color: black;
+        }
 
-    .hero-actions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      align-items:center;
-      margin-top:4px;
-    }
-    .btn-primary{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:6px;
-      padding:10px 18px;
-      border-radius:999px;
-      border:none;
-      cursor:pointer;
-      background:var(--accent);
-      color:#041108;
-      font-weight:600;
-      font-size:0.95rem;
-      text-decoration:none;
-    }
-    .btn-primary span.icon{
-      font-size:16px;
-    }
-    .btn-ghost{
-      border-radius:999px;
-      border:1px solid var(--border-soft);
-      padding:8px 14px;
-      font-size:0.85rem;
-      background:rgba(0,0,0,0.4);
-      color:var(--text-muted);
-    }
+        .nav-links {
+            opacity: 0.8;
+            font-size: 15px;
+        }
 
-    .hero-footnote{
-      margin-top:10px;
-      font-size:11px;
-      color:var(--text-muted);
-    }
+        .invite-btn {
+            background: transparent;
+            border: 1px solid #444;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            color: #ddd;
+        }
 
-    .right-card{
-      background:radial-gradient(circle at top left, #1f2933 0, #050509 55%);
-      border-radius:18px;
-      border:1px solid #25273a;
-      padding:16px 16px 18px;
-      box-shadow:0 18px 40px rgba(0,0,0,0.7);
-    }
-    .card-header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-bottom:10px;
-      font-size:12px;
-      color:var(--text-muted);
-    }
-    .card-title{
-      font-weight:600;
-      color:var(--text-main);
-      font-size:13px;
-    }
-    .pill-small{
-      padding:3px 7px;
-      border-radius:999px;
-      border:1px solid var(--accent-soft);
-      font-size:10px;
-      color:var(--accent);
-      text-transform:uppercase;
-      letter-spacing:0.08em;
-    }
-    .mini-field{
-      margin-top:8px;
-      border-radius:12px;
-      border:1px solid var(--border-soft);
-      padding:10px;
-      background:rgba(0,0,0,0.6);
-    }
-    .mini-header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      font-size:11px;
-      margin-bottom:8px;
-    }
-    .team-badges{
-      display:flex;
-      align-items:center;
-      gap:6px;
-    }
-    .team-tag{
-      padding:3px 7px;
-      border-radius:999px;
-      border:1px solid var(--border-soft);
-      font-size:10px;
-      text-transform:uppercase;
-      letter-spacing:0.06em;
-    }
-    .mini-timer{
-      font-size:20px;
-      font-weight:700;
-    }
-    .mini-grid{
-      display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:6px;
-      font-size:10px;
-      margin-top:6px;
-    }
-    .mini-player{
-      border-radius:8px;
-      padding:5px 6px;
-      background:#8b2c23;
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-    }
-    .mini-player span.name{
-      font-weight:600;
-      font-size:10px;
-    }
-    .mini-player span.time{
-      font-size:11px;
-    }
-    .mini-player.active{
-      background:#2ecc71;
-      color:#041108;
-    }
-    .mini-footer{
-      margin-top:10px;
-      display:flex;
-      justify-content:space-between;
-      font-size:10px;
-      color:var(--text-muted);
-    }
+        /* HERO SECTION */
+        .hero {
+            width: 100%;
+            padding: 80px 40px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 40px;
+        }
 
-    footer{
-      padding:10px 5vw 14px;
-      font-size:11px;
-      color:var(--text-muted);
-      display:flex;
-      justify-content:space-between;
-      gap:8px;
-      border-top:1px solid rgba(255,255,255,0.02);
-      background:rgba(0,0,0,0.4);
-    }
-    @media(max-width:700px){
-      footer{
-        flex-direction:column;
-        text-align:center;
-      }
-      header{
-        flex-direction:row;
-        gap:8px;
-      }
-    }
-  </style>
+        .hero-title {
+            font-size: 46px;
+            font-weight: 800;
+            max-width: 600px;
+        }
+
+        .hero-title span {
+            color: #4dd16b;
+        }
+
+        .hero-sub {
+            opacity: 0.8;
+            max-width: 520px;
+            margin-top: 10px;
+            line-height: 1.5;
+        }
+
+        .hero-buttons {
+            margin-top: 30px;
+            display: flex;
+            gap: 14px;
+        }
+
+        .primary-btn {
+            background: #40c463;
+            padding: 15px 28px;
+            border-radius: 30px;
+            color: #000;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .small-tag {
+            background: #222;
+            padding: 7px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        /* PREVIEW MOCKUP */
+        .mockup-box {
+            background: #111;
+            padding: 20px;
+            border-radius: 18px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            width: 420px;
+        }
+
+        .mockup-img {
+            width: 100%;
+            border-radius: 12px;
+        }
+
+        /* FOOTER */
+        footer {
+            width: 100%;
+            text-align: center;
+            padding: 30px 0;
+            font-size: 14px;
+            color: #ccc;
+            opacity: 0.85;
+            margin-top: 60px;
+        }
+
+        footer a {
+            color: #4da3ff;
+            text-decoration: none;
+        }
+
+    </style>
 </head>
+
 <body>
-  <header>
-    <div class="logo">
-      <div class="logo-mark">GC</div>
-      <span>Game Control</span>
+
+    <!-- NAVBAR -->
+    <div class="navbar">
+        <div class="logo">
+            <div class="logo-icon">GC</div>
+            GAME CONTROL
+        </div>
+
+        <div class="nav-links">
+            Futsal – Formação – Minutos
+        </div>
+
+        <button class="invite-btn">ACESSO POR CONVITE</button>
     </div>
-    <nav>
-      <span>Futsal • Formação • Minutos</span>
-      <span class="tag-beta">Acesso por convite</span>
-    </nav>
-  </header>
 
-  <main>
-    <div class="layout">
-      <!-- Lado esquerdo: texto -->
-      <section>
-        <h1 class="hero-title">
-          Gestão de minutos em <span class="highlight">tempo real</span> para treinadores de futsal.
-        </h1>
-        <p class="hero-subtitle">
-          Controla rotações, tempo em campo, workload e fadiga de cada atleta durante o jogo, sem perder o foco no jogo.
-        </p>
+    <!-- HERO -->
+    <div class="hero">
+        <div>
+            <div class="hero-title">
+                Gestão de minutos em <span>tempo real</span> para treinadores de futsal.
+            </div>
 
-        <div class="hero-badges">
-          <span>⏱ Rotação automática por jogador</span>
-          <span>📊 Resumo pronto a exportar</span>
-          <span>⚡ Gestão de cargas integrada</span>
+            <div class="hero-sub">
+                Controla rotações, tempo em campo, workload e fadiga de cada atleta durante o jogo, 
+                sem perder o foco no jogo.
+            </div>
+
+            <div class="hero-buttons">
+                <button class="primary-btn" onclick="window.location.href='login.html'">
+                    Entrar na App
+                </button>
+
+                <div class="small-tag">Acesso apenas para treinadores autorizados.</div>
+            </div>
+
+            <div class="small-tag" style="margin-top:14px; opacity:0.65;">
+                Pensa nisto como o teu “assistente de minutos” no banco.
+            </div>
         </div>
 
-        <div class="hero-actions">
-          <!-- Botão que leva para a app protegida por login -->
-          <a href="app.html" class="btn-primary">
-            <span class="icon">🚀</span>
-            <span>Entrar na App</span>
-          </a>
-          <div class="btn-ghost">
-            Acesso apenas para treinadores autorizados.
-          </div>
+        <!-- PREVIEW MOCKUP -->
+        <div class="mockup-box">
+            <img src="https://i.imgur.com/2N3tRjW.png" class="mockup-img">
         </div>
-
-        <p class="hero-footnote">
-          Pensa nisto como o teu “assistente de minutos” no banco. Tu decides, o Game Control regista.
-        </p>
-      </section>
-
-      <!-- Lado direito: mock da app -->
-      <section class="right-card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Game Control · Vista de Jogo</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
-              Exemplo visual da app em utilização.
-            </div>
-          </div>
-          <span class="pill-small">Demo</span>
-        </div>
-
-        <div class="mini-field">
-          <div class="mini-header">
-            <div class="team-badges">
-              <span class="team-tag">Sub-19</span>
-              <span>Equipa A vs Equipa B</span>
-            </div>
-            <div class="mini-timer">12:34</div>
-          </div>
-
-          <div class="mini-grid">
-            <div class="mini-player active">
-              <span class="name">#1 GR</span>
-              <span class="time">18:20</span>
-              <span>Workload +2.3m</span>
-            </div>
-            <div class="mini-player active">
-              <span class="name">#4 Ala</span>
-              <span class="time">12:10</span>
-              <span>Workload +0.8m</span>
-            </div>
-            <div class="mini-player active">
-              <span class="name">#7 Fixo</span>
-              <span class="time">10:02</span>
-              <span>Workload -1.2m</span>
-            </div>
-            <div class="mini-player">
-              <span class="name">#9 Pivot</span>
-              <span class="time">04:40 fora</span>
-              <span>Pronto para entrar</span>
-            </div>
-            <div class="mini-player">
-              <span class="name">#10 Ala</span>
-              <span class="time">03:15 fora</span>
-              <span>Fadiga baixa</span>
-            </div>
-            <div class="mini-player">
-              <span class="name">#14 Ala</span>
-              <span class="time">02:05 fora</span>
-              <span>Rotação seguinte</span>
-            </div>
-          </div>
-
-          <div class="mini-footer">
-            <span>Resumo exportável em PNG no fim do jogo.</span>
-            <span>⚡ Gestão de cargas incluída.</span>
-          </div>
-        </div>
-      </section>
     </div>
-  </main>
 
-  <footer>
-    <span>© <span id="year"></span> Game Control · Futsal Minutes Manager.</span>
-    <span>Desenvolvido para treinadores que vivem o jogo ao detalhe.</span>
-  </footer>
+    <!-- FOOTER (CONTACTOS) -->
+    <footer>
+        <div style="margin-bottom: 6px;">
+            © 2025 Game Control — Futsal Minutes Manager.
+        </div>
 
-  <script>
-    document.getElementById("year").textContent = new Date().getFullYear();
-  </script>
+        <div style="margin-bottom: 6px;">
+            Desenvolvido para treinadores que vivem o jogo ao detalhe.
+        </div>
+
+        <div style="font-weight: 500; color: #fff; opacity: 0.9; margin-top: 8px;">
+            Contacto:
+            <a href="mailto:viana10gfc@gmail.com">viana10gfc@gmail.com</a>
+            •
+            <a href="https://instagram.com/gpmviana" target="_blank">@gpmviana</a>
+        </div>
+    </footer>
+
 </body>
 </html>
