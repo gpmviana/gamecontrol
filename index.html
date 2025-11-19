@@ -92,6 +92,15 @@
             font-size: 15px;
         }
 
+        .hero-sub ul {
+            padding-left: 18px;
+            margin-top: 10px;
+        }
+
+        .hero-sub li {
+            margin-bottom: 4px;
+        }
+
         .hero-buttons {
             margin-top: 28px;
             display: flex;
@@ -230,11 +239,87 @@
             border:1px solid #2f2f2f;
         }
 
-        /* COMO OBTER ACESSO */
-        .access-section h2 {
-            font-size: 34px;
-            font-weight: 800;
-            margin-bottom: 20px;
+        /* GENERIC SECTION */
+        .section-wrapper{
+            padding: 10px 32px 0;
+            box-sizing:border-box;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .section {
+            margin-top: 32px;
+            padding-top: 8px;
+            border-top: 1px solid #222;
+        }
+
+        .section h2 {
+            font-size: 22px;
+            margin: 0 0 10px 0;
+        }
+
+        .section p {
+            font-size: 14px;
+            opacity: 0.9;
+            line-height: 1.6;
+            margin: 0 0 12px 0;
+        }
+
+        /* PARA QUEM / PILLS */
+        .pill-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .pill-card {
+            background:#111;
+            border-radius: 999px;
+            padding: 8px 14px;
+            font-size: 13px;
+            border:1px solid #252525;
+            opacity:0.95;
+        }
+
+        /* COMO FUNCIONA – STEPS */
+        .steps {
+            list-style: none;
+            padding-left: 0;
+            margin: 10px 0 0 0;
+            font-size: 14px;
+        }
+
+        .steps li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .steps li strong {
+            color: var(--green-soft);
+        }
+
+        /* FAQ */
+        .faq-list {
+            margin: 10px 0 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .faq-item {
+            margin-bottom: 14px;
+        }
+
+        .faq-q {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .faq-a {
+            font-size: 13px;
+            opacity: 0.9;
+            line-height: 1.5;
         }
 
         /* FOOTER */
@@ -245,7 +330,7 @@
             font-size: 13px;
             color: #ccc;
             opacity: 0.9;
-            margin-top: 220px;
+            margin-top: 60px;
             margin-bottom: 60px;
             box-sizing:border-box;
         }
@@ -279,6 +364,9 @@
             .hero-title{
                 font-size:34px;
             }
+            .section-wrapper{
+                padding: 0 20px;
+            }
         }
     </style>
 </head>
@@ -297,8 +385,7 @@
 
     <!-- HERO -->
     <div class="hero">
-
-        <!-- LEFT -->
+        <!-- ESQUERDA -->
         <div class="hero-left">
             <div class="hero-title">
                 Gestão de minutos em <span>tempo real</span> para treinadores de futsal.
@@ -306,7 +393,12 @@
 
             <div class="hero-sub">
                 Controla rotações, tempo em campo, workload e fadiga de cada atleta durante o jogo,
-                sem perder o foco no jogo.
+                sem perder o foco no que realmente interessa: a decisão do treinador.
+                <ul>
+                    <li>Monitoriza quem precisa de sair e quem está pronto para entrar.</li>
+                    <li>Equilibra minutos entre atletas sem perder intensidade.</li>
+                    <li>No final, exporta um resumo completo em PNG para análise e partilha.</li>
+                </ul>
             </div>
 
             <div class="hero-buttons">
@@ -324,7 +416,7 @@
             </div>
         </div>
 
-        <!-- RIGHT (Mockup) -->
+        <!-- DIREITA – MOCKUP DA APP -->
         <div class="hero-right">
             <div class="mockup-box">
                 <div class="mockup-header">
@@ -378,165 +470,85 @@
         </div>
     </div>
 
+    <!-- SECÇÕES TEXTO -->
+    <div class="section-wrapper">
 
-    <!-- COMO OBTER ACESSO -->
-    <section class="access-section" style="
-        width:100%;
-        padding:80px 32px;
-        box-sizing:border-box;
-        background:#111;
-        margin-top:80px;
-    ">
-        <div style="max-width:900px; margin:auto;">
-
-            <h2 style="
-                font-size:34px;
-                font-weight:800;
-                margin-bottom:20px;
-            ">Como obter acesso</h2>
-
-            <p style="
-                font-size:16px;
-                line-height:1.7;
-                opacity:0.85;
-                max-width:760px;
-            ">
-                O Game Control funciona por convite, garantindo que apenas treinadores ou membros
-                técnicos autorizados utilizam a plataforma. Este processo mantém a integridade dos dados,
-                a qualidade da utilização e o suporte individualizado.
+        <!-- PARA QUEM É -->
+        <section class="section">
+            <h2>Para quem é o Game Control?</h2>
+            <p>
+                O Game Control foi pensado para treinadores que querem trazer mais critério à gestão de minutos em jogo,
+                sem transformar o banco numa “secretaria”.
             </p>
-
-            <div style="
-                margin-top:40px;
-                display:grid;
-                grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-                gap:24px;
-            ">
-
-                <div style="background:#1a1a1a; border:1px solid #222; padding:22px; border-radius:12px;">
-                    <h3 style="font-size:18px; margin:0 0 10px 0;">1. Solicitação de convite</h3>
-                    <p style="opacity:0.7; font-size:14px; line-height:1.6;">
-                        O treinador ou clube solicita o acesso através de contacto direto com o autor
-                        da aplicação. Cada pedido é avaliado individualmente.
-                    </p>
-                </div>
-
-                <div style="background:#1a1a1a; border:1px solid #222; padding:22px; border-radius:12px;">
-                    <h3 style="font-size:18px; margin:0 0 10px 0;">2. Criação de credenciais</h3>
-                    <p style="opacity:0.7; font-size:14px; line-height:1.6;">
-                        Após aprovado, é criado um utilizador com email e password,
-                        permitindo aceder à app em qualquer dispositivo.
-                    </p>
-                </div>
-
-                <div style="background:#1a1a1a; border:1px solid #222; padding:22px; border-radius:12px;">
-                    <h3 style="font-size:18px; margin:0 0 10px 0;">3. Acesso total à aplicação</h3>
-                    <p style="opacity:0.7; font-size:14px; line-height:1.6;">
-                        O treinador pode então entrar na aplicação e utilizar todas as funcionalidades:
-                        gestão de minutos, fadiga, workload, substituições, presets e exportações.
-                    </p>
-                </div>
-
+            <div class="pill-grid">
+                <div class="pill-card">Treinadores de futsal de formação e competição.</div>
+                <div class="pill-card">Equipas de Sub-13 a Seniores.</div>
+                <div class="pill-card">Clubes que valorizam gestão de carga e tempo de jogo.</div>
+                <div class="pill-card">Treinadores que não querem depender de folhas de Excel no banco.</div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- FAQ -->
-    <section style="
-        width:100%;
-        padding:70px 32px 40px;
-        box-sizing:border-box;
-        background:#0f0f0f;
-    ">
-        <div style="max-width:900px; margin:auto;">
-
-            <h2 style="
-                font-size:30px;
-                font-weight:800;
-                margin-bottom:18px;
-            ">Perguntas frequentes</h2>
-
-            <p style="font-size:15px; opacity:0.8; max-width:760px; margin-bottom:32px;">
-                Algumas respostas rápidas sobre como o Game Control funciona em contexto real de jogo.
+        <!-- COMO FUNCIONA O ACESSO -->
+        <section class="section">
+            <h2>Como funciona o acesso?</h2>
+            <p>
+                Por agora, o Game Control está disponível apenas por convite direto.
             </p>
+            <ul class="steps">
+                <li>
+                    <strong>1. Acesso controlado.</strong>  
+                    Cada treinador recebe credenciais próprias para entrar na aplicação.
+                </li>
+                <li>
+                    <strong>2. Login simples.</strong>  
+                    Entras com o teu email e password e tens acesso imediato à gestão de jogo.
+                </li>
+                <li>
+                    <strong>3. Um acesso por clube/equipa.</strong>  
+                    A mesma conta pode ser usada em mais do que um dispositivo, desde que respeite o acordo de utilização.
+                </li>
+            </ul>
+        </section>
 
-            <div style="
-                display:grid;
-                grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-                gap:22px;
-            ">
+        <!-- FAQ -->
+        <section class="section">
+            <h2>Perguntas frequentes (FAQ)</h2>
+            <ul class="faq-list">
 
-                <!-- Q1 -->
-                <div style="background:#151515; border-radius:12px; padding:18px 20px; border:1px solid #222;">
-                    <h3 style="font-size:15px; margin:0 0 8px 0;">
-                        Posso gerir mais de 12 jogadores?
-                    </h3>
-                    <p style="margin:0; font-size:14px; line-height:1.5; opacity:0.8;">
-                        Sim. Podes aumentar ou reduzir o número de atletas conforme o teu plantel.
-                        A aplicação ajusta automaticamente a grelha de jogadores.
-                    </p>
-                </div>
+                <li class="faq-item">
+                    <div class="faq-q">Posso gerir mais de 12 jogadores?</div>
+                    <div class="faq-a">
+                        Sim. Podes ajustar o número de jogadores conforme o teu plantel.
+                        A aplicação foi pensada para plantéis de formação e competição, permitindo trabalhar com grupos
+                        alargados. Para melhor leitura em jogo, o ideal é entre 10 e 18 atletas.
+                    </div>
+                </li>
 
-                <!-- Q2 -->
-                <div style="background:#151515; border-radius:12px; padding:18px 20px; border:1px solid #222;">
-                    <h3 style="font-size:15px; margin:0 0 8px 0;">
-                        Em que dispositivos posso usar?
-                    </h3>
-                    <p style="margin:0; font-size:14px; line-height:1.5; opacity:0.8;">
-                        Podes usar em portátil, tablet ou telemóvel, através do navegador.
-                        A experiência ideal é em <strong>tablet</strong>, no banco, durante o jogo.
-                    </p>
-                </div>
+                <li class="faq-item">
+                    <div class="faq-q">O Game Control substitui a folha de jogo ou o scout oficial?</div>
+                    <div class="faq-a">
+                        Não. O Game Control é uma ferramenta complementar, focada na gestão de minutos, rotações,
+                        workload e fadiga. Continua a ser necessário cumprir todas as obrigações oficiais do jogo
+                        (boletim, súmula, scout da competição, etc.).
+                    </div>
+                </li>
 
-                <!-- Q3 -->
-                <div style="background:#151515; border-radius:12px; padding:18px 20px; border:1px solid #222;">
-                    <h3 style="font-size:15px; margin:0 0 8px 0;">
-                        Preciso de internet durante o jogo?
-                    </h3>
-                    <p style="margin:0; font-size:14px; line-height:1.5; opacity:0.8;">
-                        Sim. É necessária ligação à internet para garantir que o acesso, a segurança e o armazenamento dos dados funcionam corretamente.
-Embora parte da aplicação possa continuar a funcionar temporariamente sem ligação, <strong>não é garantido que os dados sejam guardados<strong>, por isso é recomendado utilizar sempre com internet ativa.
-                    </p>
-                </div>
+                <li class="faq-item">
+                    <div class="faq-q">Preciso de internet durante o jogo?</div>
+                    <div class="faq-a">
+                        Sim. É necessária ligação à internet para garantir que o acesso, a segurança e o
+                        armazenamento dos dados funcionam corretamente.  
+                        Embora algumas partes possam continuar a responder temporariamente sem ligação, não é
+                        garantido que os dados fiquem guardados. Por isso, é recomendado utilizar sempre com
+                        internet ativa.
+                    </div>
+                </li>
 
-                <!-- Q4 -->
-                <div style="background:#151515; border-radius:12px; padding:18px 20px; border:1px solid #222;">
-                    <h3 style="font-size:15px; margin:0 0 8px 0;">
-                        Os dados ficam guardados?
-                    </h3>
-                    <p style="margin:0; font-size:14px; line-height:1.5; opacity:0.8;">
-                        Os dados do jogo são guardados localmente no dispositivo enquanto trabalhas.
-                        Podes também exportar um resumo em <strong>PNG</strong> no final da partida.
-                    </p>
-                </div>
+            </ul>
+        </section>
+    </div>
 
-                <!-- Q5 -->
-                <div style="background:#151515; border-radius:12px; padding:18px 20px; border:1px solid #222;">
-                    <h3 style="font-size:15px; margin:0 0 8px 0;">
-                        Posso usar em vários escalões ou equipas?
-                    </h3>
-                    <p style="margin:0; font-size:14px; line-height:1.5; opacity:0.8;">
-                        Sim. Podes utilizar o Game Control em diferentes equipas ou escalões,
-                        adaptando os presets de plantel e tempos de jogo a cada contexto.
-                    </p>
-                </div>
-
-                <!-- Q6 -->
-                <div style="background:#151515; border-radius:12px; padding:18px 20px; border:1px solid #222;">
-                    <h3 style="font-size:15px; margin:0 0 8px 0;">
-                        Para que nível competitivo faz mais sentido?
-                    </h3>
-                    <p style="margin:0; font-size:14px; line-height:1.5; opacity:0.8;">
-                        O Game Control foi pensado para <strong>futsal de formação e competitivo</strong>,
-                        desde escalões de formação até Seniores, onde a gestão de minutos e cargas é crítica.
-                    </p>
-                </div>
-
-            </div>
-        </div>
-    </section>
-
-    <!-- FOOTER -->
+    <!-- FOOTER (CONTACTOS) -->
     <footer>
         <div>© 2025 Game Control </div>
         <div style="font-weight:500; color:#fff; margin-top:6px;">
