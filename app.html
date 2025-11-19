@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Game Control</title>
+
+<style>
+  :root {
+    --timeline-h: 54px;
+  }
+
+  body{
+    font-family:Arial, sans-serif;
+    margin:0;
+    background:#1e1e1e;
+    color:#f5f5f5;
+    text-align:center;
+    padding-bottom: calc(var(--timeline-h) + 10px);
+  }
+  body.light-mode{
+    background:#f5f5f5;
+    color:#222;
+  }
+
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#333;
+    padding:10px 0;
+    position:relative;
+  }
+  body.light-mode header{
+    background:#ddd;
+    color:#111;
+  }
+
+  header h1{
+    margin:0;
+    font-size:1.6em;
+  }
+
+  .top-buttons{
+    position:absolute;
+    right:10px;
+    top:8px;
+    display:flex;
+    gap:8px;
+  }
+  .top-buttons button{
+    background:none;
+    border:none;
+    font-size:22px;
+    color:#fff;
+    cursor:pointer;
+  }
+  body.light-mode .top-buttons button{
+    color:#222;
+  }
+
+  /* BOTÃO FLUTUANTE INICIAR/PAUSAR */
+  #floatingPlayBtn{
+    position:fixed;
+    top:64px;           /* logo abaixo do header / ícones */
+    right:16px;
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    border:none;
+    font-size:30px;
+    font-weight:bold;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    z-index:1200;
+    box-shadow:0 4px 12px rgba(0,0,0,0.5);
+    transition:background 0.2s, box-shadow 0.2s, transform 0.1s;
+  }
+  #floatingPlayBtn.running{
+    background:#e74c3c;
+    color:#fff;
+    box-shadow:0 0 14px rgba(231,76,60,0.8);
+  }
+  #floatingPlayBtn.paused{
+    background:#2ecc71;
+    color:#000;
+    box-shadow:0 0 14px rgba(46,204,113,0.8);
+  }
+  #floatingPlayBtn:active{
+    transform:scale(0.95);
+  }
+
+  #teamInputs{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    margin:10px;
+  }
+  #teamInputs input{
+    padding:6px 10px;
+    border-radius:6px;
+    border:none;
+    font-size:16px;
+    text-align:center;
+  }
+  .scoreBubble{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:34px;
+    height:34px;
+    padding:0 8px;
+    margin:0 6px;
+    border-radius:8px;
+    background:#111;
+    color:#fff;
+    font-weight:800;
+    font-size:20px;
+  }
+  body.light-mode .scoreBubble{
+    background:#e7e7e7;
+    color:#111;
+  }
+
+  .timer-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    margin:6px 0 0 0;
+  }
+  #timer{
+    font-size:3em;
+  }
+  .half-badge{
+    display:inline-block;
+    padding:4px 10px;
+    border-radius:999px;
+    background:#444;
+    color:#fff;
+    font-size:12px;
+    letter-spacing:.3px;
+  }
+  body.light-mode .half-badge{
+    background:#ccc;
+    color:#111;
+  }
+
+  .controls{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:6px;
+    background:#2e2e2e;
+    padding:10px;
+  }
+  body.light-mode .controls{
+    background:#e0e0e0;
+  }
+  .controls button{
+    padding:6px 10px;
+    border:none;
+    border-radius:6px;
+    background:#444;
+    color:#fff;
+    cursor:pointer;
+  }
+  /* Dar mais destaque aos botões Intervalo e Reset */
+  #intervalBtn,
+  #resetBtn{
+    padding:10px 18px;
+    font-size:16px;
+    font-weight:600;
+    border-radius:10px;
+  }
+  #intervalBtn{
+    background:#f1c40f;
+    color:#000;
+  }
+  #resetBtn{
+    background:#e74c3c;
+    color:#fff;
+  }
+  body.light-mode .controls button{
+    background:#555;
+    color:#fff;
+  }
+  .controls input{
+    padding:6px 8px;
+    border-radius:6px;
+    border:none;
+    text-align:center;
+  }
+
+  /* Grelha dos jogadores – mais finas e juntas */
+  #players{
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:10px;
+    width:100%;
+    margin:8px 0 16px 0;
+    justify-items:center;
+  }
+  @media (max-width:1200px){
+    #players{grid-template-columns:repeat(4,minmax(0,1fr));}
+  }
+  @media (max-width:900px){
+    #players{grid-template-columns:repeat(3,minmax(0,1fr));}
+  }
+  @media (max-width:600px){
+    #players{grid-template-columns:repeat(2,minmax(0,1fr));}
+  }
+
+  .player{
+    width:100%;
+    height:100px;
+    border-radius:10px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:0.2s;
+    background:#8b2c23;
+    color:#fff;
+    position:relative;
+    overflow:hidden;
+    box-sizing:border-box;
+  }
+  .player.active{
+    background:#2ecc71;
+    color:#000;
+  }
+
+  .player strong{
+    font-size:12px;
+    margin-bottom:2px;
+    padding:0 3px;
+  }
+  .player .time{
+    font-size:20px;
+    font-weight:bold;
+    line-height:1;
+  }
+  .player .last{
+    font-size:8px;
+    opacity:.9;
+    margin-top:1px;
+  }
+
+  .gk-icon{
+    position:absolute;
+    top:6px;
+    left:6px;
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,0.45);
+    font-size:13px;
+  }
+
+  .fatigue-container{
+    position:absolute;
+    left:6px;
+    right:6px;
+    bottom:5px;
+    height:5px;
+    border-radius:6px;
+    background:rgba(255,255,255,0.3);
+    overflow:hidden;
+  }
+  .fatigue-bar{
+    height:100%;
+    width:0%;
+    border-radius:6px;
+    background:#2ecc71;
+    transition:width 0.2s linear, background 0.2s linear;
+  }
+
+  .player.limit{
+    outline:3px solid #ff4d4d;
+    box-shadow:0 0 0 3px rgba(255,77,77,0.35);
+  }
+
+  .summary{
+    width:90%;
+    max-width:1100px;
+    margin:10px auto 30px auto;
+    padding:0;
+    background:#242424;
+    border-radius:12px;
+    box-shadow:0 8px 24px rgba(0,0,0,.35);
+    overflow:hidden;
+  }
+  body.light-mode .summary{
+    background:#ffffff;
+    box-shadow:0 4px 10px rgba(0,0,0,.1);
+  }
+  .summary h3{
+    margin:0;
+    padding:12px 16px;
+    background:#2f2f2f;
+    border-bottom:1px solid #3a3a3a;
+    text-align:left;
+  }
+  body.light-mode .summary h3{
+    background:#e0e0e0;
+    border-bottom:1px solid #ccc;
+    color:#111;
+  }
+  .summary table{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+  }
+  .summary thead th{
+    position:sticky;
+    top:0;
+    background:#303030;
+    z-index:1;
+    text-transform:uppercase;
+    font-size:12px;
+    letter-spacing:.4px;
+    color:#ddd;
+    border-bottom:1px solid #3a3a3a;
+    padding:10px 12px;
+  }
+  body.light-mode .summary thead th{
+    background:#f0f0f0;
+    color:#222;
+    border-bottom:1px solid #ddd;
+  }
+  .summary tbody td{
+    padding:10px 12px;
+    border-bottom:1px solid #333;
+  }
+  body.light-mode .summary tbody td{
+    border-bottom:1px solid #e0e0e0;
+  }
+  .summary tbody tr:nth-child(even){
+    background:rgba(255,255,255,0.03);
+  }
+  body.light-mode .summary tbody tr:nth-child(even){
+    background:#fafafa;
+  }
+  .summary tbody tr:hover{
+    background:rgba(255,255,255,0.06);
+  }
+  body.light-mode .summary tbody tr:hover{
+    background:#f2f2f2;
+  }
+  .summary td:nth-child(1){
+    text-align:left;
+    font-weight:600;
+  }
+
+  .pill{
+    display:inline-block;
+    padding:4px 10px;
+    border-radius:999px;
+    font-weight:700;
+    font-size:12px;
+  }
+  .pill.work-pos{
+    color:#2ecc71;
+    background:rgba(46,204,113,.12);
+    border:1px solid rgba(46,204,113,.35);
+  }
+  .pill.work-neg{
+    color:#e74c3c;
+    background:rgba(231,76,60,.12);
+    border:1px solid rgba(231,76,60,.35);
+  }
+
+  .card-badges{
+    position:absolute;
+    top:6px;
+    right:6px;
+    display:flex;
+    gap:4px;
+    align-items:center;
+  }
+  .badge-fouls{
+    min-width:16px;
+    height:18px;
+    border-radius:999px;
+    background:#444;
+    color:#fff;
+    font-size:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 5px;
+  }
+  .badge-yc, .badge-rc{
+    width:12px;
+    height:18px;
+    border-radius:2px;
+    border:1px solid rgba(0,0,0,.4);
+  }
+  .badge-yc{ background:#f1c40f; }
+  .badge-rc{ background:#e74c3c; }
+
+  /* Painel editar nomes */
+  #editPanel{
+    position:fixed;
+    right:-420px;
+    top:20%;
+    width:380px;
+    height:60%;
+    background:rgba(0,0,0,0.96);
+    border-left:2px solid #555;
+    border-radius:10px 0 0 10px;
+    padding:15px;
+    box-shadow:-4px 0 8px rgba(0,0,0,.4);
+    transition:right .2s;
+    z-index:999;
+    overflow-y:auto;
+  }
+  #editPanel.open{ right:0; }
+  #editPanel .close-btn{
+    position:absolute;
+    top:6px;
+    right:8px;
+    background:transparent;
+    border:none;
+    color:#fff;
+    font-size:18px;
+    cursor:pointer;
+  }
+  #editPanel h3{
+    margin:0 0 10px 0;
+  }
+  #editPanel .row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  #editPanel .row span{
+    width:24px;
+    text-align:right;
+    color:#ccc;
+    font-size:13px;
+  }
+  #editPanel .row input[type="text"]{
+    flex:1;
+    padding:6px;
+    border-radius:6px;
+    border:1px solid #777;
+    background:#1f1f1f;
+    color:#fff;
+  }
+  #editPanel .row label{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    color:#ddd;
+    font-size:13px;
+  }
+  #editPanel .save-btn{
+    width:100%;
+    padding:8px;
+    border:none;
+    border-radius:6px;
+    background:#0078d7;
+    color:#fff;
+    cursor:pointer;
+    margin-top:8px;
+  }
+
+  /* Painel Presets */
+  #presetsPanel{
+    position:fixed;
+    right:-420px;
+    top:10%;
+    width:380px;
+    height:80%;
+    background:rgba(0,0,0,0.96);
+    border-left:2px solid #555;
+    border-radius:10px 0 0 10px;
+    padding:15px;
+    box-shadow:-4px 0 8px rgba(0,0,0,.4);
+    transition:right .2s;
+    z-index:999;
+    overflow-y:auto;
+  }
+  #presetsPanel.open{ right:0; }
+  #presetsPanel .close-btn{
+    position:absolute;
+    top:6px;
+    right:8px;
+    background:transparent;
+    border:none;
+    color:#fff;
+    font-size:18px;
+    cursor:pointer;
+  }
+
+  /* Painel Gestão de Cargas */
+  #loadPanel{
+    position:fixed;
+    left:-420px;
+    top:10%;
+    width:380px;
+    height:80%;
+    background:rgba(0,0,0,0.96);
+    border-right:2px solid #555;
+    border-radius:0 10px 10px 0;
+    padding:15px;
+    box-shadow:4px 0 8px rgba(0,0,0,.4);
+    transition:left .2s;
+    z-index:999;
+    overflow-y:auto;
+  }
+  #loadPanel.open{ left:0; }
+  #loadPanel .close-btn{
+    position:absolute;
+    top:6px;
+    right:8px;
+    background:transparent;
+    border:none;
+    color:#fff;
+    font-size:18px;
+    cursor:pointer;
+  }
+  #loadPanel h3{
+    margin:0 0 10px 0;
+  }
+  .load-row{
+    display:flex;
+    flex-direction:column;
+    padding:6px 8px;
+    border-radius:8px;
+    margin-bottom:6px;
+    background:#1f1f1f;
+    border:1px solid #444;
+    text-align:left;
+    font-size:13px;
+  }
+  .load-row strong{
+    font-size:13px;
+  }
+  .load-meta{
+    display:flex;
+    justify-content:space-between;
+    margin-top:2px;
+    font-size:12px;
+  }
+  .load-tag{
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:600;
+  }
+  .load-pos{
+    background:rgba(46,204,113,.15);
+    color:#2ecc71;
+    border:1px solid rgba(46,204,113,.5);
+  }
+  .load-neg{
+    background:rgba(231,76,60,.15);
+    color:#e74c3c;
+    border:1px solid rgba(231,76,60,.5);
+  }
+  .fat-low{
+    color:#2ecc71;
+  }
+  .fat-mid{
+    color:#f1c40f;
+  }
+  .fat-high{
+    color:#e74c3c;
+  }
+
+  /* Timeline fixa em baixo */
+  #timelineBar{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    height:var(--timeline-h);
+    background:#212121;
+    border-top:1px solid #444;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    z-index:900;
+  }
+  body.light-mode #timelineBar{
+    background:#f0f0f0;
+    border-top:1px solid #ccc;
+  }
+  .tl-btn{
+    border:none;
+    border-radius:999px;
+    padding:6px 10px;
+    font-size:14px;
+    cursor:pointer;
+    background:#3b3b3b;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  body.light-mode .tl-btn{
+    background:#666;
+    color:#fff;
+  }
+  .tl-btn span.icon{font-size:16px;}
+  .tl-btn span.label{font-size:12px;}
+
+  .player.selectEvent{
+    outline:3px dashed #fff;
+    outline-offset:-3px;
+  }
+
+  /* Assinatura @gpmviana */
+  #brandSignature{
+    position:fixed;
+    bottom:-5px;
+    right:12px;
+    z-index:9999;
+    pointer-events:none;
+  }
+  #brandSignature img{
+    height:65px;
+    opacity:0.7;
+    display:none;
+    user-select:none;
+  }
+  body:not(.light-mode) #brandSignature .sig-on-dark{
+    display:block;
+  }
+  body.light-mode #brandSignature .sig-on-light{
+    display:block;
+  }
+
+  /* 🔐 LOGIN SCREEN */
+  #loginScreen{
+    min-height:calc(100vh - var(--timeline-h));
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+  }
+  #loginScreen h2{
+    margin-bottom:8px;
+  }
+  #loginScreen input{
+    padding:8px 10px;
+    border-radius:6px;
+    border:none;
+    min-width:220px;
+    text-align:center;
+  }
+  #loginScreen button{
+    padding:8px 14px;
+    border:none;
+    border-radius:6px;
+    background:#0078d7;
+    color:#fff;
+    cursor:pointer;
+    font-weight:600;
+  }
+  #loginError{
+    color:#ff5555;
+    font-size:12px;
+    min-height:16px;
+  }
+  body.light-mode #loginScreen button{
+    background:#005ea6;
+  }
+</style>
+
+<!-- 🔐 Firebase Auth (login/logout) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCPiS92A0ZUNaCl4clAkxBbYFQrgJDSiUY",
+    authDomain: "gamecontrol-futsal.firebaseapp.com",
+    projectId: "gamecontrol-futsal",
+    storageBucket: "gamecontrol-futsal.firebasestorage.app",
+    messagingSenderId: "717212104958",
+    appId: "1:717212104958:web:36fe7465fb405722c30daf",
+    measurementId: "G-LQFHN83HQ0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  window.addEventListener("DOMContentLoaded", () => {
+    const loginScreen   = document.getElementById("loginScreen");
+    const appWrapper    = document.getElementById("appWrapper");
+    const loginEmail    = document.getElementById("loginEmail");
+    const loginPassword = document.getElementById("loginPassword");
+    const loginBtn      = document.getElementById("loginBtn");
+    const loginError    = document.getElementById("loginError");
+    const logoutBtn     = document.getElementById("logoutBtn");
+
+    if(loginBtn){
+      loginBtn.addEventListener("click", async () => {
+        loginError.textContent = "";
+        const email = (loginEmail.value || "").trim();
+        const pass  = loginPassword.value || "";
+        if(!email || !pass){
+          loginError.textContent = "Preenche email e password.";
+          return;
+        }
+        try{
+          await signInWithEmailAndPassword(auth, email, pass);
+        }catch(err){
+          console.error(err);
+          loginError.textContent = "Login inválido. Verifica os dados.";
+        }
+      });
+    }
+
+    if(logoutBtn){
+      logoutBtn.addEventListener("click", async () => {
+        try{
+          await signOut(auth);
+        }catch(err){
+          console.error(err);
+        }
+      });
+    }
+
+    onAuthStateChanged(auth, user => {
+      const logged = !!user;
+      if(logged){
+        loginScreen.style.display = "none";
+        appWrapper.style.display  = "block";
+        if(logoutBtn) logoutBtn.style.display = "inline-flex";
+      }else{
+        loginScreen.style.display = "flex";
+        appWrapper.style.display  = "none";
+        if(logoutBtn) logoutBtn.style.display = "none";
+      }
+    });
+  });
+</script>
+</head>
+
+<body>
+<header>
+  <h1>Game Control</h1>
+  <div class="top-buttons">
+    <button id="themeToggle" title="Tema">🌙</button>
+    <button id="fullscreenBtn" title="Fullscreen">⛶</button>
+    <button id="loadPanelBtn" title="Gestão de Cargas">⚡</button>
+    <button id="editNamesBtn" title="Editar nomes">👥</button>
+    <button id="presetsBtn" title="Presets">💾</button>
+    <button id="printBtn" title="Exportar PNG">📸</button>
+    <!-- 🔐 Logout (só aparece quando logado) -->
+    <button id="logoutBtn" title="Sair" style="display:none;">🚪</button>
+  </div>
+</header>
+
+<!-- 🔐 Ecrã de Login -->
+<div id="loginScreen">
+  <h2>Login Game Control</h2>
+  <input id="loginEmail" type="email" placeholder="Email" autocomplete="username" />
+  <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
+  <button id="loginBtn">Entrar</button>
+  <p id="loginError"></p>
+</div>
+
+<!-- 🔲 App inteira fica aqui dentro (só aparece após login) -->
+<div id="appWrapper" style="display:none;">
+
+  <!-- Botão flutuante Iniciar/Pausar -->
+  <button id="floatingPlayBtn" class="paused" title="Iniciar / Pausar">⏵</button>
+
+  <div id="teamInputs">
+    <span class="scoreBubble" id="scoreA">0</span>
+    <input id="teamA" placeholder="Equipa A" />
+    <span style="font-weight:bold;">vs</span>
+    <input id="teamB" placeholder="Equipa B" />
+    <span class="scoreBubble" id="scoreB">0</span>
+  </div>
+
+  <div class="timer-row">
+    <div id="timer">20:00</div>
+    <span id="halfBadge" class="half-badge">1ª Parte</span>
+  </div>
+
+  <div class="controls">
+    <input id="setMinutes" type="number" value="20" min="1" style="width:60px;">
+    <button id="intervalBtn">Intervalo</button>
+    <button id="resetBtn">Reset</button>
+    <button id="addBtn">+</button>
+    <button id="removeBtn">−</button>
+  </div>
+
+  <div id="players"></div>
+
+  <div class="summary" id="summaryCard">
+    <h3>Resumo de Jogo</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Jogador</th>
+          <th>1ª Parte</th>
+          <th>2ª Parte</th>
+          <th>Total em Campo</th>
+          <th>Tempo Fora</th>
+          <th>Rotações</th>
+          <th>Média</th>
+          <th>% Jogo</th>
+          <th>Workload</th>
+        </tr>
+      </thead>
+      <tbody id="summaryBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Painel Editar nomes -->
+  <div id="editPanel">
+    <button class="close-btn" id="closePanel">❌</button>
+    <h3>Editar Jogadores</h3>
+    <div id="editList"></div>
+    <button class="save-btn" id="saveNamesBtn">Guardar Alterações</button>
+  </div>
+
+  <!-- Painel Presets -->
+  <div id="presetsPanel">
+    <button class="close-btn" id="closePresets">❌</button>
+    <h3 style="margin:0 0 10px 0;">Presets de Plantel</h3>
+    <div style="display:flex; gap:6px; margin-bottom:8px;">
+      <input id="presetName" placeholder="Nome do preset" style="flex:1;padding:6px;border-radius:6px;border:1px solid #777;background:#1f1f1f;color:#fff"/>
+      <button id="savePresetBtn" style="padding:6px 10px;border:none;border-radius:6px;background:#0078d7;color:#fff;cursor:pointer">Guardar</button>
+    </div>
+    <div>
+      <h4 style="margin:10px 0 6px 0;">Carregar</h4>
+      <div id="presetList"></div>
+    </div>
+  </div>
+
+  <!-- Painel Gestão de Cargas -->
+  <div id="loadPanel">
+    <button class="close-btn" id="closeLoad">❌</button>
+    <h3>Gestão de Cargas</h3>
+    <p style="font-size:12px;color:#ccc;margin:0 0 8px 0;">
+      Workload = tempo em campo − tempo ideal (se todos jogassem igual).
+    </p>
+    <div id="loadList"></div>
+  </div>
+
+  <!-- Assinatura -->
+  <div id="brandSignature">
+    <img src="signature-light.png" class="sig-on-dark" alt="@gpmviana">
+    <img src="signature-dark.png" class="sig-on-light" alt="@gpmviana">
+  </div>
+
+  <!-- Timeline fixa -->
+  <div id="timelineBar">
+    <button class="tl-btn" data-type="GF_A">
+      <span class="icon">⚽</span><span class="label">Golo +</span>
+    </button>
+    <button class="tl-btn" data-type="GA_A">
+      <span class="icon">⚽</span><span class="label">Golo −</span>
+    </button>
+    <button class="tl-btn tl-player" data-type="FK_P">
+      <span class="icon">❌</span><span class="label">Falta</span>
+    </button>
+    <button class="tl-btn tl-player" data-type="YC_P">
+      <span class="icon">🟨</span><span class="label">Amarelo</span>
+    </button>
+    <button class="tl-btn tl-player" data-type="RC_P">
+      <span class="icon">🟥</span><span class="label">Vermelho</span>
+    </button>
+    <button class="tl-btn" id="tlClearBtn">
+      <span class="icon">🧹</span><span class="label">Limpar</span>
+    </button>
+  </div>
+
+</div> <!-- 🔚 fecha appWrapper -->
+
+<script>
+let duration = 20 * 60;
+let remaining = duration;
+let timerInterval = null;
+let running = false;
+let firstHalf = true;
+
+let players = [];
+let theme = "dark";
+const maxOnField = 5;
+let scoreA = 0;
+let scoreB = 0;
+let pendingPlayerEvent = null;
+
+let timeline = [];
+
+const STORAGE_KEY = "gameControl_withWorkloadGestao_v1";
+const PRESETS_KEY = "gc_presets_v1";
+
+/* Botão flutuante */
+const floatingPlayBtn = document.getElementById("floatingPlayBtn");
+
+function pad(n){return String(n).padStart(2,"0");}
+function formatTime(sec){
+  sec = Math.max(0, Math.floor(sec));
+  const m = Math.floor(sec/60);
+  const s = sec % 60;
+  return `${pad(m)}:${pad(s)}`;
+}
+
+function updateTimerDisplay(){
+  document.getElementById("timer").textContent = formatTime(remaining);
+}
+function updateHalfBadge(){
+  document.getElementById("halfBadge").textContent = firstHalf ? "1ª Parte" : "2ª Parte";
+}
+function updateScoreUI(){
+  document.getElementById("scoreA").textContent = scoreA;
+  document.getElementById("scoreB").textContent = scoreB;
+}
+
+/* Actualiza aparência do botão flutuante */
+function updateFloatingPlayBtn(){
+  if(!floatingPlayBtn) return;
+  if(running){
+    floatingPlayBtn.classList.remove("paused");
+    floatingPlayBtn.classList.add("running");
+    floatingPlayBtn.textContent = "⏸";
+  }else{
+    floatingPlayBtn.classList.remove("running");
+    floatingPlayBtn.classList.add("paused");
+    floatingPlayBtn.textContent = "⏵";
+  }
+}
+
+function tick(){
+  if(remaining <= 0){
+    pauseTimer();
+    return;
+  }
+  remaining--;
+  players.forEach(p=>{
+    if(p.active){
+      p.seconds++;
+      p.rotationSecondsCurrent++;
+      if(firstHalf) p.part1++;
+      else p.part2++;
+      if(!p.isGK){
+        p.fatigue += 0.01 * (1 - p.fatigue);
+      }
+    }else{
+      p.secondsOut++;
+      p.rotationSecondsOut++;
+      if(!p.isGK){
+        p.fatigue -= 0.02 * p.fatigue;
+      }
+    }
+    if(!p.isGK){
+      if(p.fatigue < 0) p.fatigue = 0;
+      if(p.fatigue > 1) p.fatigue = 1;
+    }
+  });
+  updateTimerDisplay();
+  updatePlayersUI();
+  updateSummary();
+  saveData();
+}
+function startTimer(){
+  if(running) return;
+  running = true;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(tick,1000);
+  updateFloatingPlayBtn();
+}
+function pauseTimer(){
+  running = false;
+  clearInterval(timerInterval);
+  updateFloatingPlayBtn();
+  saveData();
+}
+function resetTimer(){
+  pauseTimer();
+  const mins = parseInt(document.getElementById("setMinutes").value)||20;
+  duration = mins * 60;
+  remaining = duration;
+  firstHalf = true;
+  scoreA = 0;
+  scoreB = 0;
+  timeline = [];
+  players.forEach(p=>{
+    p.seconds = 0;
+    p.secondsOut = 0;
+    p.part1 = 0;
+    p.part2 = 0;
+    p.rotations = 0;
+    p.rotationSecondsCurrent = 0;
+    p.rotationSecondsOut = 0;
+    p.lastRotation = 0;
+    if(!p.isGK) p.fatigue = 0;
+    p.active = false;
+    p.fouls = 0;
+    p.yc = false;
+    p.rc = false;
+  });
+  updateTimerDisplay();
+  updateHalfBadge();
+  updatePlayersUI();
+  updateSummary();
+  updateScoreUI();
+  updateFloatingPlayBtn();
+  saveData();
+}
+function intervalTimer(){
+  pauseTimer();
+  firstHalf = false;
+  const mins = parseInt(document.getElementById("setMinutes").value)||20;
+  duration = mins * 60;
+  remaining = duration;
+  players.forEach(p=>{
+    p.rotationSecondsCurrent = 0;
+    p.rotationSecondsOut = 0;
+    if(!p.isGK){
+      p.fatigue *= 0.3;
+    }
+  });
+  updateTimerDisplay();
+  updateHalfBadge();
+  updatePlayersUI();
+  updateSummary();
+  saveData();
+}
+
+function fatigueColor(f){
+  if(f >= 0.7) return "#e74c3c";
+  if(f >= 0.4) return "#f1c40f";
+  return "#2ecc71";
+}
+
+function buildPlayersDOM(){
+  const container = document.getElementById("players");
+  container.innerHTML = "";
+  players.forEach(p=>{
+    const div = document.createElement("div");
+    div.id = "player"+p.id;
+    div.className = "player " + (p.active ? "active" : "inactive");
+    const foulsHTML = p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : "";
+    const ycHTML = p.yc ? `<span class="badge-yc" title="Amarelo"></span>` : "";
+    const rcHTML = p.rc ? `<span class="badge-rc" title="Vermelho"></span>` : "";
+    div.innerHTML = `
+      <div class="gk-icon" style="display:${p.isGK?"flex":"none"}">🧤</div>
+      <div class="card-badges">${foulsHTML}${ycHTML}${rcHTML}</div>
+      <strong class="name">${p.name}</strong>
+      <div class="time">00:00</div>
+      <div class="last"></div>
+      ${p.isGK ? "" : `<div class="fatigue-container"><div class="fatigue-bar" id="fatigue${p.id}"></div></div>`}
+    `;
+    div.onclick = ()=>togglePlayer(p.id);
+    container.appendChild(div);
+  });
+  updatePlayersUI();
+}
+
+function updatePlayersUI(){
+  players.forEach(p=>{
+    const el = document.getElementById("player"+p.id);
+    if(!el) return;
+    el.className = "player " + (p.active ? "active" : "inactive") + (pendingPlayerEvent ? " selectEvent" : "");
+    const timeEl = el.querySelector(".time");
+    const lastEl = el.querySelector(".last");
+    const nameEl = el.querySelector(".name");
+    if(nameEl) nameEl.textContent = p.name;
+    const displaySec = p.active ? p.rotationSecondsCurrent : p.rotationSecondsOut;
+    timeEl.textContent = formatTime(displaySec);
+    lastEl.textContent = (!p.active && p.lastRotation>0) ? ("Últ. rotação: " + formatTime(p.lastRotation)) : "";
+    if(!p.isGK){
+      const fb = document.getElementById("fatigue"+p.id);
+      if(fb){
+        fb.style.width = Math.round(p.fatigue*100) + "%";
+        fb.style.background = fatigueColor(p.fatigue);
+      }
+    }
+    const badges = el.querySelector(".card-badges");
+    if(badges){
+      badges.innerHTML =
+        (p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : "") +
+        (p.yc ? `<span class="badge-yc" title="Amarelo"></span>` : "") +
+        (p.rc ? `<span class="badge-rc" title="Vermelho"></span>` : "");
+    }
+  });
+}
+
+function ensurePlayerCount(n){
+  const old = players || [];
+  players = [];
+  for(let i=1;i<=n;i++){
+    const prev = old[i-1];
+    players.push({
+      id:i,
+      name: prev ? prev.name : ("Jogador "+i),
+      active: prev ? !!prev.active : false,
+      isGK: prev ? !!prev.isGK : (i===1),
+      seconds: prev ? (prev.seconds||0) : 0,
+      secondsOut: prev ? (prev.secondsOut||0) : 0,
+      part1: prev ? (prev.part1||0) : 0,
+      part2: prev ? (prev.part2||0) : 0,
+      rotations: prev ? (prev.rotations||0) : 0,
+      rotationSecondsCurrent: prev ? (prev.rotationSecondsCurrent||0) : 0,
+      rotationSecondsOut: prev ? (prev.rotationSecondsOut||0) : 0,
+      lastRotation: prev ? (prev.lastRotation||0) : 0,
+      fatigue: prev && !prev.isGK ? (prev.fatigue||0) : 0,
+      fouls: prev ? (prev.fouls||0) : 0,
+      yc: prev ? !!prev.yc : false,
+      rc: prev ? !!prev.rc : false
+    });
+  }
+  buildPlayersDOM();
+  updateSummary();
+  saveData();
+}
+
+function activeCount(){
+  return players.reduce((a,p)=>a+(p.active?1:0),0);
+}
+
+function flashLimit(id){
+  const el = document.getElementById("player"+id);
+  if(!el) return;
+  el.classList.add("limit");
+  setTimeout(()=>el.classList.remove("limit"),600);
+}
+
+/* Timeline helpers */
+function addTimelineEvent(ev){
+  timeline.push(ev);
+}
+
+/* Player events */
+function addPlayerEvent(type, playerId){
+  const p = players.find(x=>x.id===playerId);
+  if(!p) return;
+  if(type==="FK_P") p.fouls = (p.fouls||0) + 1;
+  if(type==="YC_P") p.yc = true;
+  if(type==="RC_P") p.rc = true;
+
+  const half = firstHalf ? 1 : 2;
+  const clock = formatTime(remaining);
+  addTimelineEvent({
+    type,
+    half,
+    clock,
+    playerId,
+    ts: Date.now()
+  });
+
+  updatePlayersUI();
+  updateSummary();
+  saveData();
+}
+
+function togglePlayer(id){
+  if(pendingPlayerEvent){
+    addPlayerEvent(pendingPlayerEvent, id);
+    pendingPlayerEvent = null;
+    updatePlayersUI();
+    return;
+  }
+
+  const p = players.find(x=>x.id===id);
+  if(!p) return;
+  const currently = activeCount();
+
+  if(!p.active && currently >= maxOnField){
+    flashLimit(id);
+    return;
+  }
+
+  if(p.active){
+    p.active = false;
+    p.lastRotation = p.rotationSecondsCurrent;
+    p.rotationSecondsCurrent = 0;
+    p.rotationSecondsOut = 0;
+  } else {
+    p.active = true;
+    p.rotations++;
+    p.rotationSecondsCurrent = 0;
+    p.rotationSecondsOut = 0;
+  }
+
+  updatePlayersUI();
+  updateSummary();
+  saveData();
+}
+
+/* Workload inteligente */
+function computeGameTime(){
+  if(players.length===0) return 0;
+  return players.reduce((max,p)=>{
+    const t = (p.seconds||0)+(p.secondsOut||0);
+    return t>max?t:max;
+  },0);
+}
+
+function computeIdealPerPlayer(gameTime){
+  if(players.length===0) return 0;
+  return gameTime * (maxOnField / players.length);
+}
+
+function computePlayerWorkload(p, gameTime, idealPerPlayer){
+  if(gameTime <= 0) return 0;
+  return (p.seconds || 0) - idealPerPlayer;
+}
+
+function updateSummary(){
+  const tbody = document.getElementById("summaryBody");
+  tbody.innerHTML = "";
+
+  const gameTime = computeGameTime();
+  const ideal = computeIdealPerPlayer(gameTime);
+
+  players.forEach(p=>{
+    const total = p.part1 + p.part2;
+    const avg = p.rotations > 0 ? Math.floor(total / p.rotations) : 0;
+    const percent = gameTime>0 ? ((p.seconds / gameTime)*100).toFixed(1) : "0.0";
+    const wlSec = computePlayerWorkload(p, gameTime, ideal);
+    const wlMin = wlSec / 60;
+    const wClass = wlMin >= 0 ? "work-pos" : "work-neg";
+    const wTxt = `${wlMin>=0?"+":""}${wlMin.toFixed(1)}m`;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${p.name}${p.isGK?' 🧤':''}</td>
+      <td>${formatTime(p.part1)}</td>
+      <td>${formatTime(p.part2)}</td>
+      <td>${formatTime(total)}</td>
+      <td>${formatTime(p.secondsOut)}</td>
+      <td>${p.rotations}</td>
+      <td>${formatTime(avg)}</td>
+      <td>${percent}%</td>
+      <td><span class="pill ${wClass}">${wTxt}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* Tema / fullscreen */
+function toggleTheme(){
+  document.body.classList.toggle("light-mode");
+  theme = document.body.classList.contains("light-mode") ? "light" : "dark";
+  document.getElementById("themeToggle").textContent = theme==="dark" ? "🌙" : "🌞";
+  saveData();
+}
+function toggleFullscreen(){
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
+}
+
+/* Painel editar nomes */
+const editPanel = document.getElementById("editPanel");
+const editList = document.getElementById("editList");
+
+function openEditPanel(){
+  editList.innerHTML = "";
+  players.forEach(p=>{
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `
+      <span>${p.id}.</span>
+      <input type="text" id="nameEdit${p.id}" value="${p.name}">
+      <label><input type="checkbox" id="gkEdit${p.id}" ${p.isGK?"checked":""}/> 🧤 GR</label>
+    `;
+    editList.appendChild(row);
+  });
+  editPanel.classList.add("open");
+}
+function closeEditPanel(){
+  editPanel.classList.remove("open");
+}
+function saveNamesFromPanel(){
+  players.forEach(p=>{
+    const v = document.getElementById("nameEdit"+p.id).value.trim();
+    const gk = document.getElementById("gkEdit"+p.id).checked;
+    if(v) p.name = v;
+    p.isGK = !!gk;
+    if(p.isGK) p.fatigue = 0;
+  });
+  closeEditPanel();
+  buildPlayersDOM();
+  updateSummary();
+  saveData();
+}
+
+/* Painel Gestão de Cargas */
+const loadPanel = document.getElementById("loadPanel");
+const loadList = document.getElementById("loadList");
+
+function openLoadPanel(){
+  renderLoadPanel();
+  loadPanel.classList.add("open");
+}
+function closeLoadPanel(){
+  loadPanel.classList.remove("open");
+}
+function renderLoadPanel(){
+  loadList.innerHTML = "";
+  const gameTime = computeGameTime();
+  const ideal = computeIdealPerPlayer(gameTime);
+
+  const sorted = [...players].sort((a,b)=> (b.seconds||0)-(a.seconds||0));
+
+  sorted.forEach(p=>{
+    const wlSec = computePlayerWorkload(p, gameTime, ideal);
+    const wlMin = wlSec/60;
+    const totalSec = (p.seconds||0);
+    const fad = p.fatigue || 0;
+    let fadClass="fat-low", fadTxt="Fadiga baixa";
+    if(fad>=0.7){ fadClass="fat-high"; fadTxt="Fadiga alta"; }
+    else if(fad>=0.4){ fadClass="fat-mid"; fadTxt="Fadiga média"; }
+
+    const div = document.createElement("div");
+    div.className = "load-row";
+    div.innerHTML = `
+      <strong>${p.name}${p.isGK?' 🧤':''}</strong>
+      <div class="load-meta">
+        <span>Em campo: <strong>${formatTime(totalSec)}</strong></span>
+        <span class="${fadClass}">${fadTxt}</span>
+      </div>
+      <div class="load-meta">
+        <span>Ideal: ${gameTime>0 ? formatTime(ideal) : "00:00"}</span>
+        <span>
+          <span class="load-tag ${wlMin>=0?'load-pos':'load-neg'}">
+            ${wlMin>=0?"+":""}${wlMin.toFixed(1)}m
+          </span>
+        </span>
+      </div>
+    `;
+    loadList.appendChild(div);
+  });
+}
+
+/* Presets */
+function getPresets(){
+  return JSON.parse(localStorage.getItem(PRESETS_KEY) || "{}");
+}
+function setPresets(obj){
+  localStorage.setItem(PRESETS_KEY, JSON.stringify(obj));
+}
+function renderPresetList(){
+  const list = document.getElementById("presetList");
+  const all = getPresets();
+  const keys = Object.keys(all);
+  if(keys.length===0){
+    list.innerHTML = '<div style="color:#ccc">Sem presets.</div>';
+    return;
+  }
+  list.innerHTML = "";
+  keys.forEach(name=>{
+    const row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.gap = "6px";
+    row.style.marginBottom = "6px";
+    row.innerHTML = `
+      <div style="flex:1;background:#1f1f1f;border:1px solid #444;border-radius:6px;padding:6px;color:#fff;">${name}</div>
+      <button data-name="${name}" class="btnLoad" style="padding:6px 8px;border:none;border-radius:6px;background:#444;color:#fff;cursor:pointer;font-size:12px">Carregar</button>
+      <button data-name="${name}" class="btnDel" style="padding:6px 8px;border:none;border-radius:6px;background:#a33;color:#fff;cursor:pointer;font-size:12px">Apagar</button>
+    `;
+    list.appendChild(row);
+  });
+  list.querySelectorAll(".btnLoad").forEach(b=>b.onclick=()=>loadPreset(b.dataset.name));
+  list.querySelectorAll(".btnDel").forEach(b=>b.onclick=()=>{
+    const all = getPresets();
+    delete all[b.dataset.name];
+    setPresets(all);
+    renderPresetList();
+  });
+}
+function savePreset(){
+  const nm = (document.getElementById("presetName").value || "").trim();
+  if(!nm){
+    alert("Dá um nome ao preset.");
+    return;
+  }
+  const data = {
+    size: players.length,
+    roster: players.map(p=>({ name: p.name, isGK: !!p.isGK }))
+  };
+  const all = getPresets();
+  all[nm] = data;
+  setPresets(all);
+  renderPresetList();
+  alert("Preset guardado.");
+}
+function loadPreset(name){
+  const all = getPresets();
+  const p = all[name];
+  if(!p) return;
+  ensurePlayerCount(p.size || 14);
+  players.forEach((pl,i)=>{
+    const src = p.roster[i];
+    if(!src) return;
+    pl.name = src.name || pl.name;
+    pl.isGK = !!src.isGK;
+    if(pl.isGK) pl.fatigue = 0;
+  });
+  buildPlayersDOM();
+  updateSummary();
+  saveData();
+  alert("Preset carregado.");
+}
+
+/* Persistência */
+function saveData(){
+  const data = {
+    teamA: document.getElementById("teamA").value || "",
+    teamB: document.getElementById("teamB").value || "",
+    duration,
+    remaining,
+    firstHalf,
+    theme,
+    players,
+    scoreA,
+    scoreB,
+    timeline
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function loadData(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw){
+    players = [];
+    for(let i=1;i<=14;i++){
+      players.push({
+        id:i,
+        name:"Jogador "+i,
+        active:false,
+        isGK:(i===1),
+        seconds:0,
+        secondsOut:0,
+        part1:0,
+        part2:0,
+        rotations:0,
+        rotationSecondsCurrent:0,
+        rotationSecondsOut:0,
+        lastRotation:0,
+        fatigue:0,
+        fouls:0,
+        yc:false,
+        rc:false
+      });
+    }
+    buildPlayersDOM();
+    updateTimerDisplay();
+    updateHalfBadge();
+    updateSummary();
+    updateScoreUI();
+    updateFloatingPlayBtn();
+    return;
+  }
+  try{
+    const d = JSON.parse(raw);
+    document.getElementById("teamA").value = d.teamA || "";
+    document.getElementById("teamB").value = d.teamB || "";
+    duration = typeof d.duration==="number" ? d.duration : duration;
+    remaining = typeof d.remaining==="number" ? d.remaining : remaining;
+    firstHalf = typeof d.firstHalf==="boolean" ? d.firstHalf : true;
+    theme = d.theme || "dark";
+    scoreA = typeof d.scoreA==="number" ? d.scoreA : 0;
+    scoreB = typeof d.scoreB==="number" ? d.scoreB : 0;
+    timeline = Array.isArray(d.timeline) ? d.timeline : [];
+
+    players = (Array.isArray(d.players)?d.players:[]).map((p,i)=>({
+      id: p.id ?? (i+1),
+      name: p.name || ("Jogador "+(p.id ?? (i+1))),
+      active: !!p.active,
+      isGK: !!p.isGK,
+      seconds: p.seconds || 0,
+      secondsOut: p.secondsOut || 0,
+      part1: p.part1 || 0,
+      part2: p.part2 || 0,
+      rotations: p.rotations || 0,
+      rotationSecondsCurrent: p.rotationSecondsCurrent || 0,
+      rotationSecondsOut: p.rotationSecondsOut || 0,
+      lastRotation: p.lastRotation || 0,
+      fatigue: p.isGK ? 0 : (p.fatigue || 0),
+      fouls: p.fouls || 0,
+      yc: p.yc || false,
+      rc: p.rc || false
+    }));
+
+    if(players.length===0){
+      for(let i=1;i<=14;i++){
+        players.push({
+          id:i,
+          name:"Jogador "+i,
+          active:false,
+          isGK:(i===1),
+          seconds:0,
+          secondsOut:0,
+          part1:0,
+          part2:0,
+          rotations:0,
+          rotationSecondsCurrent:0,
+          rotationSecondsOut:0,
+          lastRotation:0,
+          fatigue:0,
+          fouls:0,
+          yc:false,
+          rc:false
+        });
+      }
+    }
+
+    buildPlayersDOM();
+    updateTimerDisplay();
+    updateHalfBadge();
+    updateSummary();
+    updateScoreUI();
+
+    if(theme==="light"){
+      document.body.classList.add("light-mode");
+      document.getElementById("themeToggle").textContent = "🌞";
+    }
+    updateFloatingPlayBtn();
+  }catch(e){
+    console.error(e);
+    localStorage.removeItem(STORAGE_KEY);
+    loadData();
+  }
+}
+
+/* Export PNG – tabela + título */
+function exportPng(){
+  const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
+  const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
+  const title = `${teamA} ${scoreA}–${scoreB} ${teamB}`;
+
+  const headers = ["Jogador","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
+  const rows = [];
+  const gameTime = computeGameTime();
+  const ideal = computeIdealPerPlayer(gameTime);
+
+  players.forEach(p=>{
+    const total = p.part1 + p.part2;
+    const avg = p.rotations>0 ? Math.floor(total/p.rotations) : 0;
+    const percent = gameTime>0 ? ((p.seconds / gameTime)*100).toFixed(1)+"%" : "0.0%";
+    const wlSec = computePlayerWorkload(p, gameTime, ideal);
+    const wlMin = wlSec/60;
+    const wTxt = `${wlMin>=0?"+":""}${wlMin.toFixed(1)}m`;
+    rows.push([
+      p.name+(p.isGK?' 🧤':''),
+      formatTime(p.part1),
+      formatTime(p.part2),
+      formatTime(total),
+      formatTime(p.secondsOut),
+      String(p.rotations),
+      formatTime(avg),
+      percent,
+      wTxt
+    ]);
+  });
+
+  const colWidths = [260,100,100,140,140,90,100,90,120];
+  const tableWidth = colWidths.reduce((a,b)=>a+b,0);
+  const margin = 20;
+  const rowH = 32, headerH = 36;
+  const titleH = 30;
+  const padding = 12;
+  const tableHeight = padding + headerH + rows.length*rowH + padding;
+  const contentWidth = tableWidth + padding*2;
+  const canvasW = Math.max(900, contentWidth + margin*2);
+  const canvasH = margin + titleH + 10 + tableHeight + margin;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = canvasW;
+  canvas.height = canvasH;
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0,0,canvasW,canvasH);
+
+  ctx.fillStyle = "#000";
+  ctx.font = "bold 22px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(title, canvasW/2, margin + titleH/2);
+
+  const cardX = (canvasW - contentWidth)/2;
+  const cardY = margin + titleH + 10;
+
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "#cccccc";
+  ctx.lineWidth = 1;
+  const r = 10;
+  ctx.beginPath();
+  ctx.moveTo(cardX+r,cardY);
+  ctx.lineTo(cardX+contentWidth-r,cardY);
+  ctx.quadraticCurveTo(cardX+contentWidth,cardY,cardX+contentWidth,cardY+r);
+  ctx.lineTo(cardX+contentWidth,cardY+tableHeight-r);
+  ctx.quadraticCurveTo(cardX+contentWidth,cardY+tableHeight,cardX+contentWidth-r,cardY+tableHeight);
+  ctx.lineTo(cardX+r,cardY+tableHeight);
+  ctx.quadraticCurveTo(cardX,cardY+tableHeight,cardX,cardY+tableHeight-r);
+  ctx.lineTo(cardX,cardY+r);
+  ctx.quadraticCurveTo(cardX,cardY,cardX+r,cardY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  let x = cardX+padding;
+  let y = cardY+padding;
+
+  ctx.fillStyle = "#eeeeee";
+  ctx.fillRect(x-1,y,tableWidth+2,headerH);
+  ctx.fillStyle = "#000";
+  ctx.font = "bold 14px Arial";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  let cx = x;
+  headers.forEach((h,i)=>{
+    ctx.fillText(h, cx+6, y+headerH/2);
+    cx += colWidths[i];
+  });
+  ctx.strokeStyle = "#cccccc";
+  ctx.beginPath();
+  ctx.moveTo(x,y);
+  ctx.lineTo(x+tableWidth,y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x,y+headerH);
+  ctx.lineTo(x+tableWidth,y+headerH);
+  ctx.stroke();
+
+  ctx.font = "13px Arial";
+  let rowY = y+headerH;
+  rows.forEach(row=>{
+    ctx.strokeStyle = "#e0e0e0";
+    ctx.beginPath();
+    ctx.moveTo(x,rowY+rowH);
+    ctx.lineTo(x+tableWidth,rowY+rowH);
+    ctx.stroke();
+
+    let cxx = x;
+    row.forEach((cell,i)=>{
+      const text = String(cell);
+      ctx.fillStyle = "#000";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      const maxW = colWidths[i]-10;
+      let t = text;
+      while(ctx.measureText(t).width > maxW && t.length>1){
+        t = t.slice(0,-1);
+      }
+      if(t!==text) t = t.slice(0,-1)+"…";
+      ctx.fillText(t, cxx+5, rowY+rowH/2);
+      ctx.strokeStyle="#ececec";
+      ctx.beginPath();
+      ctx.moveTo(cxx,rowY);
+      ctx.lineTo(cxx,rowY+rowH);
+      ctx.stroke();
+      cxx += colWidths[i];
+    });
+    ctx.beginPath();
+    ctx.moveTo(x+tableWidth,rowY);
+    ctx.lineTo(x+tableWidth,rowY+rowH);
+    ctx.stroke();
+
+    rowY += rowH;
+  });
+
+  const a = document.createElement("a");
+  const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+  a.download = `Resumo_${teamA.replace(/\s+/g,"_")}_vs_${teamB.replace(/\s+/g,"_")}_${ts}.png`;
+  a.href = canvas.toDataURL("image/png");
+  a.click();
+}
+
+/* Timeline – equipa */
+function handleTeamEvent(type){
+  const half = firstHalf ? 1 : 2;
+  const clock = formatTime(remaining);
+  const activeIds = players.filter(p=>p.active).map(p=>p.id);
+
+  if(type==="GF_A") scoreA++;
+  if(type==="GA_A") scoreB++;
+
+  addTimelineEvent({
+    type,
+    half,
+    clock,
+    activeIds,
+    ts: Date.now()
+  });
+
+  updateScoreUI();
+  saveData();
+}
+function setPendingEvent(type){
+  pendingPlayerEvent = type;
+  updatePlayersUI();
+}
+
+/* Vassoura – limpa marcador, sanções e timeline */
+document.getElementById("tlClearBtn").onclick = ()=>{
+  if(!confirm("Limpar marcador, faltas/cartões e timeline?")) return;
+  scoreA = 0;
+  scoreB = 0;
+  timeline = [];
+  players.forEach(p=>{
+    p.fouls = 0;
+    p.yc = false;
+    p.rc = false;
+  });
+  updateScoreUI();
+  updatePlayersUI();
+  updateSummary();
+  saveData();
+};
+
+/* Ligações de botões base */
+document.getElementById("resetBtn").onclick = resetTimer;
+document.getElementById("intervalBtn").onclick = intervalTimer;
+document.getElementById("addBtn").onclick = ()=>ensurePlayerCount(players.length+1);
+document.getElementById("removeBtn").onclick = ()=>{ if(players.length>1) ensurePlayerCount(players.length-1); };
+document.getElementById("themeToggle").onclick = toggleTheme;
+document.getElementById("fullscreenBtn").onclick = toggleFullscreen;
+document.getElementById("printBtn").onclick = exportPng;
+
+document.getElementById("editNamesBtn").onclick = openEditPanel;
+document.getElementById("closePanel").onclick = closeEditPanel;
+document.getElementById("saveNamesBtn").onclick = saveNamesFromPanel;
+
+const presetsPanel = document.getElementById("presetsPanel");
+document.getElementById("presetsBtn").onclick = ()=>{
+  renderPresetList();
+  presetsPanel.classList.add("open");
+};
+document.getElementById("closePresets").onclick = ()=>{
+  presetsPanel.classList.remove("open");
+};
+document.getElementById("savePresetBtn").onclick = savePreset;
+
+/* Gestão de Cargas botões */
+document.getElementById("loadPanelBtn").onclick = openLoadPanel;
+document.getElementById("closeLoad").onclick = closeLoadPanel;
+
+/* Timeline buttons */
+document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
+  const type = btn.dataset.type;
+  if(!type) return;
+  if(btn.classList.contains("tl-player")){
+    btn.addEventListener("click", ()=>setPendingEvent(type));
+  }else{
+    btn.addEventListener("click", ()=>handleTeamEvent(type));
+  }
+});
+
+/* Clique no botão flutuante */
+if(floatingPlayBtn){
+  floatingPlayBtn.onclick = ()=>{
+    if(running) pauseTimer();
+    else startTimer();
+  };
+}
+
+window.addEventListener("beforeunload", saveData);
+setInterval(saveData, 5000);
+
+/* Boot */
+loadData();
+updateTimerDisplay();
+updateHalfBadge();
+updateScoreUI();
+updateFloatingPlayBtn();
+</script>
+</body>
+</html>
