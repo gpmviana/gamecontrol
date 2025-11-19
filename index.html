@@ -47,11 +47,6 @@
             color: #000;
         }
 
-        .nav-links {
-            opacity: 0.8;
-            font-size: 14px;
-        }
-
         .invite-btn {
             background: transparent;
             border: 1px solid #444;
@@ -235,58 +230,45 @@
             border:1px solid #2f2f2f;
         }
 
-        /* SEÇÕES ABAIXO DO HERO */
-        .section{
+        /* ⭐ SEÇÃO: PARA QUEM É O GAME CONTROL? */
+        .section {
             width:100%;
-            box-sizing:border-box;
             padding: 10px 32px 0;
-            max-width: 1100px;
-            margin: 0 auto;
+            box-sizing:border-box;
+            margin-top: 6px;
         }
 
         .section-title{
-            font-size: 22px;
-            font-weight: 700;
-            margin-bottom: 8px;
+            font-size:18px;
+            font-weight:700;
+            margin-bottom:14px;
+            opacity:0.95;
         }
 
-        .section-sub{
-            font-size: 14px;
-            opacity:0.8;
-            margin-bottom: 18px;
-            max-width: 720px;
-        }
-
-        .section-grid{
+        .who-grid{
             display:grid;
-            grid-template-columns: repeat(3,minmax(0,1fr));
-            gap:16px;
+            grid-template-columns:repeat(3,minmax(0,1fr));
+            gap:14px;
         }
 
-        .feature-card{
-            background:#121212;
-            border-radius: 14px;
+        .who-card{
+            background:#111111;
+            border-radius:14px;
             padding:14px 16px;
-            border:1px solid #242424;
+            border:1px solid #212121;
+            box-shadow:0 0 18px rgba(0,0,0,0.4);
             font-size:13px;
             line-height:1.5;
         }
 
-        .feature-title{
-            font-weight:600;
+        .who-card-title{
+            font-weight:700;
             margin-bottom:6px;
-            font-size:14px;
+            color:#f5f5f5;
         }
 
-        .feature-badge{
-            display:inline-block;
-            font-size:11px;
-            padding:2px 8px;
-            border-radius:999px;
-            background:#181818;
-            border:1px solid #2a2a2a;
-            margin-bottom:4px;
-            opacity:.9;
+        .who-card-text{
+            opacity:0.85;
         }
 
         /* FOOTER */
@@ -297,7 +279,7 @@
             font-size: 13px;
             color: #ccc;
             opacity: 0.9;
-            margin-top: 220px;
+            margin-top: 80px;
             margin-bottom: 60px;
             box-sizing:border-box;
         }
@@ -317,11 +299,8 @@
                 width:100%;
                 justify-content:center;
             }
-            .section{
-                padding: 0 20px;
-            }
-            .section-grid{
-                grid-template-columns: repeat(2,minmax(0,1fr));
+            .who-grid{
+                grid-template-columns:1fr;
             }
         }
 
@@ -337,8 +316,8 @@
             .hero-title{
                 font-size:34px;
             }
-            .section-grid{
-                grid-template-columns: 1fr;
+            .section{
+                padding: 10px 20px 0;
             }
         }
     </style>
@@ -438,80 +417,30 @@
         </div>
     </div>
 
-    <!-- SECÇÃO: PARA QUEM É -->
-    <section class="section">
-        <div class="section-title">Para quem é o Game Control?</div>
-        <div class="section-sub">
-            Pensado para treinadores que querem tomar decisões rápidas no banco sem andar com folhas de Excel, cronómetros e canetas a voar.
-        </div>
-
-        <div class="section-grid">
-            <div class="feature-card">
-                <div class="feature-badge">Formação</div>
-                <div class="feature-title">Treinadores de formação (Sub-13 a Sub-19)</div>
-                Optimiza a distribuição de minutos, garante equidade e acompanha a evolução dos atletas ao longo da época.
+    <!-- ⭐ PARA QUEM É O GAME CONTROL? -->
+    <div class="section">
+        <h2 class="section-title">Para quem é o Game Control?</h2>
+        <div class="who-grid">
+            <div class="who-card">
+                <div class="who-card-title">Treinadores de formação</div>
+                <div class="who-card-text">
+                    Para gerir minutos de forma justa, equilibrada e objetiva, garantindo que todos os atletas têm oportunidades reais de jogo.
+                </div>
             </div>
-            <div class="feature-card">
-                <div class="feature-badge">Competitivo</div>
-                <div class="feature-title">Equipas que jogam para ganhar</div>
-                Mantém os jogadores chave frescos, evita picos de fadiga e dá-te segurança nas rotações em momentos decisivos.
+            <div class="who-card">
+                <div class="who-card-title">Equipas competitivas</div>
+                <div class="who-card-text">
+                    Para controlar rotações, fadiga e workload em tempo real, ajudando a tomar decisões rápidas sem perder a leitura do jogo.
+                </div>
             </div>
-            <div class="feature-card">
-                <div class="feature-badge">Staff</div>
-                <div class="feature-title">Clubes com staff reduzido</div>
-                Quando és treinador, diretor e team manager ao mesmo tempo, precisas de uma ferramenta simples que faça o “trabalho sujo” por ti.
-            </div>
-        </div>
-    </section>
-
-    <!-- SECÇÃO: O QUE CONSEGUES CONTROLAR -->
-    <section class="section">
-        <div class="section-title">O que consegues controlar durante o jogo</div>
-        <div class="section-sub">
-            Tudo o que precisas num só ecrã, pensado para tablet no banco: clicar, trocar, ver e decidir — sem perder o jogo de vista.
-        </div>
-
-        <div class="section-grid">
-            <div class="feature-card">
-                <div class="feature-title">Tempo em campo e fora</div>
-                Cada jogador com o seu relógio: tempo em campo, tempo fora, 1.ª e 2.ª parte, médias por rotação e percentagem de jogo.
-            </div>
-            <div class="feature-card">
-                <div class="feature-title">Workload e fadiga</div>
-                Cálculo automático do workload em relação ao ideal e barra de fadiga visual para te avisar quem está a precisar de descanso.
-            </div>
-            <div class="feature-card">
-                <div class="feature-title">Resumo final exportável</div>
-                No fim do jogo, exporta um resumo em PNG com todos os minutos, workload e rotações para partilhar com staff ou atletas.
+            <div class="who-card">
+                <div class="who-card-title">Clubes com staff reduzido</div>
+                <div class="who-card-text">
+                    Uma ferramenta única que substitui folhas, cronómetros e improviso, mantendo toda a informação organizada num só ecrã.
+                </div>
             </div>
         </div>
-    </section>
-
-    <!-- SECÇÃO: COMO FUNCIONA O ACESSO -->
-    <section class="section">
-        <div class="section-title">Como funciona o acesso?</div>
-        <div class="section-sub">
-            O Game Control está atualmente disponível com acesso controlado. Cada clube ou treinador recebe um login próprio.
-        </div>
-
-        <div class="section-grid">
-            <div class="feature-card">
-                <div class="feature-badge">1</div>
-                <div class="feature-title">Pede acesso</div>
-                Entra em contacto por email ou Instagram com o teu nome, clube e escalão onde pretendes usar a aplicação.
-            </div>
-            <div class="feature-card">
-                <div class="feature-badge">2</div>
-                <div class="feature-title">Criamos o teu login</div>
-                É gerada uma conta específica para ti / teu clube, com utilizador e palavra-passe exclusivos.
-            </div>
-            <div class="feature-card">
-                <div class="feature-badge">3</div>
-                <div class="feature-title">Usa em jogo</div>
-                Acede via browser (idealmente em tablet), faz login e começa a gerir minutos e cargas de forma profissional.
-            </div>
-        </div>
-    </section>
+    </div>
 
     <!-- FOOTER (CONTACTOS) -->
     <footer>
