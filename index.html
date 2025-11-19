@@ -47,11 +47,6 @@
             color: #000;
         }
 
-        .nav-links {
-            opacity: 0.8;
-            font-size: 14px;
-        }
-
         .invite-btn {
             background: transparent;
             border: 1px solid #444;
@@ -235,51 +230,11 @@
             border:1px solid #2f2f2f;
         }
 
-        /* SEÇÕES GERAIS */
-        .section{
-            width:100%;
-            padding: 24px 32px 0;
-            box-sizing:border-box;
-            max-width:1100px;
-            margin:0 auto;
-        }
-
-        .section-title{
-            font-size:24px;
-            font-weight:700;
-            margin-bottom:18px;
-        }
-
-        .section-sub{
-            font-size:14px;
-            opacity:.8;
-            margin-bottom:20px;
-            max-width:640px;
-        }
-
-        /* FAQ */
-        .faq-grid{
-            display:grid;
-            grid-template-columns:repeat(2,minmax(0,1fr));
-            gap:16px;
-        }
-
-        .faq-item{
-            background:#111111;
-            border-radius:14px;
-            padding:16px 18px;
-            border:1px solid #222;
-            font-size:14px;
-            line-height:1.5;
-        }
-
-        .faq-q{
-            font-weight:600;
-            margin-bottom:6px;
-        }
-
-        .faq-a{
-            opacity:.85;
+        /* COMO OBTER ACESSO */
+        .access-section h2 {
+            font-size: 34px;
+            font-weight: 800;
+            margin-bottom: 20px;
         }
 
         /* FOOTER */
@@ -309,15 +264,6 @@
             .hero-right{
                 width:100%;
                 justify-content:center;
-            }
-            .section{
-                padding:24px 20px 0;
-            }
-        }
-
-        @media (max-width:800px){
-            .faq-grid{
-                grid-template-columns:1fr;
             }
         }
 
@@ -351,7 +297,8 @@
 
     <!-- HERO -->
     <div class="hero">
-        <!-- ESQUERDA -->
+
+        <!-- LEFT -->
         <div class="hero-left">
             <div class="hero-title">
                 Gestão de minutos em <span>tempo real</span> para treinadores de futsal.
@@ -377,7 +324,7 @@
             </div>
         </div>
 
-        <!-- DIREITA – MOCKUP DA APP -->
+        <!-- RIGHT (Mockup) -->
         <div class="hero-right">
             <div class="mockup-box">
                 <div class="mockup-header">
@@ -431,60 +378,165 @@
         </div>
     </div>
 
-    <!-- FAQ -->
-    <section class="section" id="faq">
-        <h2 class="section-title">FAQ</h2>
-        <p class="section-sub">
-            Algumas das perguntas mais frequentes sobre a Game Control.
-        </p>
 
-        <div class="faq-grid">
-            <div class="faq-item">
-                <div class="faq-q">📌 Como obtenho acesso à Game Control?</div>
-                <div class="faq-a">
-                    O acesso é concedido apenas a treinadores autorizados. Cada utilizador recebe um login exclusivo.
-                </div>
-            </div>
+    <!-- COMO OBTER ACESSO -->
+    <section class="access-section" style="
+        width:100%;
+        padding:80px 32px;
+        box-sizing:border-box;
+        background:#111;
+        margin-top:80px;
+    ">
+        <div style="max-width:900px; margin:auto;">
 
-            <div class="faq-item">
-                <div class="faq-q">📌 Em que dispositivos funciona?</div>
-                <div class="faq-a">
-                    Foi pensado para tablet (idealmente iPad), mas funciona também em computador e telemóvel.
-                </div>
-            </div>
+            <h2 style="
+                font-size:34px;
+                font-weight:800;
+                margin-bottom:20px;
+            ">Como obter acesso</h2>
 
-            <div class="faq-item">
-                <div class="faq-q">📌 A app guarda automaticamente os dados do jogo?</div>
-                <div class="faq-a">
-                    Sim. O sistema guarda tudo no dispositivo do utilizador, garantindo que não perdes informação mesmo ao trocar de ecrã.
-                </div>
-            </div>
+            <p style="
+                font-size:16px;
+                line-height:1.7;
+                opacity:0.85;
+                max-width:760px;
+            ">
+                O Game Control funciona por convite, garantindo que apenas treinadores ou membros
+                técnicos autorizados utilizam a plataforma. Este processo mantém a integridade dos dados,
+                a qualidade da utilização e o suporte individualizado.
+            </p>
 
-            <div class="faq-item">
-                <div class="faq-q">📌 A timeline e estatísticas podem ser exportadas?</div>
-                <div class="faq-a">
-                    Sim. Podes gerar um ficheiro PNG com tempos, rotações, eventos e outras métricas do jogo.
-                </div>
-            </div>
+            <div style="
+                margin-top:40px;
+                display:grid;
+                grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+                gap:24px;
+            ">
 
-            <div class="faq-item">
-                <div class="faq-q">📌 Quantos jogadores posso gerir?</div>
-                <div class="faq-a">
-                    Não existe limite fixo. A aplicação foi otimizada para cerca de 12 atletas por questões práticas de jogo, 
-                    mas podes adicionar mais jogadores se precisares.
+                <div style="background:#1a1a1a; border:1px solid #222; padding:22px; border-radius:12px;">
+                    <h3 style="font-size:18px; margin:0 0 10px 0;">1. Solicitação de convite</h3>
+                    <p style="opacity:0.7; font-size:14px; line-height:1.6;">
+                        O treinador ou clube solicita o acesso através de contacto direto com o autor
+                        da aplicação. Cada pedido é avaliado individualmente.
+                    </p>
                 </div>
-            </div>
 
-            <div class="faq-item">
-                <div class="faq-q">📌 Preciso de internet para usar?</div>
-                <div class="faq-a">
-                    Apenas para fazer login. Depois disso, podes utilizar a app normalmente mesmo sem ligação à internet.
+                <div style="background:#1a1a1a; border:1px solid #222; padding:22px; border-radius:12px;">
+                    <h3 style="font-size:18px; margin:0 0 10px 0;">2. Criação de credenciais</h3>
+                    <p style="opacity:0.7; font-size:14px; line-height:1.6;">
+                        Após aprovado, é criado um utilizador com email e password,
+                        permitindo aceder à app em qualquer dispositivo.
+                    </p>
                 </div>
+
+                <div style="background:#1a1a1a; border:1px solid #222; padding:22px; border-radius:12px;">
+                    <h3 style="font-size:18px; margin:0 0 10px 0;">3. Acesso total à aplicação</h3>
+                    <p style="opacity:0.7; font-size:14px; line-height:1.6;">
+                        O treinador pode então entrar na aplicação e utilizar todas as funcionalidades:
+                        gestão de minutos, fadiga, workload, substituições, presets e exportações.
+                    </p>
+                </div>
+
             </div>
         </div>
     </section>
 
-    <!-- FOOTER (CONTACTOS) -->
+    <!-- FAQ -->
+    <section style="
+        width:100%;
+        padding:70px 32px 40px;
+        box-sizing:border-box;
+        background:#0f0f0f;
+    ">
+        <div style="max-width:900px; margin:auto;">
+
+            <h2 style="
+                font-size:30px;
+                font-weight:800;
+                margin-bottom:18px;
+            ">Perguntas frequentes</h2>
+
+            <p style="font-size:15px; opacity:0.8; max-width:760px; margin-bottom:32px;">
+                Algumas respostas rápidas sobre como o Game Control funciona em contexto real de jogo.
+            </p>
+
+            <div style="
+                display:grid;
+                grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+                gap:22px;
+            ">
+
+                <!-- Q1 -->
+                <div style="background:#151515; border-radius:12px; padding:18px 20px; border:1px solid #222;">
+                    <h3 style="font-size:15px; margin:0 0 8px 0;">
+                        Posso gerir mais de 12 jogadores?
+                    </h3>
+                    <p style="margin:0; font-size:14px; line-height:1.5; opacity:0.8;">
+                        Sim. Podes aumentar ou reduzir o número de atletas conforme o teu plantel.
+                        A aplicação ajusta automaticamente a grelha de jogadores.
+                    </p>
+                </div>
+
+                <!-- Q2 -->
+                <div style="background:#151515; border-radius:12px; padding:18px 20px; border:1px solid #222;">
+                    <h3 style="font-size:15px; margin:0 0 8px 0;">
+                        Em que dispositivos posso usar?
+                    </h3>
+                    <p style="margin:0; font-size:14px; line-height:1.5; opacity:0.8;">
+                        Podes usar em portátil, tablet ou telemóvel, através do navegador.
+                        A experiência ideal é em <strong>tablet</strong>, no banco, durante o jogo.
+                    </p>
+                </div>
+
+                <!-- Q3 -->
+                <div style="background:#151515; border-radius:12px; padding:18px 20px; border:1px solid #222;">
+                    <h3 style="font-size:15px; margin:0 0 8px 0;">
+                        Preciso de internet durante o jogo?
+                    </h3>
+                    <p style="margin:0; font-size:14px; line-height:1.5; opacity:0.8;">
+                        Precisas de ligação apenas para fazer o <strong>login</strong>.
+                        Depois disso, a gestão de minutos pode ser utilizada normalmente no dispositivo.
+                    </p>
+                </div>
+
+                <!-- Q4 -->
+                <div style="background:#151515; border-radius:12px; padding:18px 20px; border:1px solid #222;">
+                    <h3 style="font-size:15px; margin:0 0 8px 0;">
+                        Os dados ficam guardados?
+                    </h3>
+                    <p style="margin:0; font-size:14px; line-height:1.5; opacity:0.8;">
+                        Os dados do jogo são guardados localmente no dispositivo enquanto trabalhas.
+                        Podes também exportar um resumo em <strong>PNG</strong> no final da partida.
+                    </p>
+                </div>
+
+                <!-- Q5 -->
+                <div style="background:#151515; border-radius:12px; padding:18px 20px; border:1px solid #222;">
+                    <h3 style="font-size:15px; margin:0 0 8px 0;">
+                        Posso usar em vários escalões ou equipas?
+                    </h3>
+                    <p style="margin:0; font-size:14px; line-height:1.5; opacity:0.8;">
+                        Sim. Podes utilizar o Game Control em diferentes equipas ou escalões,
+                        adaptando os presets de plantel e tempos de jogo a cada contexto.
+                    </p>
+                </div>
+
+                <!-- Q6 -->
+                <div style="background:#151515; border-radius:12px; padding:18px 20px; border:1px solid #222;">
+                    <h3 style="font-size:15px; margin:0 0 8px 0;">
+                        Para que nível competitivo faz mais sentido?
+                    </h3>
+                    <p style="margin:0; font-size:14px; line-height:1.5; opacity:0.8;">
+                        O Game Control foi pensado para <strong>futsal de formação e competitivo</strong>,
+                        desde escalões de base até Sub-19/Seniores, onde a gestão de minutos e cargas é crítica.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
     <footer>
         <div>© 2025 Game Control </div>
         <div style="font-weight:500; color:#fff; margin-top:6px;">
