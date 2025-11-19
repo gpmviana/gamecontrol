@@ -169,22 +169,21 @@
     cursor:pointer;
   }
   /* Dar mais destaque aos botões Intervalo e Reset */
-#intervalBtn,
-#resetBtn{
-  padding:10px 18px;
-  font-size:16px;
-  font-weight:600;
-  border-radius:10px;
-}
-/* Cores diferentes para os dois */
-#intervalBtn{
-  background:#f1c40f;
-  color:#000;
-}
-#resetBtn{
-  background:#e74c3c;
-  color:#fff;
-}
+  #intervalBtn,
+  #resetBtn{
+    padding:10px 18px;
+    font-size:16px;
+    font-weight:600;
+    border-radius:10px;
+  }
+  #intervalBtn{
+    background:#f1c40f;
+    color:#000;
+  }
+  #resetBtn{
+    background:#e74c3c;
+    color:#fff;
+  }
   body.light-mode .controls button{
     background:#555;
     color:#fff;
@@ -644,7 +643,114 @@
   body.light-mode #brandSignature .sig-on-light{
     display:block;
   }
+
+  /* 🔐 LOGIN SCREEN */
+  #loginScreen{
+    min-height:calc(100vh - var(--timeline-h));
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+  }
+  #loginScreen h2{
+    margin-bottom:8px;
+  }
+  #loginScreen input{
+    padding:8px 10px;
+    border-radius:6px;
+    border:none;
+    min-width:220px;
+    text-align:center;
+  }
+  #loginScreen button{
+    padding:8px 14px;
+    border:none;
+    border-radius:6px;
+    background:#0078d7;
+    color:#fff;
+    cursor:pointer;
+    font-weight:600;
+  }
+  #loginError{
+    color:#ff5555;
+    font-size:12px;
+    min-height:16px;
+  }
+  body.light-mode #loginScreen button{
+    background:#005ea6;
+  }
 </style>
+
+<!-- 🔐 Firebase Auth (login/logout) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCPiS92A0ZUNaCl4clAkxBbYFQrgJDSiUY",
+    authDomain: "gamecontrol-futsal.firebaseapp.com",
+    projectId: "gamecontrol-futsal",
+    storageBucket: "gamecontrol-futsal.firebasestorage.app",
+    messagingSenderId: "717212104958",
+    appId: "1:717212104958:web:36fe7465fb405722c30daf",
+    measurementId: "G-LQFHN83HQ0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  window.addEventListener("DOMContentLoaded", () => {
+    const loginScreen   = document.getElementById("loginScreen");
+    const appWrapper    = document.getElementById("appWrapper");
+    const loginEmail    = document.getElementById("loginEmail");
+    const loginPassword = document.getElementById("loginPassword");
+    const loginBtn      = document.getElementById("loginBtn");
+    const loginError    = document.getElementById("loginError");
+    const logoutBtn     = document.getElementById("logoutBtn");
+
+    if(loginBtn){
+      loginBtn.addEventListener("click", async () => {
+        loginError.textContent = "";
+        const email = (loginEmail.value || "").trim();
+        const pass  = loginPassword.value || "";
+        if(!email || !pass){
+          loginError.textContent = "Preenche email e password.";
+          return;
+        }
+        try{
+          await signInWithEmailAndPassword(auth, email, pass);
+        }catch(err){
+          console.error(err);
+          loginError.textContent = "Login inválido. Verifica os dados.";
+        }
+      });
+    }
+
+    if(logoutBtn){
+      logoutBtn.addEventListener("click", async () => {
+        try{
+          await signOut(auth);
+        }catch(err){
+          console.error(err);
+        }
+      });
+    }
+
+    onAuthStateChanged(auth, user => {
+      const logged = !!user;
+      if(logged){
+        loginScreen.style.display = "none";
+        appWrapper.style.display  = "block";
+        if(logoutBtn) logoutBtn.style.display = "inline-flex";
+      }else{
+        loginScreen.style.display = "flex";
+        appWrapper.style.display  = "none";
+        if(logoutBtn) logoutBtn.style.display = "none";
+      }
+    });
+  });
+</script>
 </head>
 
 <body>
@@ -657,115 +763,130 @@
     <button id="editNamesBtn" title="Editar nomes">👥</button>
     <button id="presetsBtn" title="Presets">💾</button>
     <button id="printBtn" title="Exportar PNG">📸</button>
+    <!-- 🔐 Logout (só aparece quando logado) -->
+    <button id="logoutBtn" title="Sair" style="display:none;">🚪</button>
   </div>
 </header>
 
-<!-- Botão flutuante Iniciar/Pausar -->
-<button id="floatingPlayBtn" class="paused" title="Iniciar / Pausar">⏵</button>
-
-<div id="teamInputs">
-  <span class="scoreBubble" id="scoreA">0</span>
-  <input id="teamA" placeholder="Equipa A" />
-  <span style="font-weight:bold;">vs</span>
-  <input id="teamB" placeholder="Equipa B" />
-  <span class="scoreBubble" id="scoreB">0</span>
+<!-- 🔐 Ecrã de Login -->
+<div id="loginScreen">
+  <h2>Login Game Control</h2>
+  <input id="loginEmail" type="email" placeholder="Email" autocomplete="username" />
+  <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
+  <button id="loginBtn">Entrar</button>
+  <p id="loginError"></p>
 </div>
 
-<div class="timer-row">
-  <div id="timer">20:00</div>
-  <span id="halfBadge" class="half-badge">1ª Parte</span>
-</div>
+<!-- 🔲 App inteira fica aqui dentro (só aparece após login) -->
+<div id="appWrapper" style="display:none;">
 
-<div class="controls">
-  <input id="setMinutes" type="number" value="20" min="1" style="width:60px;">
-  <!-- start/pause removidos, agora só no botão flutuante -->
-  <button id="intervalBtn">Intervalo</button>
-  <button id="resetBtn">Reset</button>
-  <button id="addBtn">+</button>
-  <button id="removeBtn">−</button>
-</div>
+  <!-- Botão flutuante Iniciar/Pausar -->
+  <button id="floatingPlayBtn" class="paused" title="Iniciar / Pausar">⏵</button>
 
-<div id="players"></div>
-
-<div class="summary" id="summaryCard">
-  <h3>Resumo de Jogo</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Jogador</th>
-        <th>1ª Parte</th>
-        <th>2ª Parte</th>
-        <th>Total em Campo</th>
-        <th>Tempo Fora</th>
-        <th>Rotações</th>
-        <th>Média</th>
-        <th>% Jogo</th>
-        <th>Workload</th>
-      </tr>
-    </thead>
-    <tbody id="summaryBody"></tbody>
-  </table>
-</div>
-
-<!-- Painel Editar nomes -->
-<div id="editPanel">
-  <button class="close-btn" id="closePanel">❌</button>
-  <h3>Editar Jogadores</h3>
-  <div id="editList"></div>
-  <button class="save-btn" id="saveNamesBtn">Guardar Alterações</button>
-</div>
-
-<!-- Painel Presets -->
-<div id="presetsPanel">
-  <button class="close-btn" id="closePresets">❌</button>
-  <h3 style="margin:0 0 10px 0;">Presets de Plantel</h3>
-  <div style="display:flex; gap:6px; margin-bottom:8px;">
-    <input id="presetName" placeholder="Nome do preset" style="flex:1;padding:6px;border-radius:6px;border:1px solid #777;background:#1f1f1f;color:#fff"/>
-    <button id="savePresetBtn" style="padding:6px 10px;border:none;border-radius:6px;background:#0078d7;color:#fff;cursor:pointer">Guardar</button>
+  <div id="teamInputs">
+    <span class="scoreBubble" id="scoreA">0</span>
+    <input id="teamA" placeholder="Equipa A" />
+    <span style="font-weight:bold;">vs</span>
+    <input id="teamB" placeholder="Equipa B" />
+    <span class="scoreBubble" id="scoreB">0</span>
   </div>
-  <div>
-    <h4 style="margin:10px 0 6px 0;">Carregar</h4>
-    <div id="presetList"></div>
+
+  <div class="timer-row">
+    <div id="timer">20:00</div>
+    <span id="halfBadge" class="half-badge">1ª Parte</span>
   </div>
-</div>
 
-<!-- Painel Gestão de Cargas -->
-<div id="loadPanel">
-  <button class="close-btn" id="closeLoad">❌</button>
-  <h3>Gestão de Cargas</h3>
-  <p style="font-size:12px;color:#ccc;margin:0 0 8px 0;">
-    Workload = tempo em campo − tempo ideal (se todos jogassem igual).
-  </p>
-  <div id="loadList"></div>
-</div>
+  <div class="controls">
+    <input id="setMinutes" type="number" value="20" min="1" style="width:60px;">
+    <button id="intervalBtn">Intervalo</button>
+    <button id="resetBtn">Reset</button>
+    <button id="addBtn">+</button>
+    <button id="removeBtn">−</button>
+  </div>
 
-<!-- Assinatura -->
-<div id="brandSignature">
-  <img src="signature-light.png" class="sig-on-dark" alt="@gpmviana">
-  <img src="signature-dark.png" class="sig-on-light" alt="@gpmviana">
-</div>
+  <div id="players"></div>
 
-<!-- Timeline fixa -->
-<div id="timelineBar">
-  <button class="tl-btn" data-type="GF_A">
-    <span class="icon">⚽</span><span class="label">Golo +</span>
-  </button>
-  <button class="tl-btn" data-type="GA_A">
-    <span class="icon">⚽</span><span class="label">Golo −</span>
-  </button>
-  <button class="tl-btn tl-player" data-type="FK_P">
-    <span class="icon">❌</span><span class="label">Falta</span>
-  </button>
-  <button class="tl-btn tl-player" data-type="YC_P">
-    <span class="icon">🟨</span><span class="label">Amarelo</span>
-  </button>
-  <button class="tl-btn tl-player" data-type="RC_P">
-    <span class="icon">🟥</span><span class="label">Vermelho</span>
-  </button>
-  <button class="tl-btn" id="tlClearBtn">
-    <span class="icon">🧹</span><span class="label">Limpar</span>
-  </button>
-</div>
+  <div class="summary" id="summaryCard">
+    <h3>Resumo de Jogo</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Jogador</th>
+          <th>1ª Parte</th>
+          <th>2ª Parte</th>
+          <th>Total em Campo</th>
+          <th>Tempo Fora</th>
+          <th>Rotações</th>
+          <th>Média</th>
+          <th>% Jogo</th>
+          <th>Workload</th>
+        </tr>
+      </thead>
+      <tbody id="summaryBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Painel Editar nomes -->
+  <div id="editPanel">
+    <button class="close-btn" id="closePanel">❌</button>
+    <h3>Editar Jogadores</h3>
+    <div id="editList"></div>
+    <button class="save-btn" id="saveNamesBtn">Guardar Alterações</button>
+  </div>
+
+  <!-- Painel Presets -->
+  <div id="presetsPanel">
+    <button class="close-btn" id="closePresets">❌</button>
+    <h3 style="margin:0 0 10px 0;">Presets de Plantel</h3>
+    <div style="display:flex; gap:6px; margin-bottom:8px;">
+      <input id="presetName" placeholder="Nome do preset" style="flex:1;padding:6px;border-radius:6px;border:1px solid #777;background:#1f1f1f;color:#fff"/>
+      <button id="savePresetBtn" style="padding:6px 10px;border:none;border-radius:6px;background:#0078d7;color:#fff;cursor:pointer">Guardar</button>
+    </div>
+    <div>
+      <h4 style="margin:10px 0 6px 0;">Carregar</h4>
+      <div id="presetList"></div>
+    </div>
+  </div>
+
+  <!-- Painel Gestão de Cargas -->
+  <div id="loadPanel">
+    <button class="close-btn" id="closeLoad">❌</button>
+    <h3>Gestão de Cargas</h3>
+    <p style="font-size:12px;color:#ccc;margin:0 0 8px 0;">
+      Workload = tempo em campo − tempo ideal (se todos jogassem igual).
+    </p>
+    <div id="loadList"></div>
+  </div>
+
+  <!-- Assinatura -->
+  <div id="brandSignature">
+    <img src="signature-light.png" class="sig-on-dark" alt="@gpmviana">
+    <img src="signature-dark.png" class="sig-on-light" alt="@gpmviana">
+  </div>
+
+  <!-- Timeline fixa -->
+  <div id="timelineBar">
+    <button class="tl-btn" data-type="GF_A">
+      <span class="icon">⚽</span><span class="label">Golo +</span>
+    </button>
+    <button class="tl-btn" data-type="GA_A">
+      <span class="icon">⚽</span><span class="label">Golo −</span>
+    </button>
+    <button class="tl-btn tl-player" data-type="FK_P">
+      <span class="icon">❌</span><span class="label">Falta</span>
+    </button>
+    <button class="tl-btn tl-player" data-type="YC_P">
+      <span class="icon">🟨</span><span class="label">Amarelo</span>
+    </button>
+    <button class="tl-btn tl-player" data-type="RC_P">
+      <span class="icon">🟥</span><span class="label">Vermelho</span>
+    </button>
+    <button class="tl-btn" id="tlClearBtn">
+      <span class="icon">🧹</span><span class="label">Limpar</span>
+    </button>
+  </div>
+
+</div> <!-- 🔚 fecha appWrapper -->
 
 <script>
 let duration = 20 * 60;
