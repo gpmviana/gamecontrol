@@ -407,6 +407,31 @@
   .badge-yc{ background:#f1c40f; }
   .badge-rc{ background:#e74c3c; }
 
+  .badge-goal{
+    min-width:18px;
+    height:18px;
+    border-radius:999px;
+    background:#145a32;
+    color:#fff;
+    font-size:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 6px;
+  }
+  .badge-assist{
+    min-width:18px;
+    height:18px;
+    border-radius:999px;
+    background:#154360;
+    color:#fff;
+    font-size:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 6px;
+  }
+
   /* Painel editar nomes */
   #editPanel{
     position:fixed;
@@ -924,6 +949,12 @@
     <button class="tl-btn" data-type="GA_A">
       <span class="icon">⚽</span><span class="label">Golo −</span>
     </button>
+    <button class="tl-btn tl-player" data-type="G_P">
+      <span class="icon">⚽</span><span class="label">Golo (J)</span>
+    </button>
+    <button class="tl-btn tl-player" data-type="AS_P">
+      <span class="icon">👣</span><span class="label">Assist.</span>
+    </button>
     <button class="tl-btn tl-player" data-type="FK_P">
       <span class="icon">❌</span><span class="label">Falta</span>
     </button>
@@ -953,9 +984,6 @@ const maxOnField = 5;
 let scoreA = 0;
 let scoreB = 0;
 let pendingPlayerEvent = null;
-
-/* NOVO: estado para golo (marcador + assistência) */
-let pendingGoal = null;
 
 let timeline = [];
 
@@ -1052,8 +1080,6 @@ function resetTimer(){
   scoreA = 0;
   scoreB = 0;
   timeline = [];
-  pendingGoal = null;
-  pendingPlayerEvent = null;
   players.forEach(p=>{
     p.seconds = 0;
     p.secondsOut = 0;
@@ -1068,6 +1094,8 @@ function resetTimer(){
     p.fouls = 0;
     p.yc = false;
     p.rc = false;
+    p.goals = 0;
+    p.assists = 0;
   });
   updateTimerDisplay();
   updateHalfBadge();
@@ -1110,12 +1138,9 @@ function buildPlayersDOM(){
     const div = document.createElement("div");
     div.id = "player"+p.id;
     div.className = "player " + (p.active ? "active" : "inactive");
-    const foulsHTML = p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : "";
-    const ycHTML = p.yc ? `<span class="badge-yc" title="Amarelo"></span>` : "";
-    const rcHTML = p.rc ? `<span class="badge-rc" title="Vermelho"></span>` : "";
     div.innerHTML = `
       <div class="gk-icon" style="display:${p.isGK?"flex":"none"}">🧤</div>
-      <div class="card-badges">${foulsHTML}${ycHTML}${rcHTML}</div>
+      <div class="card-badges"></div>
       <strong class="name">${p.name}</strong>
       <div class="time">00:00</div>
       <div class="last"></div>
@@ -1131,8 +1156,7 @@ function updatePlayersUI(){
   players.forEach(p=>{
     const el = document.getElementById("player"+p.id);
     if(!el) return;
-    const selecting = !!pendingPlayerEvent || !!pendingGoal;
-    el.className = "player " + (p.active ? "active" : "inactive") + (selecting ? " selectEvent" : "");
+    el.className = "player " + (p.active ? "active" : "inactive") + (pendingPlayerEvent ? " selectEvent" : "");
     const timeEl = el.querySelector(".time");
     const lastEl = el.querySelector(".last");
     const nameEl = el.querySelector(".name");
@@ -1149,10 +1173,14 @@ function updatePlayersUI(){
     }
     const badges = el.querySelector(".card-badges");
     if(badges){
-      badges.innerHTML =
-        (p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : "") +
-        (p.yc ? `<span class="badge-yc" title="Amarelo"></span>` : "") +
-        (p.rc ? `<span class="badge-rc" title="Vermelho"></span>` : "");
+      const foulsHTML = (p.fouls||0)>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : "";
+      const ycHTML = p.yc ? `<span class="badge-yc" title="Amarelo"></span>` : "";
+      const rcHTML = p.rc ? `<span class="badge-rc" title="Vermelho"></span>` : "";
+      const gCount = p.goals || 0;
+      const aCount = p.assists || 0;
+      const goalHTML = gCount>0 ? `<span class="badge-goal" title="Golos">⚽${gCount>1?"×"+gCount:""}</span>` : "";
+      const assistHTML = aCount>0 ? `<span class="badge-assist" title="Assistências">👣${aCount>1?"×"+aCount:""}</span>` : "";
+      badges.innerHTML = foulsHTML + ycHTML + rcHTML + goalHTML + assistHTML;
     }
   });
 }
@@ -1178,7 +1206,9 @@ function ensurePlayerCount(n){
       fatigue: prev && !prev.isGK ? (prev.fatigue||0) : 0,
       fouls: prev ? (prev.fouls||0) : 0,
       yc: prev ? !!prev.yc : false,
-      rc: prev ? !!prev.rc : false
+      rc: prev ? !!prev.rc : false,
+      goals: prev ? (prev.goals||0) : 0,
+      assists: prev ? (prev.assists||0) : 0
     });
   }
   buildPlayersDOM();
@@ -1202,13 +1232,21 @@ function addTimelineEvent(ev){
   timeline.push(ev);
 }
 
-/* Player events (faltas/cartões) */
+/* Nome do jogador por id */
+function getPlayerNameById(id){
+  const p = players.find(x=>x.id===id);
+  return p ? p.name : ("Jogador "+id);
+}
+
+/* Player events */
 function addPlayerEvent(type, playerId){
   const p = players.find(x=>x.id===playerId);
   if(!p) return;
   if(type==="FK_P") p.fouls = (p.fouls||0) + 1;
   if(type==="YC_P") p.yc = true;
   if(type==="RC_P") p.rc = true;
+  if(type==="G_P") p.goals = (p.goals||0) + 1;
+  if(type==="AS_P") p.assists = (p.assists||0) + 1;
 
   const half = firstHalf ? 1 : 2;
   const clock = formatTime(remaining);
@@ -1225,50 +1263,7 @@ function addPlayerEvent(type, playerId){
   saveData();
 }
 
-/* NOVO: fluxo de selecção de golo (marcador + assistência) */
-function startGoalEvent(){
-  const half = firstHalf ? 1 : 2;
-  const clock = formatTime(remaining);
-  const activeIds = players.filter(p=>p.active).map(p=>p.id);
-
-  pendingGoal = {
-    type: "GF_A",
-    half,
-    clock,
-    activeIds,
-    scorerId: null,
-    assistId: null,
-    ts: Date.now()
-  };
-  updatePlayersUI();
-}
-
-function handleGoalPlayerSelection(playerId){
-  if(!pendingGoal) return;
-  if(!pendingGoal.scorerId){
-    // Primeiro clique: marcador
-    pendingGoal.scorerId = playerId;
-    return;
-  }
-  // Segundo clique: assistência (pode ser o mesmo -> sem assistência)
-  if(playerId !== pendingGoal.scorerId){
-    pendingGoal.assistId = playerId;
-  }
-  addTimelineEvent({...pendingGoal});
-  pendingGoal = null;
-  updatePlayersUI();
-  saveData();
-}
-
-/* Clique no jogador */
 function togglePlayer(id){
-  // 1) Se estamos a escolher golo
-  if(pendingGoal){
-    handleGoalPlayerSelection(id);
-    return;
-  }
-
-  // 2) Se estamos a registar falta/cartão
   if(pendingPlayerEvent){
     addPlayerEvent(pendingPlayerEvent, id);
     pendingPlayerEvent = null;
@@ -1276,7 +1271,6 @@ function togglePlayer(id){
     return;
   }
 
-  // 3) Comportamento normal de entrar/sair
   const p = players.find(x=>x.id===id);
   if(!p) return;
   const currently = activeCount();
@@ -1556,7 +1550,9 @@ function loadData(){
         fatigue:0,
         fouls:0,
         yc:false,
-        rc:false
+        rc:false,
+        goals:0,
+        assists:0
       });
     }
     buildPlayersDOM();
@@ -1595,7 +1591,9 @@ function loadData(){
       fatigue: p.isGK ? 0 : (p.fatigue || 0),
       fouls: p.fouls || 0,
       yc: p.yc || false,
-      rc: p.rc || false
+      rc: p.rc || false,
+      goals: p.goals || 0,
+      assists: p.assists || 0
     }));
 
     if(players.length===0){
@@ -1616,7 +1614,9 @@ function loadData(){
           fatigue:0,
           fouls:0,
           yc:false,
-          rc:false
+          rc:false,
+          goals:0,
+          assists:0
         });
       }
     }
@@ -1639,61 +1639,7 @@ function loadData(){
   }
 }
 
-/* 🔎 Construir linhas de texto da timeline para o PNG */
-function buildTimelineLines(){
-  const lines = [];
-  const sorted = [...timeline].sort((a,b)=> (a.ts||0) - (b.ts||0));
-
-  sorted.forEach(ev=>{
-    const halfLabel = ev.half === 1 ? "1ª parte" : "2ª parte";
-    const clock = ev.clock || "";
-    let txt = `[${halfLabel} ${clock}] `;
-
-    if(ev.type === "GF_A"){
-      txt += "Golo a favor";
-      const scorer = players.find(p=>p.id===ev.scorerId);
-      const assist = players.find(p=>p.id===ev.assistId);
-      if(scorer) txt += ` — Marcador: ${scorer.name}`;
-      if(assist && assist !== scorer) txt += ` (Assistência: ${assist.name})`;
-      if(Array.isArray(ev.activeIds) && ev.activeIds.length){
-        const names = ev.activeIds.map(id=>{
-          const pl = players.find(p=>p.id===id);
-          return pl ? pl.name : null;
-        }).filter(Boolean);
-        if(names.length){
-          txt += ` — Em campo: ${names.join(", ")}`;
-        }
-      }
-    }else if(ev.type === "GA_A"){
-      txt += "Golo sofrido";
-      if(Array.isArray(ev.activeIds) && ev.activeIds.length){
-        const names = ev.activeIds.map(id=>{
-          const pl = players.find(p=>p.id===id);
-          return pl ? pl.name : null;
-        }).filter(Boolean);
-        if(names.length){
-          txt += ` — Em campo: ${names.join(", ")}`;
-        }
-      }
-    }else if(ev.type === "FK_P" || ev.type === "YC_P" || ev.type === "RC_P"){
-      const pl = players.find(p=>p.id===ev.playerId);
-      let kind = "Evento";
-      if(ev.type === "FK_P") kind = "Falta";
-      if(ev.type === "YC_P") kind = "Cartão amarelo";
-      if(ev.type === "RC_P") kind = "Cartão vermelho";
-      txt += kind;
-      if(pl) txt += ` — Jogador: ${pl.name}`;
-    }else{
-      txt += "Evento";
-    }
-
-    lines.push(txt);
-  });
-
-  return lines;
-}
-
-/* Export PNG – tabela + timeline */
+/* Export PNG – tabela + título + timeline */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
@@ -1724,7 +1670,38 @@ function exportPng(){
     ]);
   });
 
-  const tlLines = buildTimelineLines();
+  /* Preparar texto da timeline */
+  const timelineLines = [];
+  timeline.forEach(ev=>{
+    const halfLabel = ev.half === 1 ? "1ª Parte" : "2ª Parte";
+    let desc = "";
+    switch(ev.type){
+      case "GF_A":
+        desc = "Golo a favor";
+        break;
+      case "GA_A":
+        desc = "Golo sofrido";
+        break;
+      case "FK_P":
+        desc = "Falta – " + getPlayerNameById(ev.playerId);
+        break;
+      case "YC_P":
+        desc = "Cartão amarelo – " + getPlayerNameById(ev.playerId);
+        break;
+      case "RC_P":
+        desc = "Cartão vermelho – " + getPlayerNameById(ev.playerId);
+        break;
+      case "G_P":
+        desc = "Golo – " + getPlayerNameById(ev.playerId);
+        break;
+      case "AS_P":
+        desc = "Assistência – " + getPlayerNameById(ev.playerId);
+        break;
+      default:
+        desc = ev.type;
+    }
+    timelineLines.push(`${halfLabel} ${ev.clock} · ${desc}`);
+  });
 
   const colWidths = [260,100,100,140,140,90,100,90,120];
   const tableWidth = colWidths.reduce((a,b)=>a+b,0);
@@ -1732,15 +1709,15 @@ function exportPng(){
   const rowH = 32, headerH = 36;
   const titleH = 30;
   const padding = 12;
-
   const tableHeight = padding + headerH + rows.length*rowH + padding;
   const contentWidth = tableWidth + padding*2;
 
-  const lineH2 = 18;
-  const timelineHeight = tlLines.length>0 ? (26 + tlLines.length*lineH2 + padding) : 0;
+  const tlLineH = 18;
+  const hasTimeline = timelineLines.length > 0;
+  const timelineBlockH = hasTimeline ? (30 + tlLineH*(timelineLines.length+1)) : 0;
 
   const canvasW = Math.max(900, contentWidth + margin*2);
-  const canvasH = margin + titleH + 10 + tableHeight + (tlLines.length? 16 + timelineHeight : 0) + margin;
+  const canvasH = margin + titleH + 10 + tableHeight + (hasTimeline ? 20+timelineBlockH : 0) + margin;
 
   const canvas = document.createElement("canvas");
   canvas.width = canvasW;
@@ -1838,18 +1815,18 @@ function exportPng(){
     rowY += rowH;
   });
 
-  /* Desenhar Timeline de jogo por baixo da tabela */
-  if(tlLines.length>0){
-    let tlY = cardY + tableHeight + 16;
+  /* Desenhar timeline por baixo da tabela */
+  if(hasTimeline){
+    let tlY = rowY + 24;
     ctx.font = "bold 16px Arial";
-    ctx.textAlign = "left";
     ctx.fillStyle = "#000";
-    ctx.fillText("Timeline de jogo", cardX + padding, tlY);
-    tlY += 8;
+    ctx.textAlign = "left";
+    ctx.fillText("Timeline de jogo", cardX+padding, tlY);
+    tlY += 22;
     ctx.font = "12px Arial";
-    tlLines.forEach(line=>{
-      tlY += lineH2;
-      ctx.fillText(line, cardX + padding, tlY);
+    timelineLines.forEach(line=>{
+      ctx.fillText(line, cardX+padding, tlY);
+      tlY += tlLineH;
     });
   }
 
@@ -1866,47 +1843,37 @@ function handleTeamEvent(type){
   const clock = formatTime(remaining);
   const activeIds = players.filter(p=>p.active).map(p=>p.id);
 
-  if(type==="GF_A"){
-    scoreA++;
-    updateScoreUI();
-    // Inicia fluxo de golo com marcador + assistência
-    startGoalEvent();
-    saveData();
-    return;
-  }
-  if(type==="GA_A"){
-    scoreB++;
-    addTimelineEvent({
-      type,
-      half,
-      clock,
-      activeIds,
-      ts: Date.now()
-    });
-    updateScoreUI();
-    saveData();
-    return;
-  }
-}
+  if(type==="GF_A") scoreA++;
+  if(type==="GA_A") scoreB++;
 
+  addTimelineEvent({
+    type,
+    half,
+    clock,
+    activeIds,
+    ts: Date.now()
+  });
+
+  updateScoreUI();
+  saveData();
+}
 function setPendingEvent(type){
-  pendingGoal = null;
   pendingPlayerEvent = type;
   updatePlayersUI();
 }
 
 /* Vassoura – limpa marcador, sanções e timeline */
 document.getElementById("tlClearBtn").onclick = ()=>{
-  if(!confirm("Limpar marcador, faltas/cartões e timeline?")) return;
+  if(!confirm("Limpar marcador, faltas/cartões, golos/assistências e timeline?")) return;
   scoreA = 0;
   scoreB = 0;
   timeline = [];
-  pendingGoal = null;
-  pendingPlayerEvent = null;
   players.forEach(p=>{
     p.fouls = 0;
     p.yc = false;
     p.rc = false;
+    p.goals = 0;
+    p.assists = 0;
   });
   updateScoreUI();
   updatePlayersUI();
@@ -1945,7 +1912,6 @@ document.getElementById("closeLoad").onclick = closeLoadPanel;
 document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   const type = btn.dataset.type;
   if(!type) return;
-  if(btn.id === "tlClearBtn") return; // já tem handler próprio
   if(btn.classList.contains("tl-player")){
     btn.addEventListener("click", ()=>setPendingEvent(type));
   }else{
