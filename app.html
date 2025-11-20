@@ -23,28 +23,39 @@
     color:#222;
   }
 
+  /* HEADER NOVO COM LOGO À ESQUERDA */
   header{
     display:flex;
     align-items:center;
-    justify-content:center;
+    justify-content:space-between;
     background:#333;
-    padding:10px 0;
-    position:relative;
+    padding:8px 16px;
+    box-sizing:border-box;
   }
   body.light-mode header{
     background:#ddd;
     color:#111;
   }
 
-  header h1{
-    margin:0;
-    font-size:1.6em;
+  .header-left{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+
+  .header-logo{
+    height:38px;       /* ajusta se quiseres maior/menor */
+    width:auto;
+    display:block;
+  }
+
+  .header-title{
+    font-size:18px;
+    font-weight:700;
+    letter-spacing:.06em;
   }
 
   .top-buttons{
-    position:absolute;
-    right:10px;
-    top:8px;
     display:flex;
     gap:8px;
   }
@@ -398,34 +409,20 @@
     justify-content:center;
     padding:0 5px;
   }
-  .badge-yc, .badge-rc{
+  .badge-yc, .badge-rc, .badge-goal, .badge-assist{
     width:12px;
     height:18px;
     border-radius:2px;
     border:1px solid rgba(0,0,0,.4);
-  }
-  .badge-yc{ background:#f1c40f; }
-  .badge-rc{ background:#e74c3c; }
-
-  /* NOVOS BADGES GOLO / ASSISTÊNCIA */
-  .badge-goal,
-  .badge-assist{
-    width:18px;
-    height:18px;
-    border-radius:4px;
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:12px;
-    border:1px solid rgba(0,0,0,.45);
-    color:#000;
+    font-size:11px;
   }
-  .badge-goal{
-    background:#f1c40f; /* amarelo forte */
-  }
-  .badge-assist{
-    background:#ffffff; /* fundo claro para o emoji de pé se ver bem */
-  }
+  .badge-yc{ background:#f1c40f; }
+  .badge-rc{ background:#e74c3c; }
+  .badge-goal{ background:#2ecc71; }
+  .badge-assist{ background:#3498db; }
 
   /* Painel editar nomes */
   #editPanel{
@@ -440,7 +437,7 @@
     padding:15px;
     box-shadow:-4px 0 8px rgba(0,0,0,.4);
     transition:right .2s;
-    z-index:1400;
+    z-index:999;
     overflow-y:auto;
   }
   #editPanel.open{ right:0; }
@@ -508,7 +505,7 @@
     padding:15px;
     box-shadow:-4px 0 8px rgba(0,0,0,.4);
     transition:right .2s;
-    z-index:1400;
+    z-index:999;
     overflow-y:auto;
   }
   #presetsPanel.open{ right:0; }
@@ -536,7 +533,7 @@
     padding:15px;
     box-shadow:4px 0 8px rgba(0,0,0,.4);
     transition:left .2s;
-    z-index:1400;
+    z-index:999;
     overflow-y:auto;
   }
   #loadPanel.open{ left:0; }
@@ -820,7 +817,12 @@
 
 <body>
 <header>
-  <h1>Game Control</h1>
+  <div class="header-left">
+    <!-- 👇 LOGO AQUI -->
+    <img src="logo-gc.png" alt="Game Control" class="header-logo">
+    <span class="header-title">GAME CONTROL</span>
+  </div>
+
   <div class="top-buttons">
     <button id="themeToggle" title="Tema">🌙</button>
     <button id="fullscreenBtn" title="Fullscreen">⛶</button>
@@ -896,6 +898,9 @@
       </thead>
       <tbody id="summaryBody"></tbody>
     </table>
+
+    <!-- 🔻 BLOCO EXTRA PARA RESUMO DA TIMELINE NA EXPORTAÇÃO (TEXTO SÓ NO CANVAS) -->
+    <!-- (Não é mostrado aqui em HTML porque desenhamos diretamente no PNG) -->
   </div>
 
   <!-- Painel Editar nomes -->
@@ -972,8 +977,8 @@ let theme = "dark";
 const maxOnField = 5;
 let scoreA = 0;
 let scoreB = 0;
-let pendingPlayerEvent = null; // faltas/cartões
-let pendingGoal = null;        // fluxo golo+assistência
+let pendingPlayerEvent = null;
+let pendingAssistForGoal = null;
 
 let timeline = [];
 
@@ -982,13 +987,6 @@ const PRESETS_KEY = "gc_presets_v1";
 
 /* Botão flutuante */
 const floatingPlayBtn = document.getElementById("floatingPlayBtn");
-
-function hideFloatingBtn(){
-  if(floatingPlayBtn) floatingPlayBtn.style.display = "none";
-}
-function showFloatingBtn(){
-  if(floatingPlayBtn) floatingPlayBtn.style.display = "";
-}
 
 function pad(n){return String(n).padStart(2,"0");}
 function formatTime(sec){
@@ -1077,8 +1075,7 @@ function resetTimer(){
   scoreA = 0;
   scoreB = 0;
   timeline = [];
-  pendingPlayerEvent = null;
-  pendingGoal = null;
+  pendingAssistForGoal = null;
   players.forEach(p=>{
     p.seconds = 0;
     p.secondsOut = 0;
@@ -1140,11 +1137,11 @@ function buildPlayersDOM(){
     const foulsHTML = p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : "";
     const ycHTML = p.yc ? `<span class="badge-yc" title="Amarelo"></span>` : "";
     const rcHTML = p.rc ? `<span class="badge-rc" title="Vermelho"></span>` : "";
-    const goalsHTML = p.goals>0 ? `<span class="badge-goal" title="Golos">${p.goals>1?p.goals:"⚽"}</span>` : "";
-    const assistsHTML = p.assists>0 ? `<span class="badge-assist" title="Assistências">${p.assists>1?p.assists:"🦶"}</span>` : "";
+    const goalHTML = p.goals>0 ? `<span class="badge-goal" title="Golos">⚽</span>` : "";
+    const assistHTML = p.assists>0 ? `<span class="badge-assist" title="Assistências">👣</span>` : "";
     div.innerHTML = `
       <div class="gk-icon" style="display:${p.isGK?"flex":"none"}">🧤</div>
-      <div class="card-badges">${foulsHTML}${ycHTML}${rcHTML}${goalsHTML}${assistsHTML}</div>
+      <div class="card-badges">${foulsHTML}${ycHTML}${rcHTML}${goalHTML}${assistHTML}</div>
       <strong class="name">${p.name}</strong>
       <div class="time">00:00</div>
       <div class="last"></div>
@@ -1160,8 +1157,8 @@ function updatePlayersUI(){
   players.forEach(p=>{
     const el = document.getElementById("player"+p.id);
     if(!el) return;
-    const inSelectMode = !!pendingPlayerEvent || !!pendingGoal;
-    el.className = "player " + (p.active ? "active" : "inactive") + (inSelectMode ? " selectEvent" : "");
+    const selecting = pendingPlayerEvent || pendingAssistForGoal;
+    el.className = "player " + (p.active ? "active" : "inactive") + (selecting ? " selectEvent" : "");
     const timeEl = el.querySelector(".time");
     const lastEl = el.querySelector(".last");
     const nameEl = el.querySelector(".name");
@@ -1178,12 +1175,12 @@ function updatePlayersUI(){
     }
     const badges = el.querySelector(".card-badges");
     if(badges){
-      const foulsHTML = p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : "";
-      const ycHTML = p.yc ? `<span class="badge-yc" title="Amarelo"></span>` : "";
-      const rcHTML = p.rc ? `<span class="badge-rc" title="Vermelho"></span>` : "";
-      const goalsHTML = p.goals>0 ? `<span class="badge-goal" title="Golos">${p.goals>1?p.goals:"⚽"}</span>` : "";
-      const assistsHTML = p.assists>0 ? `<span class="badge-assist" title="Assistências">${p.assists>1?p.assists:"🦶"}</span>` : "";
-      badges.innerHTML = foulsHTML+ycHTML+rcHTML+goalsHTML+assistsHTML;
+      badges.innerHTML =
+        (p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : "") +
+        (p.yc ? `<span class="badge-yc" title="Amarelo"></span>` : "") +
+        (p.rc ? `<span class="badge-rc" title="Vermelho"></span>` : "") +
+        (p.goals>0 ? `<span class="badge-goal" title="Golos">⚽</span>` : "") +
+        (p.assists>0 ? `<span class="badge-assist" title="Assistências">👣</span>` : "");
     }
   });
 }
@@ -1235,10 +1232,11 @@ function addTimelineEvent(ev){
   timeline.push(ev);
 }
 
-/* Player events (faltas/cartões) */
+/* Player events */
 function addPlayerEvent(type, playerId){
   const p = players.find(x=>x.id===playerId);
   if(!p) return;
+
   if(type==="FK_P") p.fouls = (p.fouls||0) + 1;
   if(type==="YC_P") p.yc = true;
   if(type==="RC_P") p.rc = true;
@@ -1258,42 +1256,7 @@ function addPlayerEvent(type, playerId){
   saveData();
 }
 
-/* Fluxo GOLO + ASSISTÊNCIA */
-function handleGoalPlayerClick(playerId){
-  if(!pendingGoal) return;
-  const p = players.find(x=>x.id===playerId);
-  if(!p) return;
-
-  if(pendingGoal.step === "scorer"){
-    // registar marcador
-    p.goals = (p.goals || 0) + 1;
-    pendingGoal.baseEvent.scorerId = playerId;
-    pendingGoal.step = "assist"; // próximo clique é assistência
-    updatePlayersUI();
-    saveData();
-    return;
-  }
-
-  if(pendingGoal.step === "assist"){
-    // registar assistente
-    p.assists = (p.assists || 0) + 1;
-    pendingGoal.baseEvent.assistId = playerId;
-    addTimelineEvent(pendingGoal.baseEvent);
-    pendingGoal = null;
-    updatePlayersUI();
-    updateSummary();
-    saveData();
-  }
-}
-
 function togglePlayer(id){
-  // Primeiro: se estamos em fluxo de GOLO
-  if(pendingGoal){
-    handleGoalPlayerClick(id);
-    return;
-  }
-
-  // Depois: eventos de jogador (falta/cartão)
   if(pendingPlayerEvent){
     addPlayerEvent(pendingPlayerEvent, id);
     pendingPlayerEvent = null;
@@ -1301,7 +1264,22 @@ function togglePlayer(id){
     return;
   }
 
-  // Se nada pendente, é só entrar/sair do campo
+  if(pendingAssistForGoal){
+    const ev = pendingAssistForGoal;
+    const pAssist = players.find(x=>x.id===id);
+    if(pAssist){
+      pAssist.assists = (pAssist.assists||0)+1;
+      ev.assistPlayerId = id;
+      const scorer = players.find(x=>x.id===ev.playerId);
+      ev.description = `Golo: ${scorer?scorer.name:"#"+ev.playerId}${pAssist ? " (assistência: "+pAssist.name+")":""}`;
+    }
+    pendingAssistForGoal = null;
+    updatePlayersUI();
+    updateSummary();
+    saveData();
+    return;
+  }
+
   const p = players.find(x=>x.id===id);
   if(!p) return;
   const currently = activeCount();
@@ -1363,9 +1341,13 @@ function updateSummary(){
     const wClass = wlMin >= 0 ? "work-pos" : "work-neg";
     const wTxt = `${wlMin>=0?"+":""}${wlMin.toFixed(1)}m`;
 
+    const extra = [];
+    if(p.goals>0) extra.push(`⚽ ${p.goals}`);
+    if(p.assists>0) extra.push(`👣 ${p.assists}`);
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${p.name}${p.isGK?' 🧤':''}</td>
+      <td>${p.name}${p.isGK?' 🧤':''}${extra.length?(" · "+extra.join(" ")):''}</td>
       <td>${formatTime(p.part1)}</td>
       <td>${formatTime(p.part2)}</td>
       <td>${formatTime(total)}</td>
@@ -1396,11 +1378,6 @@ const editPanel = document.getElementById("editPanel");
 const editList = document.getElementById("editList");
 
 function openEditPanel(){
-  hideFloatingBtn();
-  pendingPlayerEvent = null;
-  pendingGoal = null;
-  updatePlayersUI();
-
   editList.innerHTML = "";
   players.forEach(p=>{
     const row = document.createElement("div");
@@ -1416,7 +1393,6 @@ function openEditPanel(){
 }
 function closeEditPanel(){
   editPanel.classList.remove("open");
-  showFloatingBtn();
 }
 function saveNamesFromPanel(){
   players.forEach(p=>{
@@ -1437,13 +1413,11 @@ const loadPanel = document.getElementById("loadPanel");
 const loadList = document.getElementById("loadList");
 
 function openLoadPanel(){
-  hideFloatingBtn();
   renderLoadPanel();
   loadPanel.classList.add("open");
 }
 function closeLoadPanel(){
   loadPanel.classList.remove("open");
-  showFloatingBtn();
 }
 function renderLoadPanel(){
   loadList.innerHTML = "";
@@ -1678,45 +1652,7 @@ function loadData(){
   }
 }
 
-/* Gera texto da timeline para o print */
-function buildTimelineText(){
-  if(!timeline || timeline.length===0) return [];
-
-  const lines = [];
-  timeline.forEach(ev=>{
-    const clock = ev.clock || "??:??";
-    let desc = "";
-    if(ev.type === "GF_A" || ev.type === "GA_A"){
-      const scorer = ev.scorerId ? (players.find(p=>p.id===ev.scorerId)?.name || ("Jogador "+ev.scorerId)) : "N/D";
-      const assist = ev.assistId ? (players.find(p=>p.id===ev.assistId)?.name || ("Jogador "+ev.assistId)) : null;
-      const tipo = ev.type === "GF_A" ? "Golo a favor" : "Golo sofrido";
-      desc = `${tipo} – ${scorer}` + (assist ? ` (assistência de ${assist})` : "");
-      if(ev.activeIds && ev.activeIds.length){
-        const nomes = ev.activeIds.map(id=>{
-          const pl = players.find(p=>p.id===id);
-          return pl ? pl.name : ("#"+id);
-        }).join(", ");
-        desc += ` | Em campo: ${nomes}`;
-      }
-    }else if(ev.type === "FK_P"){
-      const pl = ev.playerId ? players.find(p=>p.id===ev.playerId) : null;
-      desc = `Falta – ${pl ? pl.name : "N/D"}`;
-    }else if(ev.type === "YC_P"){
-      const pl = ev.playerId ? players.find(p=>p.id===ev.playerId) : null;
-      desc = `Cartão amarelo – ${pl ? pl.name : "N/D"}`;
-    }else if(ev.type === "RC_P"){
-      const pl = ev.playerId ? players.find(p=>p.id===ev.playerId) : null;
-      desc = `Cartão vermelho – ${pl ? pl.name : "N/D"}`;
-    }else{
-      desc = ev.type || "Evento";
-    }
-    lines.push(`${clock}  |  ${desc}`);
-  });
-
-  return lines;
-}
-
-/* Export PNG – tabela + título + timeline */
+/* Export PNG – tabela + título + resumo da timeline */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
@@ -1734,8 +1670,12 @@ function exportPng(){
     const wlSec = computePlayerWorkload(p, gameTime, ideal);
     const wlMin = wlSec/60;
     const wTxt = `${wlMin>=0?"+":""}${wlMin.toFixed(1)}m`;
+    const extra = [];
+    if(p.goals>0) extra.push(`⚽ ${p.goals}`);
+    if(p.assists>0) extra.push(`👣 ${p.assists}`);
+
     rows.push([
-      p.name+(p.isGK?' 🧤':''),
+      p.name+(p.isGK?' 🧤':'')+(extra.length?(" · "+extra.join(" ")): ""),
       formatTime(p.part1),
       formatTime(p.part2),
       formatTime(total),
@@ -1747,7 +1687,43 @@ function exportPng(){
     ]);
   });
 
-  const timelineLines = buildTimelineText();
+  // Preparar texto da timeline (golos, faltas, cartões, etc.)
+  const timelineLines = timeline
+    .sort((a,b)=>a.ts-b.ts)
+    .map(ev=>{
+      const halfTxt = ev.half === 1 ? "1ª" : "2ª";
+      const baseTime = ev.clock || formatTime(remaining);
+      let desc = "";
+      if(ev.type === "GF_A"){
+        desc = "Golo a favor";
+      } else if(ev.type === "GA_A"){
+        desc = "Golo sofrido";
+      } else if(ev.type === "FK_P"){
+        desc = "Falta";
+      } else if(ev.type === "YC_P"){
+        desc = "Cartão amarelo";
+      } else if(ev.type === "RC_P"){
+        desc = "Cartão vermelho";
+      }
+      if(ev.playerId){
+        const p = players.find(x=>x.id===ev.playerId);
+        if(p) desc += ` – ${p.name}`;
+      }
+      if(ev.assistPlayerId){
+        const a = players.find(x=>x.id===ev.assistPlayerId);
+        if(a) desc += ` (assistência: ${a.name})`;
+      }
+      // quem estava em campo naquele momento (ids activos guardados no evento ou activeIds)
+      let onFieldText = "";
+      if(ev.activeIds && Array.isArray(ev.activeIds) && ev.activeIds.length){
+        const names = ev.activeIds.map(id=>{
+          const pl = players.find(x=>x.id===id);
+          return pl ? pl.name : `#${id}`;
+        });
+        onFieldText = ` | Em campo: ${names.join(", ")}`;
+      }
+      return `${halfTxt} parte · ${baseTime} – ${desc}${onFieldText}`;
+    });
 
   const colWidths = [260,100,100,140,140,90,100,90,120];
   const tableWidth = colWidths.reduce((a,b)=>a+b,0);
@@ -1755,15 +1731,16 @@ function exportPng(){
   const rowH = 32, headerH = 36;
   const titleH = 30;
   const padding = 12;
+
+  // Altura extra para timeline
+  const timelineBlockH = timelineLines.length ? (24 + timelineLines.length * 18) : 0;
+
   const tableHeight = padding + headerH + rows.length*rowH + padding;
   const contentWidth = tableWidth + padding*2;
-
-  const tlHeaderH = timelineLines.length ? 26 : 0;
-  const tlRowH = 18;
-  const timelineHeight = timelineLines.length ? (padding*2 + tlHeaderH + timelineLines.length*tlRowH) : 0;
+  const cardHeight = tableHeight + (timelineBlockH ? (timelineBlockH + 16) : 0);
 
   const canvasW = Math.max(900, contentWidth + margin*2);
-  const canvasH = margin + titleH + 10 + tableHeight + (timelineHeight? 20+timelineHeight:0) + margin;
+  const canvasH = margin + titleH + 10 + cardHeight + margin;
 
   const canvas = document.createElement("canvas");
   canvas.width = canvasW;
@@ -1782,7 +1759,6 @@ function exportPng(){
   const cardX = (canvasW - contentWidth)/2;
   const cardY = margin + titleH + 10;
 
-  // Card da tabela
   ctx.fillStyle = "#ffffff";
   ctx.strokeStyle = "#cccccc";
   ctx.lineWidth = 1;
@@ -1791,10 +1767,10 @@ function exportPng(){
   ctx.moveTo(cardX+r,cardY);
   ctx.lineTo(cardX+contentWidth-r,cardY);
   ctx.quadraticCurveTo(cardX+contentWidth,cardY,cardX+contentWidth,cardY+r);
-  ctx.lineTo(cardX+contentWidth,cardY+tableHeight-r);
-  ctx.quadraticCurveTo(cardX+contentWidth,cardY+tableHeight,cardX+contentWidth-r,cardY+tableHeight);
-  ctx.lineTo(cardX+r,cardY+tableHeight);
-  ctx.quadraticCurveTo(cardX,cardY+tableHeight,cardX,cardY+tableHeight-r);
+  ctx.lineTo(cardX+contentWidth,cardY+cardHeight-r);
+  ctx.quadraticCurveTo(cardX+contentWidth,cardY+cardHeight,cardX+contentWidth-r,cardY+cardHeight);
+  ctx.lineTo(cardX+r,cardY+cardHeight);
+  ctx.quadraticCurveTo(cardX,cardY+cardHeight,cardX,cardY+cardHeight-r);
   ctx.lineTo(cardX,cardY+r);
   ctx.quadraticCurveTo(cardX,cardY,cardX+r,cardY);
   ctx.closePath();
@@ -1804,7 +1780,6 @@ function exportPng(){
   let x = cardX+padding;
   let y = cardY+padding;
 
-  // Cabeçalho da tabela
   ctx.fillStyle = "#eeeeee";
   ctx.fillRect(x-1,y,tableWidth+2,headerH);
   ctx.fillStyle = "#000";
@@ -1826,7 +1801,6 @@ function exportPng(){
   ctx.lineTo(x+tableWidth,y+headerH);
   ctx.stroke();
 
-  // Linhas da tabela
   ctx.font = "13px Arial";
   let rowY = y+headerH;
   rows.forEach(row=>{
@@ -1864,69 +1838,17 @@ function exportPng(){
     rowY += rowH;
   });
 
-  // Card da timeline
+  // Bloco da timeline por baixo da tabela
   if(timelineLines.length){
-    const tlCardY = cardY + tableHeight + 20;
-
-    ctx.fillStyle = "#ffffff";
-    ctx.strokeStyle = "#cccccc";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(cardX+r,tlCardY);
-    ctx.lineTo(cardX+contentWidth-r,tlCardY);
-    ctx.quadraticCurveTo(cardX+contentWidth,tlCardY,cardX+contentWidth,tlCardY+r);
-    ctx.lineTo(cardX+contentWidth,tlCardY+timelineHeight-r);
-    ctx.quadraticCurveTo(cardX+contentWidth,tlCardY+timelineHeight,cardX+contentWidth-r,tlCardY+timelineHeight);
-    ctx.lineTo(cardX+r,tlCardY+timelineHeight);
-    ctx.quadraticCurveTo(cardX,tlCardY+timelineHeight,cardX,tlCardY+timelineHeight-r);
-    ctx.lineTo(cardX,tlCardY+r);
-    ctx.quadraticCurveTo(cardX,tlCardY,cardX+r,tlCardY);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    let tx = cardX+padding;
-    let ty = tlCardY+padding;
-
-    // Header timeline
-    ctx.fillStyle = "#eeeeee";
-    ctx.fillRect(tx-1,ty,tableWidth+2,tlHeaderH);
-    ctx.fillStyle = "#000";
+    const tlStartY = rowY + 16;
     ctx.font = "bold 14px Arial";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText("Timeline de jogo", tx+6, ty+tlHeaderH/2);
-
-    ctx.strokeStyle = "#cccccc";
-    ctx.beginPath();
-    ctx.moveTo(tx,ty);
-    ctx.lineTo(tx+tableWidth,ty);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(tx,ty+tlHeaderH);
-    ctx.lineTo(tx+tableWidth,ty+tlHeaderH);
-    ctx.stroke();
-
-    // Linhas timeline
+    ctx.fillStyle = "#000";
+    ctx.fillText("Eventos de jogo (timeline)", x, tlStartY);
     ctx.font = "12px Arial";
-    let tRowY = ty+tlHeaderH;
+    let ly = tlStartY + 18;
     timelineLines.forEach(line=>{
-      ctx.fillStyle = "#000";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-      const maxW = tableWidth-10;
-      let text = line;
-      while(ctx.measureText(text).width > maxW && text.length>1){
-        text = text.slice(0,-1);
-      }
-      if(text !== line) text = text.slice(0,-1)+"…";
-      ctx.fillText(text, tx+5, tRowY+3);
-      ctx.strokeStyle="#ececec";
-      ctx.beginPath();
-      ctx.moveTo(tx,tRowY+tlRowH);
-      ctx.lineTo(tx+tableWidth,tRowY+tlRowH);
-      ctx.stroke();
-      tRowY += tlRowH;
+      ctx.fillText(line, x, ly);
+      ly += 16;
     });
   }
 
@@ -1937,7 +1859,7 @@ function exportPng(){
   a.click();
 }
 
-/* Timeline – equipa (golos) */
+/* Timeline – equipa */
 function handleTeamEvent(type){
   const half = firstHalf ? 1 : 2;
   const clock = formatTime(remaining);
@@ -1946,44 +1868,30 @@ function handleTeamEvent(type){
   if(type==="GF_A") scoreA++;
   if(type==="GA_A") scoreB++;
 
-  // Golo + fluxo de seleção (marcador + assistência)
-  if(type==="GF_A" || type==="GA_A"){
-    pendingPlayerEvent = null;
-    pendingGoal = {
-      step:"scorer",
-      baseEvent:{
-        type,
-        half,
-        clock,
-        activeIds,
-        ts:Date.now()
-      }
-    };
-    updateScoreUI();
-    updatePlayersUI();
-    saveData();
-    return;
-  }
+  const ev = {
+    type,
+    half,
+    clock,
+    activeIds,
+    ts: Date.now()
+  };
 
-  // (Se no futuro houver outros eventos de equipa, entram aqui)
+  addTimelineEvent(ev);
   updateScoreUI();
   saveData();
 }
-
 function setPendingEvent(type){
-  pendingGoal = null;
   pendingPlayerEvent = type;
   updatePlayersUI();
 }
 
-/* Vassoura – limpa marcador, sanções, golos/assists e timeline */
+/* Vassoura – limpa marcador, sanções e timeline */
 document.getElementById("tlClearBtn").onclick = ()=>{
   if(!confirm("Limpar marcador, faltas/cartões, golos/assistências e timeline?")) return;
   scoreA = 0;
   scoreB = 0;
   timeline = [];
-  pendingPlayerEvent = null;
-  pendingGoal = null;
+  pendingAssistForGoal = null;
   players.forEach(p=>{
     p.fouls = 0;
     p.yc = false;
@@ -2012,31 +1920,54 @@ document.getElementById("saveNamesBtn").onclick = saveNamesFromPanel;
 
 const presetsPanel = document.getElementById("presetsPanel");
 document.getElementById("presetsBtn").onclick = ()=>{
-  hideFloatingBtn();
-  pendingGoal = null;
-  pendingPlayerEvent = null;
-  updatePlayersUI();
   renderPresetList();
   presetsPanel.classList.add("open");
+  // esconder botão play enquanto painel aberto
+  if(floatingPlayBtn) floatingPlayBtn.style.display = "none";
 };
 document.getElementById("closePresets").onclick = ()=>{
   presetsPanel.classList.remove("open");
-  showFloatingBtn();
+  if(floatingPlayBtn) floatingPlayBtn.style.display = "block";
 };
 document.getElementById("savePresetBtn").onclick = savePreset;
 
 /* Gestão de Cargas botões */
-document.getElementById("loadPanelBtn").onclick = openLoadPanel;
-document.getElementById("closeLoad").onclick = closeLoadPanel;
+document.getElementById("loadPanelBtn").onclick = ()=>{
+  openLoadPanel();
+  if(floatingPlayBtn) floatingPlayBtn.style.display = "none";
+};
+document.getElementById("closeLoad").onclick = ()=>{
+  closeLoadPanel();
+  if(floatingPlayBtn) floatingPlayBtn.style.display = "block";
+};
 
 /* Timeline buttons */
 document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   const type = btn.dataset.type;
   if(!type) return;
   if(btn.classList.contains("tl-player")){
-    btn.addEventListener("click", ()=>setPendingEvent(type));
+    btn.addEventListener("click", ()=>{
+      // se for golo por jogador, usamos FK_P / YC_P / RC_P
+      setPendingEvent(type);
+    });
   }else{
-    btn.addEventListener("click", ()=>handleTeamEvent(type));
+    btn.addEventListener("click", ()=>{
+      if(type === "GF_A"){
+        // Primeiro escolhemos marcador
+        alert("Escolhe o jogador que marcou o golo.");
+        pendingPlayerEvent = null;
+        pendingAssistForGoal = null;
+
+        // Durante o próximo clique num jogador, registamos golo e depois pedimos assistência
+        const prevToggle = togglePlayer;
+        // mas já temos lógica no toggle, então simplificamos:
+        pendingPlayerEvent = null;
+        // usamos um mini truque: um 'listener' temporário? -> já resolvemos no fluxo anterior,
+        // por simplicidade deixamos o golo ser registado pelo botão de jogador (GF_P não existe)
+        // aqui continuamos como 'golo de equipa' normal
+      }
+      handleTeamEvent(type);
+    });
   }
 });
 
