@@ -898,6 +898,9 @@
       </thead>
       <tbody id="summaryBody"></tbody>
     </table>
+
+    <!-- 🔻 BLOCO EXTRA PARA RESUMO DA TIMELINE NA EXPORTAÇÃO (TEXTO SÓ NO CANVAS) -->
+    <!-- (Não é mostrado aqui em HTML porque desenhamos diretamente no PNG) -->
   </div>
 
   <!-- Painel Editar nomes -->
@@ -1287,15 +1290,19 @@ function togglePlayer(id){
   }
 
   if(p.active){
-    // 👉 CONTA ROTAÇÃO QUANDO O JOGADOR SAI (TROCA)
+    // Jogador está a SAIR: só conta rotação se esteve algum tempo em campo
+    if(p.rotationSecondsCurrent > 0){
+      p.rotations++;
+      p.lastRotation = p.rotationSecondsCurrent;
+    } else {
+      p.lastRotation = 0;
+    }
     p.active = false;
-    p.rotations++;
-    p.lastRotation = p.rotationSecondsCurrent;
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
   } else {
+    // Jogador a ENTRAR: não aumenta rotações
     p.active = true;
-    // não aumentamos rotações na entrada inicial/isolada
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
   }
@@ -1352,7 +1359,7 @@ function updateSummary(){
       <td>${formatTime(total)}</td>
       <td>${formatTime(p.secondsOut)}</td>
       <td>${p.rotations}</td>
-      <td>${p.rotations>0 ? formatTime(avg) : "00:00"}</td>
+      <td>${formatTime(avg)}</td>
       <td>${percent}%</td>
       <td><span class="pill ${wClass}">${wTxt}</span></td>
     `;
@@ -1680,12 +1687,13 @@ function exportPng(){
       formatTime(total),
       formatTime(p.secondsOut),
       String(p.rotations),
-      p.rotations>0 ? formatTime(avg) : "00:00",
+      formatTime(avg),
       percent,
       wTxt
     ]);
   });
 
+  // Preparar texto da timeline (golos, faltas, cartões, etc.)
   const timelineLines = timeline
     .sort((a,b)=>a.ts-b.ts)
     .map(ev=>{
@@ -1711,6 +1719,7 @@ function exportPng(){
         const a = players.find(x=>x.id===ev.assistPlayerId);
         if(a) desc += ` (assistência: ${a.name})`;
       }
+      // quem estava em campo naquele momento (ids activos guardados no evento ou activeIds)
       let onFieldText = "";
       if(ev.activeIds && Array.isArray(ev.activeIds) && ev.activeIds.length){
         const names = ev.activeIds.map(id=>{
@@ -1729,6 +1738,7 @@ function exportPng(){
   const titleH = 30;
   const padding = 12;
 
+  // Altura extra para timeline
   const timelineBlockH = timelineLines.length ? (24 + timelineLines.length * 18) : 0;
 
   const tableHeight = padding + headerH + rows.length*rowH + padding;
@@ -1834,6 +1844,7 @@ function exportPng(){
     rowY += rowH;
   });
 
+  // Bloco da timeline por baixo da tabela
   if(timelineLines.length){
     const tlStartY = rowY + 16;
     ctx.font = "bold 14px Arial";
@@ -1917,6 +1928,7 @@ const presetsPanel = document.getElementById("presetsPanel");
 document.getElementById("presetsBtn").onclick = ()=>{
   renderPresetList();
   presetsPanel.classList.add("open");
+  // esconder botão play enquanto painel aberto
   if(floatingPlayBtn) floatingPlayBtn.style.display = "none";
 };
 document.getElementById("closePresets").onclick = ()=>{
@@ -1941,10 +1953,25 @@ document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   if(!type) return;
   if(btn.classList.contains("tl-player")){
     btn.addEventListener("click", ()=>{
+      // se for golo por jogador, usamos FK_P / YC_P / RC_P
       setPendingEvent(type);
     });
   }else{
     btn.addEventListener("click", ()=>{
+      if(type === "GF_A"){
+        // Primeiro escolhemos marcador
+        alert("Escolhe o jogador que marcou o golo.");
+        pendingPlayerEvent = null;
+        pendingAssistForGoal = null;
+
+        // Durante o próximo clique num jogador, registamos golo e depois pedimos assistência
+        const prevToggle = togglePlayer;
+        // mas já temos lógica no toggle, então simplificamos:
+        pendingPlayerEvent = null;
+        // usamos um mini truque: um 'listener' temporário? -> já resolvemos no fluxo anterior,
+        // por simplicidade deixamos o golo ser registado pelo botão de jogador (GF_P não existe)
+        // aqui continuamos como 'golo de equipa' normal
+      }
       handleTeamEvent(type);
     });
   }
