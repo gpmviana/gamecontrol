@@ -168,6 +168,7 @@
     color:#fff;
     cursor:pointer;
   }
+  /* Destaque Intervalo / Reset */
   #intervalBtn,
   #resetBtn{
     padding:10px 18px;
@@ -406,17 +407,24 @@
   .badge-yc{ background:#f1c40f; }
   .badge-rc{ background:#e74c3c; }
 
-  /* NOVO: badges golo / assistência */
-  .badge-goal, .badge-assist{
+  /* NOVOS BADGES GOLO / ASSISTÊNCIA */
+  .badge-goal,
+  .badge-assist{
     width:18px;
     height:18px;
-    border-radius:3px;
-    background:#ffffff;
-    border:1px solid rgba(0,0,0,.4);
+    border-radius:4px;
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:11px;
+    font-size:12px;
+    border:1px solid rgba(0,0,0,.45);
+    color:#000;
+  }
+  .badge-goal{
+    background:#f1c40f; /* amarelo forte */
+  }
+  .badge-assist{
+    background:#ffffff; /* fundo claro para o emoji de pé se ver bem */
   }
 
   /* Painel editar nomes */
@@ -432,7 +440,7 @@
     padding:15px;
     box-shadow:-4px 0 8px rgba(0,0,0,.4);
     transition:right .2s;
-    z-index:999;
+    z-index:1400;
     overflow-y:auto;
   }
   #editPanel.open{ right:0; }
@@ -445,6 +453,46 @@
     color:#fff;
     font-size:18px;
     cursor:pointer;
+  }
+  #editPanel h3{
+    margin:0 0 10px 0;
+  }
+  #editPanel .row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  #editPanel .row span{
+    width:24px;
+    text-align:right;
+    color:#ccc;
+    font-size:13px;
+  }
+  #editPanel .row input[type="text"]{
+    flex:1;
+    padding:6px;
+    border-radius:6px;
+    border:1px solid #777;
+    background:#1f1f1f;
+    color:#fff;
+  }
+  #editPanel .row label{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    color:#ddd;
+    font-size:13px;
+  }
+  #editPanel .save-btn{
+    width:100%;
+    padding:8px;
+    border:none;
+    border-radius:6px;
+    background:#0078d7;
+    color:#fff;
+    cursor:pointer;
+    margin-top:8px;
   }
 
   /* Painel Presets */
@@ -460,7 +508,7 @@
     padding:15px;
     box-shadow:-4px 0 8px rgba(0,0,0,.4);
     transition:right .2s;
-    z-index:999;
+    z-index:1400;
     overflow-y:auto;
   }
   #presetsPanel.open{ right:0; }
@@ -488,7 +536,7 @@
     padding:15px;
     box-shadow:4px 0 8px rgba(0,0,0,.4);
     transition:left .2s;
-    z-index:999;
+    z-index:1400;
     overflow-y:auto;
   }
   #loadPanel.open{ left:0; }
@@ -514,6 +562,9 @@
     background:#1f1f1f;
     border:1px solid #444;
     text-align:left;
+    font-size:13px;
+  }
+  .load-row strong{
     font-size:13px;
   }
   .load-meta{
@@ -921,15 +972,23 @@ let theme = "dark";
 const maxOnField = 5;
 let scoreA = 0;
 let scoreB = 0;
-let pendingPlayerEvent = null;   // faltas / cartões
-let goalFlow = null;             // {half,clock,activeIds,scorerId,assistId}
+let pendingPlayerEvent = null; // faltas/cartões
+let pendingGoal = null;        // fluxo golo+assistência
 
 let timeline = [];
 
 const STORAGE_KEY = "gameControl_withWorkloadGestao_v2";
 const PRESETS_KEY = "gc_presets_v1";
 
+/* Botão flutuante */
 const floatingPlayBtn = document.getElementById("floatingPlayBtn");
+
+function hideFloatingBtn(){
+  if(floatingPlayBtn) floatingPlayBtn.style.display = "none";
+}
+function showFloatingBtn(){
+  if(floatingPlayBtn) floatingPlayBtn.style.display = "";
+}
 
 function pad(n){return String(n).padStart(2,"0");}
 function formatTime(sec){
@@ -950,6 +1009,7 @@ function updateScoreUI(){
   document.getElementById("scoreB").textContent = scoreB;
 }
 
+/* Actualiza aparência do botão flutuante */
 function updateFloatingPlayBtn(){
   if(!floatingPlayBtn) return;
   if(running){
@@ -1017,7 +1077,8 @@ function resetTimer(){
   scoreA = 0;
   scoreB = 0;
   timeline = [];
-  goalFlow = null;
+  pendingPlayerEvent = null;
+  pendingGoal = null;
   players.forEach(p=>{
     p.seconds = 0;
     p.secondsOut = 0;
@@ -1076,9 +1137,14 @@ function buildPlayersDOM(){
     const div = document.createElement("div");
     div.id = "player"+p.id;
     div.className = "player " + (p.active ? "active" : "inactive");
+    const foulsHTML = p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : "";
+    const ycHTML = p.yc ? `<span class="badge-yc" title="Amarelo"></span>` : "";
+    const rcHTML = p.rc ? `<span class="badge-rc" title="Vermelho"></span>` : "";
+    const goalsHTML = p.goals>0 ? `<span class="badge-goal" title="Golos">${p.goals>1?p.goals:"⚽"}</span>` : "";
+    const assistsHTML = p.assists>0 ? `<span class="badge-assist" title="Assistências">${p.assists>1?p.assists:"🦶"}</span>` : "";
     div.innerHTML = `
       <div class="gk-icon" style="display:${p.isGK?"flex":"none"}">🧤</div>
-      <div class="card-badges"></div>
+      <div class="card-badges">${foulsHTML}${ycHTML}${rcHTML}${goalsHTML}${assistsHTML}</div>
       <strong class="name">${p.name}</strong>
       <div class="time">00:00</div>
       <div class="last"></div>
@@ -1091,11 +1157,11 @@ function buildPlayersDOM(){
 }
 
 function updatePlayersUI(){
-  const selecting = !!pendingPlayerEvent || !!goalFlow;
   players.forEach(p=>{
     const el = document.getElementById("player"+p.id);
     if(!el) return;
-    el.className = "player " + (p.active ? "active" : "inactive") + (selecting ? " selectEvent" : "");
+    const inSelectMode = !!pendingPlayerEvent || !!pendingGoal;
+    el.className = "player " + (p.active ? "active" : "inactive") + (inSelectMode ? " selectEvent" : "");
     const timeEl = el.querySelector(".time");
     const lastEl = el.querySelector(".last");
     const nameEl = el.querySelector(".name");
@@ -1103,7 +1169,6 @@ function updatePlayersUI(){
     const displaySec = p.active ? p.rotationSecondsCurrent : p.rotationSecondsOut;
     timeEl.textContent = formatTime(displaySec);
     lastEl.textContent = (!p.active && p.lastRotation>0) ? ("Últ. rotação: " + formatTime(p.lastRotation)) : "";
-
     if(!p.isGK){
       const fb = document.getElementById("fatigue"+p.id);
       if(fb){
@@ -1116,9 +1181,9 @@ function updatePlayersUI(){
       const foulsHTML = p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : "";
       const ycHTML = p.yc ? `<span class="badge-yc" title="Amarelo"></span>` : "";
       const rcHTML = p.rc ? `<span class="badge-rc" title="Vermelho"></span>` : "";
-      const goalHTML = p.goals>0 ? `<span class="badge-goal" title="Golos">⚽</span>` : "";
-      const astHTML  = p.assists>0 ? `<span class="badge-assist" title="Assistências">🦶</span>` : "";
-      badges.innerHTML = foulsHTML + ycHTML + rcHTML + goalHTML + astHTML;
+      const goalsHTML = p.goals>0 ? `<span class="badge-goal" title="Golos">${p.goals>1?p.goals:"⚽"}</span>` : "";
+      const assistsHTML = p.assists>0 ? `<span class="badge-assist" title="Assistências">${p.assists>1?p.assists:"🦶"}</span>` : "";
+      badges.innerHTML = foulsHTML+ycHTML+rcHTML+goalsHTML+assistsHTML;
     }
   });
 }
@@ -1170,68 +1235,7 @@ function addTimelineEvent(ev){
   timeline.push(ev);
 }
 
-/* Flow de golo: 1º marcador, depois assistência */
-function startGoalFlow(){
-  const half = firstHalf ? 1 : 2;
-  const clock = formatTime(remaining);
-  const activeIds = players.filter(p=>p.active).map(p=>p.id);
-  goalFlow = {
-    half,
-    clock,
-    activeIds,
-    scorerId:null,
-    assistId:null
-  };
-  updatePlayersUI();
-}
-
-function handleGoalClickOnPlayer(id){
-  const p = players.find(x=>x.id===id);
-  if(!p || !goalFlow) return;
-
-  if(goalFlow.scorerId === null){
-    // este é o marcador
-    goalFlow.scorerId = id;
-    p.goals = (p.goals||0) + 1;
-    scoreA++;
-    updateScoreUI();
-    updatePlayersUI();
-    // continua em modo seleção para assistência
-    return;
-  }
-
-  // agora é assistência
-  if(id === goalFlow.scorerId){
-    // se clicar outra vez no marcador -> sem assistência
-    finalizeGoalEvent();
-    return;
-  }
-
-  goalFlow.assistId = id;
-  const ast = players.find(x=>x.id===id);
-  if(ast){
-    ast.assists = (ast.assists||0)+1;
-  }
-  finalizeGoalEvent();
-}
-
-function finalizeGoalEvent(){
-  addTimelineEvent({
-    type:"GF_A",
-    half:goalFlow.half,
-    clock:goalFlow.clock,
-    activeIds:goalFlow.activeIds,
-    scorerId:goalFlow.scorerId,
-    assistId:goalFlow.assistId,
-    ts:Date.now()
-  });
-  goalFlow = null;
-  updatePlayersUI();
-  updateSummary();
-  saveData();
-}
-
-/* Player events (faltas / cartões) */
+/* Player events (faltas/cartões) */
 function addPlayerEvent(type, playerId){
   const p = players.find(x=>x.id===playerId);
   if(!p) return;
@@ -1254,14 +1258,42 @@ function addPlayerEvent(type, playerId){
   saveData();
 }
 
-function togglePlayer(id){
-  // se estamos no fluxo de golo, clique serve para golo/assistência
-  if(goalFlow){
-    handleGoalClickOnPlayer(id);
+/* Fluxo GOLO + ASSISTÊNCIA */
+function handleGoalPlayerClick(playerId){
+  if(!pendingGoal) return;
+  const p = players.find(x=>x.id===playerId);
+  if(!p) return;
+
+  if(pendingGoal.step === "scorer"){
+    // registar marcador
+    p.goals = (p.goals || 0) + 1;
+    pendingGoal.baseEvent.scorerId = playerId;
+    pendingGoal.step = "assist"; // próximo clique é assistência
+    updatePlayersUI();
+    saveData();
     return;
   }
 
-  // se estamos a escolher jogador para falta/cartão
+  if(pendingGoal.step === "assist"){
+    // registar assistente
+    p.assists = (p.assists || 0) + 1;
+    pendingGoal.baseEvent.assistId = playerId;
+    addTimelineEvent(pendingGoal.baseEvent);
+    pendingGoal = null;
+    updatePlayersUI();
+    updateSummary();
+    saveData();
+  }
+}
+
+function togglePlayer(id){
+  // Primeiro: se estamos em fluxo de GOLO
+  if(pendingGoal){
+    handleGoalPlayerClick(id);
+    return;
+  }
+
+  // Depois: eventos de jogador (falta/cartão)
   if(pendingPlayerEvent){
     addPlayerEvent(pendingPlayerEvent, id);
     pendingPlayerEvent = null;
@@ -1269,7 +1301,7 @@ function togglePlayer(id){
     return;
   }
 
-  // comportamento normal: entra/sai de campo
+  // Se nada pendente, é só entrar/sair do campo
   const p = players.find(x=>x.id===id);
   if(!p) return;
   const currently = activeCount();
@@ -1296,7 +1328,7 @@ function togglePlayer(id){
   saveData();
 }
 
-/* Workload / resumo */
+/* Workload inteligente */
 function computeGameTime(){
   if(players.length===0) return 0;
   return players.reduce((max,p)=>{
@@ -1364,6 +1396,11 @@ const editPanel = document.getElementById("editPanel");
 const editList = document.getElementById("editList");
 
 function openEditPanel(){
+  hideFloatingBtn();
+  pendingPlayerEvent = null;
+  pendingGoal = null;
+  updatePlayersUI();
+
   editList.innerHTML = "";
   players.forEach(p=>{
     const row = document.createElement("div");
@@ -1379,6 +1416,7 @@ function openEditPanel(){
 }
 function closeEditPanel(){
   editPanel.classList.remove("open");
+  showFloatingBtn();
 }
 function saveNamesFromPanel(){
   players.forEach(p=>{
@@ -1399,11 +1437,13 @@ const loadPanel = document.getElementById("loadPanel");
 const loadList = document.getElementById("loadList");
 
 function openLoadPanel(){
+  hideFloatingBtn();
   renderLoadPanel();
   loadPanel.classList.add("open");
 }
 function closeLoadPanel(){
   loadPanel.classList.remove("open");
+  showFloatingBtn();
 }
 function renderLoadPanel(){
   loadList.innerHTML = "";
@@ -1638,7 +1678,45 @@ function loadData(){
   }
 }
 
-/* Export PNG – (mantém só a tabela por agora) */
+/* Gera texto da timeline para o print */
+function buildTimelineText(){
+  if(!timeline || timeline.length===0) return [];
+
+  const lines = [];
+  timeline.forEach(ev=>{
+    const clock = ev.clock || "??:??";
+    let desc = "";
+    if(ev.type === "GF_A" || ev.type === "GA_A"){
+      const scorer = ev.scorerId ? (players.find(p=>p.id===ev.scorerId)?.name || ("Jogador "+ev.scorerId)) : "N/D";
+      const assist = ev.assistId ? (players.find(p=>p.id===ev.assistId)?.name || ("Jogador "+ev.assistId)) : null;
+      const tipo = ev.type === "GF_A" ? "Golo a favor" : "Golo sofrido";
+      desc = `${tipo} – ${scorer}` + (assist ? ` (assistência de ${assist})` : "");
+      if(ev.activeIds && ev.activeIds.length){
+        const nomes = ev.activeIds.map(id=>{
+          const pl = players.find(p=>p.id===id);
+          return pl ? pl.name : ("#"+id);
+        }).join(", ");
+        desc += ` | Em campo: ${nomes}`;
+      }
+    }else if(ev.type === "FK_P"){
+      const pl = ev.playerId ? players.find(p=>p.id===ev.playerId) : null;
+      desc = `Falta – ${pl ? pl.name : "N/D"}`;
+    }else if(ev.type === "YC_P"){
+      const pl = ev.playerId ? players.find(p=>p.id===ev.playerId) : null;
+      desc = `Cartão amarelo – ${pl ? pl.name : "N/D"}`;
+    }else if(ev.type === "RC_P"){
+      const pl = ev.playerId ? players.find(p=>p.id===ev.playerId) : null;
+      desc = `Cartão vermelho – ${pl ? pl.name : "N/D"}`;
+    }else{
+      desc = ev.type || "Evento";
+    }
+    lines.push(`${clock}  |  ${desc}`);
+  });
+
+  return lines;
+}
+
+/* Export PNG – tabela + título + timeline */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
@@ -1669,6 +1747,8 @@ function exportPng(){
     ]);
   });
 
+  const timelineLines = buildTimelineText();
+
   const colWidths = [260,100,100,140,140,90,100,90,120];
   const tableWidth = colWidths.reduce((a,b)=>a+b,0);
   const margin = 20;
@@ -1677,8 +1757,13 @@ function exportPng(){
   const padding = 12;
   const tableHeight = padding + headerH + rows.length*rowH + padding;
   const contentWidth = tableWidth + padding*2;
+
+  const tlHeaderH = timelineLines.length ? 26 : 0;
+  const tlRowH = 18;
+  const timelineHeight = timelineLines.length ? (padding*2 + tlHeaderH + timelineLines.length*tlRowH) : 0;
+
   const canvasW = Math.max(900, contentWidth + margin*2);
-  const canvasH = margin + titleH + 10 + tableHeight + margin;
+  const canvasH = margin + titleH + 10 + tableHeight + (timelineHeight? 20+timelineHeight:0) + margin;
 
   const canvas = document.createElement("canvas");
   canvas.width = canvasW;
@@ -1697,6 +1782,7 @@ function exportPng(){
   const cardX = (canvasW - contentWidth)/2;
   const cardY = margin + titleH + 10;
 
+  // Card da tabela
   ctx.fillStyle = "#ffffff";
   ctx.strokeStyle = "#cccccc";
   ctx.lineWidth = 1;
@@ -1718,6 +1804,7 @@ function exportPng(){
   let x = cardX+padding;
   let y = cardY+padding;
 
+  // Cabeçalho da tabela
   ctx.fillStyle = "#eeeeee";
   ctx.fillRect(x-1,y,tableWidth+2,headerH);
   ctx.fillStyle = "#000";
@@ -1739,6 +1826,7 @@ function exportPng(){
   ctx.lineTo(x+tableWidth,y+headerH);
   ctx.stroke();
 
+  // Linhas da tabela
   ctx.font = "13px Arial";
   let rowY = y+headerH;
   rows.forEach(row=>{
@@ -1776,6 +1864,72 @@ function exportPng(){
     rowY += rowH;
   });
 
+  // Card da timeline
+  if(timelineLines.length){
+    const tlCardY = cardY + tableHeight + 20;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#cccccc";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cardX+r,tlCardY);
+    ctx.lineTo(cardX+contentWidth-r,tlCardY);
+    ctx.quadraticCurveTo(cardX+contentWidth,tlCardY,cardX+contentWidth,tlCardY+r);
+    ctx.lineTo(cardX+contentWidth,tlCardY+timelineHeight-r);
+    ctx.quadraticCurveTo(cardX+contentWidth,tlCardY+timelineHeight,cardX+contentWidth-r,tlCardY+timelineHeight);
+    ctx.lineTo(cardX+r,tlCardY+timelineHeight);
+    ctx.quadraticCurveTo(cardX,tlCardY+timelineHeight,cardX,tlCardY+timelineHeight-r);
+    ctx.lineTo(cardX,tlCardY+r);
+    ctx.quadraticCurveTo(cardX,tlCardY,cardX+r,tlCardY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    let tx = cardX+padding;
+    let ty = tlCardY+padding;
+
+    // Header timeline
+    ctx.fillStyle = "#eeeeee";
+    ctx.fillRect(tx-1,ty,tableWidth+2,tlHeaderH);
+    ctx.fillStyle = "#000";
+    ctx.font = "bold 14px Arial";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Timeline de jogo", tx+6, ty+tlHeaderH/2);
+
+    ctx.strokeStyle = "#cccccc";
+    ctx.beginPath();
+    ctx.moveTo(tx,ty);
+    ctx.lineTo(tx+tableWidth,ty);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(tx,ty+tlHeaderH);
+    ctx.lineTo(tx+tableWidth,ty+tlHeaderH);
+    ctx.stroke();
+
+    // Linhas timeline
+    ctx.font = "12px Arial";
+    let tRowY = ty+tlHeaderH;
+    timelineLines.forEach(line=>{
+      ctx.fillStyle = "#000";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      const maxW = tableWidth-10;
+      let text = line;
+      while(ctx.measureText(text).width > maxW && text.length>1){
+        text = text.slice(0,-1);
+      }
+      if(text !== line) text = text.slice(0,-1)+"…";
+      ctx.fillText(text, tx+5, tRowY+3);
+      ctx.strokeStyle="#ececec";
+      ctx.beginPath();
+      ctx.moveTo(tx,tRowY+tlRowH);
+      ctx.lineTo(tx+tableWidth,tRowY+tlRowH);
+      ctx.stroke();
+      tRowY += tlRowH;
+    });
+  }
+
   const a = document.createElement("a");
   const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
   a.download = `Resumo_${teamA.replace(/\s+/g,"_")}_vs_${teamB.replace(/\s+/g,"_")}_${ts}.png`;
@@ -1783,38 +1937,53 @@ function exportPng(){
   a.click();
 }
 
-/* Timeline – equipa (golos contra, etc.) */
+/* Timeline – equipa (golos) */
 function handleTeamEvent(type){
   const half = firstHalf ? 1 : 2;
   const clock = formatTime(remaining);
   const activeIds = players.filter(p=>p.active).map(p=>p.id);
 
-  if(type==="GA_A"){
-    scoreB++;
-    addTimelineEvent({
-      type,
-      half,
-      clock,
-      activeIds,
-      ts: Date.now()
-    });
+  if(type==="GF_A") scoreA++;
+  if(type==="GA_A") scoreB++;
+
+  // Golo + fluxo de seleção (marcador + assistência)
+  if(type==="GF_A" || type==="GA_A"){
+    pendingPlayerEvent = null;
+    pendingGoal = {
+      step:"scorer",
+      baseEvent:{
+        type,
+        half,
+        clock,
+        activeIds,
+        ts:Date.now()
+      }
+    };
     updateScoreUI();
+    updatePlayersUI();
     saveData();
+    return;
   }
+
+  // (Se no futuro houver outros eventos de equipa, entram aqui)
+  updateScoreUI();
+  saveData();
 }
 
 function setPendingEvent(type){
+  pendingGoal = null;
   pendingPlayerEvent = type;
   updatePlayersUI();
 }
 
-/* Vassoura – limpa marcador, sanções e timeline */
+/* Vassoura – limpa marcador, sanções, golos/assists e timeline */
 document.getElementById("tlClearBtn").onclick = ()=>{
-  if(!confirm("Limpar marcador, faltas/cartões, golos e timeline?")) return;
+  if(!confirm("Limpar marcador, faltas/cartões, golos/assistências e timeline?")) return;
   scoreA = 0;
   scoreB = 0;
   timeline = [];
-  goalFlow = null;
+  pendingPlayerEvent = null;
+  pendingGoal = null;
   players.forEach(p=>{
     p.fouls = 0;
     p.yc = false;
@@ -1843,11 +2012,16 @@ document.getElementById("saveNamesBtn").onclick = saveNamesFromPanel;
 
 const presetsPanel = document.getElementById("presetsPanel");
 document.getElementById("presetsBtn").onclick = ()=>{
+  hideFloatingBtn();
+  pendingGoal = null;
+  pendingPlayerEvent = null;
+  updatePlayersUI();
   renderPresetList();
   presetsPanel.classList.add("open");
 };
 document.getElementById("closePresets").onclick = ()=>{
   presetsPanel.classList.remove("open");
+  showFloatingBtn();
 };
 document.getElementById("savePresetBtn").onclick = savePreset;
 
@@ -1859,11 +2033,6 @@ document.getElementById("closeLoad").onclick = closeLoadPanel;
 document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   const type = btn.dataset.type;
   if(!type) return;
-  if(type === "GF_A"){
-    // fluxo especial de golo (marcador + assistência)
-    btn.addEventListener("click", ()=>startGoalFlow());
-    return;
-  }
   if(btn.classList.contains("tl-player")){
     btn.addEventListener("click", ()=>setPendingEvent(type));
   }else{
