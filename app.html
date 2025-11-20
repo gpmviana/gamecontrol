@@ -949,12 +949,6 @@
     <button class="tl-btn" data-type="GA_A">
       <span class="icon">⚽</span><span class="label">Golo −</span>
     </button>
-    <button class="tl-btn tl-player" data-type="G_P">
-      <span class="icon">⚽</span><span class="label">Golo (J)</span>
-    </button>
-    <button class="tl-btn tl-player" data-type="AS_P">
-      <span class="icon">👣</span><span class="label">Assist.</span>
-    </button>
     <button class="tl-btn tl-player" data-type="FK_P">
       <span class="icon">❌</span><span class="label">Falta</span>
     </button>
@@ -984,6 +978,10 @@ const maxOnField = 5;
 let scoreA = 0;
 let scoreB = 0;
 let pendingPlayerEvent = null;
+
+/* Novo: estado para golo + assistência */
+let pendingGoal = null; 
+// { phase: 'scorer' | 'assist', eventIndex: number }
 
 let timeline = [];
 
@@ -1080,6 +1078,7 @@ function resetTimer(){
   scoreA = 0;
   scoreB = 0;
   timeline = [];
+  pendingGoal = null;
   players.forEach(p=>{
     p.seconds = 0;
     p.secondsOut = 0;
@@ -1156,7 +1155,8 @@ function updatePlayersUI(){
   players.forEach(p=>{
     const el = document.getElementById("player"+p.id);
     if(!el) return;
-    el.className = "player " + (p.active ? "active" : "inactive") + (pendingPlayerEvent ? " selectEvent" : "");
+    const hasPending = pendingPlayerEvent || pendingGoal;
+    el.className = "player " + (p.active ? "active" : "inactive") + (hasPending ? " selectEvent" : "");
     const timeEl = el.querySelector(".time");
     const lastEl = el.querySelector(".last");
     const nameEl = el.querySelector(".name");
@@ -1238,15 +1238,13 @@ function getPlayerNameById(id){
   return p ? p.name : ("Jogador "+id);
 }
 
-/* Player events */
+/* Eventos de jogador (faltas/cartões – os golos agora vêm do fluxo do pendingGoal) */
 function addPlayerEvent(type, playerId){
   const p = players.find(x=>x.id===playerId);
   if(!p) return;
   if(type==="FK_P") p.fouls = (p.fouls||0) + 1;
   if(type==="YC_P") p.yc = true;
   if(type==="RC_P") p.rc = true;
-  if(type==="G_P") p.goals = (p.goals||0) + 1;
-  if(type==="AS_P") p.assists = (p.assists||0) + 1;
 
   const half = firstHalf ? 1 : 2;
   const clock = formatTime(remaining);
@@ -1263,7 +1261,15 @@ function addPlayerEvent(type, playerId){
   saveData();
 }
 
+/* Clique nos jogadores */
 function togglePlayer(id){
+  // 1) Se estamos no fluxo de golo (marcador + depois 2 cliques)
+  if(pendingGoal){
+    handleGoalClickOnPlayer(id);
+    return;
+  }
+
+  // 2) Se estamos num evento de jogador (falta, amarelo, vermelho)
   if(pendingPlayerEvent){
     addPlayerEvent(pendingPlayerEvent, id);
     pendingPlayerEvent = null;
@@ -1271,6 +1277,7 @@ function togglePlayer(id){
     return;
   }
 
+  // 3) Comportamento normal de entrar/sair
   const p = players.find(x=>x.id===id);
   if(!p) return;
   const currently = activeCount();
@@ -1290,6 +1297,28 @@ function togglePlayer(id){
     p.rotations++;
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
+  }
+
+  updatePlayersUI();
+  updateSummary();
+  saveData();
+}
+
+/* Gestão do fluxo Golo + (marcador → 1.º clique = golo, 2.º = assistência) */
+function handleGoalClickOnPlayer(playerId){
+  const p = players.find(x=>x.id===playerId);
+  if(!p || !pendingGoal) return;
+  const ev = timeline[pendingGoal.eventIndex];
+  if(!ev) return;
+
+  if(pendingGoal.phase === "scorer"){
+    p.goals = (p.goals || 0) + 1;
+    ev.scorerId = playerId;
+    pendingGoal.phase = "assist";
+  }else if(pendingGoal.phase === "assist"){
+    p.assists = (p.assists || 0) + 1;
+    ev.assistId = playerId;
+    pendingGoal = null; // fim do fluxo
   }
 
   updatePlayersUI();
@@ -1675,30 +1704,33 @@ function exportPng(){
   timeline.forEach(ev=>{
     const halfLabel = ev.half === 1 ? "1ª Parte" : "2ª Parte";
     let desc = "";
-    switch(ev.type){
-      case "GF_A":
+    if(ev.type === "GF_A"){
+      if(ev.scorerId){
+        desc = "Golo a favor – " + getPlayerNameById(ev.scorerId);
+        if(ev.assistId){
+          desc += " (assistência de " + getPlayerNameById(ev.assistId) + ")";
+        }
+      }else{
         desc = "Golo a favor";
-        break;
-      case "GA_A":
-        desc = "Golo sofrido";
-        break;
-      case "FK_P":
-        desc = "Falta – " + getPlayerNameById(ev.playerId);
-        break;
-      case "YC_P":
-        desc = "Cartão amarelo – " + getPlayerNameById(ev.playerId);
-        break;
-      case "RC_P":
-        desc = "Cartão vermelho – " + getPlayerNameById(ev.playerId);
-        break;
-      case "G_P":
-        desc = "Golo – " + getPlayerNameById(ev.playerId);
-        break;
-      case "AS_P":
-        desc = "Assistência – " + getPlayerNameById(ev.playerId);
-        break;
-      default:
-        desc = ev.type;
+      }
+      if(ev.activeIds && ev.activeIds.length){
+        const names = ev.activeIds.map(getPlayerNameById).join(", ");
+        desc += " | Em campo: " + names;
+      }
+    }else if(ev.type === "GA_A"){
+      desc = "Golo sofrido";
+      if(ev.activeIds && ev.activeIds.length){
+        const names = ev.activeIds.map(getPlayerNameById).join(", ");
+        desc += " | Em campo: " + names;
+      }
+    }else if(ev.type === "FK_P"){
+      desc = "Falta – " + getPlayerNameById(ev.playerId);
+    }else if(ev.type === "YC_P"){
+      desc = "Cartão amarelo – " + getPlayerNameById(ev.playerId);
+    }else if(ev.type === "RC_P"){
+      desc = "Cartão vermelho – " + getPlayerNameById(ev.playerId);
+    }else{
+      desc = ev.type;
     }
     timelineLines.push(`${halfLabel} ${ev.clock} · ${desc}`);
   });
@@ -1846,13 +1878,22 @@ function handleTeamEvent(type){
   if(type==="GF_A") scoreA++;
   if(type==="GA_A") scoreB++;
 
-  addTimelineEvent({
+  const ev = {
     type,
     half,
     clock,
     activeIds,
     ts: Date.now()
-  });
+  };
+
+  if(type==="GF_A"){
+    ev.scorerId = null;
+    ev.assistId = null;
+    addTimelineEvent(ev);
+    pendingGoal = { phase: "scorer", eventIndex: timeline.length - 1 };
+  }else{
+    addTimelineEvent(ev);
+  }
 
   updateScoreUI();
   saveData();
@@ -1862,12 +1903,13 @@ function setPendingEvent(type){
   updatePlayersUI();
 }
 
-/* Vassoura – limpa marcador, sanções e timeline */
+/* Vassoura – limpa marcador, sanções, golos/assistências e timeline */
 document.getElementById("tlClearBtn").onclick = ()=>{
   if(!confirm("Limpar marcador, faltas/cartões, golos/assistências e timeline?")) return;
   scoreA = 0;
   scoreB = 0;
   timeline = [];
+  pendingGoal = null;
   players.forEach(p=>{
     p.fouls = 0;
     p.yc = false;
