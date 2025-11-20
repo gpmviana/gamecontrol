@@ -954,6 +954,9 @@ let scoreA = 0;
 let scoreB = 0;
 let pendingPlayerEvent = null;
 
+/* NOVO: estado para golo (marcador + assistência) */
+let pendingGoal = null;
+
 let timeline = [];
 
 const STORAGE_KEY = "gameControl_withWorkloadGestao_v1";
@@ -1049,6 +1052,8 @@ function resetTimer(){
   scoreA = 0;
   scoreB = 0;
   timeline = [];
+  pendingGoal = null;
+  pendingPlayerEvent = null;
   players.forEach(p=>{
     p.seconds = 0;
     p.secondsOut = 0;
@@ -1126,7 +1131,8 @@ function updatePlayersUI(){
   players.forEach(p=>{
     const el = document.getElementById("player"+p.id);
     if(!el) return;
-    el.className = "player " + (p.active ? "active" : "inactive") + (pendingPlayerEvent ? " selectEvent" : "");
+    const selecting = !!pendingPlayerEvent || !!pendingGoal;
+    el.className = "player " + (p.active ? "active" : "inactive") + (selecting ? " selectEvent" : "");
     const timeEl = el.querySelector(".time");
     const lastEl = el.querySelector(".last");
     const nameEl = el.querySelector(".name");
@@ -1196,27 +1202,21 @@ function addTimelineEvent(ev){
   timeline.push(ev);
 }
 
-/* Player events – AGORA TAMBÉM GUARDA activeIds */
+/* Player events (faltas/cartões) */
 function addPlayerEvent(type, playerId){
   const p = players.find(x=>x.id===playerId);
   if(!p) return;
-
   if(type==="FK_P") p.fouls = (p.fouls||0) + 1;
   if(type==="YC_P") p.yc = true;
   if(type==="RC_P") p.rc = true;
 
-  const half  = firstHalf ? 1 : 2;
+  const half = firstHalf ? 1 : 2;
   const clock = formatTime(remaining);
-
-  // quem estava em campo neste momento
-  const activeIds = players.filter(pl => pl.active).map(pl => pl.id);
-
   addTimelineEvent({
     type,
     half,
     clock,
     playerId,
-    activeIds,
     ts: Date.now()
   });
 
@@ -1225,7 +1225,50 @@ function addPlayerEvent(type, playerId){
   saveData();
 }
 
+/* NOVO: fluxo de selecção de golo (marcador + assistência) */
+function startGoalEvent(){
+  const half = firstHalf ? 1 : 2;
+  const clock = formatTime(remaining);
+  const activeIds = players.filter(p=>p.active).map(p=>p.id);
+
+  pendingGoal = {
+    type: "GF_A",
+    half,
+    clock,
+    activeIds,
+    scorerId: null,
+    assistId: null,
+    ts: Date.now()
+  };
+  updatePlayersUI();
+}
+
+function handleGoalPlayerSelection(playerId){
+  if(!pendingGoal) return;
+  if(!pendingGoal.scorerId){
+    // Primeiro clique: marcador
+    pendingGoal.scorerId = playerId;
+    return;
+  }
+  // Segundo clique: assistência (pode ser o mesmo -> sem assistência)
+  if(playerId !== pendingGoal.scorerId){
+    pendingGoal.assistId = playerId;
+  }
+  addTimelineEvent({...pendingGoal});
+  pendingGoal = null;
+  updatePlayersUI();
+  saveData();
+}
+
+/* Clique no jogador */
 function togglePlayer(id){
+  // 1) Se estamos a escolher golo
+  if(pendingGoal){
+    handleGoalPlayerSelection(id);
+    return;
+  }
+
+  // 2) Se estamos a registar falta/cartão
   if(pendingPlayerEvent){
     addPlayerEvent(pendingPlayerEvent, id);
     pendingPlayerEvent = null;
@@ -1233,6 +1276,7 @@ function togglePlayer(id){
     return;
   }
 
+  // 3) Comportamento normal de entrar/sair
   const p = players.find(x=>x.id===id);
   if(!p) return;
   const currently = activeCount();
@@ -1595,7 +1639,61 @@ function loadData(){
   }
 }
 
-/* Export PNG – Tabela + Timeline */
+/* 🔎 Construir linhas de texto da timeline para o PNG */
+function buildTimelineLines(){
+  const lines = [];
+  const sorted = [...timeline].sort((a,b)=> (a.ts||0) - (b.ts||0));
+
+  sorted.forEach(ev=>{
+    const halfLabel = ev.half === 1 ? "1ª parte" : "2ª parte";
+    const clock = ev.clock || "";
+    let txt = `[${halfLabel} ${clock}] `;
+
+    if(ev.type === "GF_A"){
+      txt += "Golo a favor";
+      const scorer = players.find(p=>p.id===ev.scorerId);
+      const assist = players.find(p=>p.id===ev.assistId);
+      if(scorer) txt += ` — Marcador: ${scorer.name}`;
+      if(assist && assist !== scorer) txt += ` (Assistência: ${assist.name})`;
+      if(Array.isArray(ev.activeIds) && ev.activeIds.length){
+        const names = ev.activeIds.map(id=>{
+          const pl = players.find(p=>p.id===id);
+          return pl ? pl.name : null;
+        }).filter(Boolean);
+        if(names.length){
+          txt += ` — Em campo: ${names.join(", ")}`;
+        }
+      }
+    }else if(ev.type === "GA_A"){
+      txt += "Golo sofrido";
+      if(Array.isArray(ev.activeIds) && ev.activeIds.length){
+        const names = ev.activeIds.map(id=>{
+          const pl = players.find(p=>p.id===id);
+          return pl ? pl.name : null;
+        }).filter(Boolean);
+        if(names.length){
+          txt += ` — Em campo: ${names.join(", ")}`;
+        }
+      }
+    }else if(ev.type === "FK_P" || ev.type === "YC_P" || ev.type === "RC_P"){
+      const pl = players.find(p=>p.id===ev.playerId);
+      let kind = "Evento";
+      if(ev.type === "FK_P") kind = "Falta";
+      if(ev.type === "YC_P") kind = "Cartão amarelo";
+      if(ev.type === "RC_P") kind = "Cartão vermelho";
+      txt += kind;
+      if(pl) txt += ` — Jogador: ${pl.name}`;
+    }else{
+      txt += "Evento";
+    }
+
+    lines.push(txt);
+  });
+
+  return lines;
+}
+
+/* Export PNG – tabela + timeline */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
@@ -1606,7 +1704,6 @@ function exportPng(){
   const gameTime = computeGameTime();
   const ideal = computeIdealPerPlayer(gameTime);
 
-  // Tabela resumo
   players.forEach(p=>{
     const total = p.part1 + p.part2;
     const avg = p.rotations>0 ? Math.floor(total/p.rotations) : 0;
@@ -1627,53 +1724,8 @@ function exportPng(){
     ]);
   });
 
-  // TIMELINE linhas
-  function buildTimelineLines(){
-    const lines = [];
-    if(!Array.isArray(timeline) || timeline.length===0) return lines;
+  const tlLines = buildTimelineLines();
 
-    timeline.forEach(ev=>{
-      const halfLabel = ev.half===1 ? "1ª Parte" : "2ª Parte";
-      const when = `${halfLabel} · ${ev.clock || "00:00"}`;
-      let desc = "";
-
-      if(ev.type === "GF_A"){
-        desc = "Golo a favor";
-      }else if(ev.type === "GA_A"){
-        desc = "Golo sofrido";
-      }else if(ev.type === "FK_P"){
-        const p = players.find(pl => pl.id === ev.playerId);
-        desc = p ? `Falta de ${p.name}` : "Falta";
-      }else if(ev.type === "YC_P"){
-        const p = players.find(pl => pl.id === ev.playerId);
-        desc = p ? `Cartão amarelo para ${p.name}` : "Cartão amarelo";
-      }else if(ev.type === "RC_P"){
-        const p = players.find(pl => pl.id === ev.playerId);
-        desc = p ? `Cartão vermelho para ${p.name}` : "Cartão vermelho";
-      }else{
-        desc = "Evento de jogo";
-      }
-
-      let who = "";
-      if(Array.isArray(ev.activeIds) && ev.activeIds.length>0){
-        const names = players
-          .filter(pl => ev.activeIds.includes(pl.id))
-          .map(pl => pl.name + (pl.isGK ? " 🧤" : ""));
-        if(names.length>0){
-          who = " | Em campo: " + names.join(", ");
-        }
-      }
-
-      lines.push(`${when} — ${desc}${who}`);
-    });
-
-    return lines;
-  }
-
-  const timelineLines = buildTimelineLines();
-  const hasTimeline = timelineLines.length > 0;
-
-  // DIMENSÕES
   const colWidths = [260,100,100,140,140,90,100,90,120];
   const tableWidth = colWidths.reduce((a,b)=>a+b,0);
   const margin = 20;
@@ -1682,27 +1734,22 @@ function exportPng(){
   const padding = 12;
 
   const tableHeight = padding + headerH + rows.length*rowH + padding;
-
-  const timelineTitleH = 22;
-  const lineH = 16;
-  const timelineHeight = hasTimeline ? (timelineTitleH + 8 + timelineLines.length*lineH) : 0;
-
   const contentWidth = tableWidth + padding*2;
-  const contentHeight = tableHeight + (hasTimeline ? 20 + timelineHeight : 0);
+
+  const lineH2 = 18;
+  const timelineHeight = tlLines.length>0 ? (26 + tlLines.length*lineH2 + padding) : 0;
 
   const canvasW = Math.max(900, contentWidth + margin*2);
-  const canvasH = margin + titleH + 10 + contentHeight + margin;
+  const canvasH = margin + titleH + 10 + tableHeight + (tlLines.length? 16 + timelineHeight : 0) + margin;
 
   const canvas = document.createElement("canvas");
   canvas.width = canvasW;
   canvas.height = canvasH;
   const ctx = canvas.getContext("2d");
 
-  // Fundo
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0,0,canvasW,canvasH);
 
-  // Título
   ctx.fillStyle = "#000";
   ctx.font = "bold 22px Arial";
   ctx.textAlign = "center";
@@ -1712,7 +1759,6 @@ function exportPng(){
   const cardX = (canvasW - contentWidth)/2;
   const cardY = margin + titleH + 10;
 
-  // Cartão
   ctx.fillStyle = "#ffffff";
   ctx.strokeStyle = "#cccccc";
   ctx.lineWidth = 1;
@@ -1721,21 +1767,19 @@ function exportPng(){
   ctx.moveTo(cardX+r,cardY);
   ctx.lineTo(cardX+contentWidth-r,cardY);
   ctx.quadraticCurveTo(cardX+contentWidth,cardY,cardX+contentWidth,cardY+r);
-  ctx.lineTo(cardX+contentWidth,cardY+contentHeight-r);
-  ctx.quadraticCurveTo(cardX+contentWidth,cardY+contentHeight,cardX+contentWidth-r,cardY+contentHeight);
-  ctx.lineTo(cardX+r,cardY+contentHeight);
-  ctx.quadraticCurveTo(cardX,cardY+contentHeight,cardX,cardY+contentHeight-r);
+  ctx.lineTo(cardX+contentWidth,cardY+tableHeight-r);
+  ctx.quadraticCurveTo(cardX+contentWidth,cardY+tableHeight,cardX+contentWidth-r,cardY+tableHeight);
+  ctx.lineTo(cardX+r,cardY+tableHeight);
+  ctx.quadraticCurveTo(cardX,cardY+tableHeight,cardX,cardY+tableHeight-r);
   ctx.lineTo(cardX,cardY+r);
   ctx.quadraticCurveTo(cardX,cardY,cardX+r,cardY);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
 
-  // TABELA
   let x = cardX+padding;
   let y = cardY+padding;
 
-  // Cabeçalho
   ctx.fillStyle = "#eeeeee";
   ctx.fillRect(x-1,y,tableWidth+2,headerH);
   ctx.fillStyle = "#000";
@@ -1757,7 +1801,6 @@ function exportPng(){
   ctx.lineTo(x+tableWidth,y+headerH);
   ctx.stroke();
 
-  // Linhas
   ctx.font = "13px Arial";
   let rowY = y+headerH;
   rows.forEach(row=>{
@@ -1795,24 +1838,21 @@ function exportPng(){
     rowY += rowH;
   });
 
-  // TIMELINE
-  if(hasTimeline){
-    const timelineStartY = cardY + tableHeight + 20;
-
-    ctx.fillStyle = "#000";
+  /* Desenhar Timeline de jogo por baixo da tabela */
+  if(tlLines.length>0){
+    let tlY = cardY + tableHeight + 16;
+    ctx.font = "bold 16px Arial";
     ctx.textAlign = "left";
-    ctx.font = "bold 14px Arial";
-    ctx.fillText("Timeline do Jogo", cardX+padding, timelineStartY);
-
-    ctx.font = "11px Arial";
-    let ly = timelineStartY + 8 + lineH;
-    timelineLines.forEach(line=>{
-      ctx.fillText(line, cardX+padding, ly);
-      ly += lineH;
+    ctx.fillStyle = "#000";
+    ctx.fillText("Timeline de jogo", cardX + padding, tlY);
+    tlY += 8;
+    ctx.font = "12px Arial";
+    tlLines.forEach(line=>{
+      tlY += lineH2;
+      ctx.fillText(line, cardX + padding, tlY);
     });
   }
 
-  // Download
   const a = document.createElement("a");
   const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
   a.download = `Resumo_${teamA.replace(/\s+/g,"_")}_vs_${teamB.replace(/\s+/g,"_")}_${ts}.png`;
@@ -1826,21 +1866,31 @@ function handleTeamEvent(type){
   const clock = formatTime(remaining);
   const activeIds = players.filter(p=>p.active).map(p=>p.id);
 
-  if(type==="GF_A") scoreA++;
-  if(type==="GA_A") scoreB++;
-
-  addTimelineEvent({
-    type,
-    half,
-    clock,
-    activeIds,
-    ts: Date.now()
-  });
-
-  updateScoreUI();
-  saveData();
+  if(type==="GF_A"){
+    scoreA++;
+    updateScoreUI();
+    // Inicia fluxo de golo com marcador + assistência
+    startGoalEvent();
+    saveData();
+    return;
+  }
+  if(type==="GA_A"){
+    scoreB++;
+    addTimelineEvent({
+      type,
+      half,
+      clock,
+      activeIds,
+      ts: Date.now()
+    });
+    updateScoreUI();
+    saveData();
+    return;
+  }
 }
+
 function setPendingEvent(type){
+  pendingGoal = null;
   pendingPlayerEvent = type;
   updatePlayersUI();
 }
@@ -1851,6 +1901,8 @@ document.getElementById("tlClearBtn").onclick = ()=>{
   scoreA = 0;
   scoreB = 0;
   timeline = [];
+  pendingGoal = null;
+  pendingPlayerEvent = null;
   players.forEach(p=>{
     p.fouls = 0;
     p.yc = false;
@@ -1893,6 +1945,7 @@ document.getElementById("closeLoad").onclick = closeLoadPanel;
 document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   const type = btn.dataset.type;
   if(!type) return;
+  if(btn.id === "tlClearBtn") return; // já tem handler próprio
   if(btn.classList.contains("tl-player")){
     btn.addEventListener("click", ()=>setPendingEvent(type));
   }else{
