@@ -941,9 +941,6 @@
 </div> <!-- fim appWrapper -->
 
 <script>
-/* --- TODO: TODO o JS DA APP, EXACTAMENTE COMO TINHAS --- */
-/* (copiei o mesmo código que já estava a funcionar – não mexi na lógica) */
-
 let duration = 20 * 60;
 let remaining = duration;
 let timerInterval = null;
@@ -1199,21 +1196,27 @@ function addTimelineEvent(ev){
   timeline.push(ev);
 }
 
-/* Player events */
+/* Player events – AGORA TAMBÉM GUARDA activeIds */
 function addPlayerEvent(type, playerId){
   const p = players.find(x=>x.id===playerId);
   if(!p) return;
+
   if(type==="FK_P") p.fouls = (p.fouls||0) + 1;
   if(type==="YC_P") p.yc = true;
   if(type==="RC_P") p.rc = true;
 
-  const half = firstHalf ? 1 : 2;
+  const half  = firstHalf ? 1 : 2;
   const clock = formatTime(remaining);
+
+  // quem estava em campo neste momento
+  const activeIds = players.filter(pl => pl.active).map(pl => pl.id);
+
   addTimelineEvent({
     type,
     half,
     clock,
     playerId,
+    activeIds,
     ts: Date.now()
   });
 
@@ -1592,7 +1595,7 @@ function loadData(){
   }
 }
 
-/* Export PNG – tabela + título */
+/* Export PNG – Tabela + Timeline */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
@@ -1603,6 +1606,7 @@ function exportPng(){
   const gameTime = computeGameTime();
   const ideal = computeIdealPerPlayer(gameTime);
 
+  // Tabela resumo
   players.forEach(p=>{
     const total = p.part1 + p.part2;
     const avg = p.rotations>0 ? Math.floor(total/p.rotations) : 0;
@@ -1623,25 +1627,82 @@ function exportPng(){
     ]);
   });
 
+  // TIMELINE linhas
+  function buildTimelineLines(){
+    const lines = [];
+    if(!Array.isArray(timeline) || timeline.length===0) return lines;
+
+    timeline.forEach(ev=>{
+      const halfLabel = ev.half===1 ? "1ª Parte" : "2ª Parte";
+      const when = `${halfLabel} · ${ev.clock || "00:00"}`;
+      let desc = "";
+
+      if(ev.type === "GF_A"){
+        desc = "Golo a favor";
+      }else if(ev.type === "GA_A"){
+        desc = "Golo sofrido";
+      }else if(ev.type === "FK_P"){
+        const p = players.find(pl => pl.id === ev.playerId);
+        desc = p ? `Falta de ${p.name}` : "Falta";
+      }else if(ev.type === "YC_P"){
+        const p = players.find(pl => pl.id === ev.playerId);
+        desc = p ? `Cartão amarelo para ${p.name}` : "Cartão amarelo";
+      }else if(ev.type === "RC_P"){
+        const p = players.find(pl => pl.id === ev.playerId);
+        desc = p ? `Cartão vermelho para ${p.name}` : "Cartão vermelho";
+      }else{
+        desc = "Evento de jogo";
+      }
+
+      let who = "";
+      if(Array.isArray(ev.activeIds) && ev.activeIds.length>0){
+        const names = players
+          .filter(pl => ev.activeIds.includes(pl.id))
+          .map(pl => pl.name + (pl.isGK ? " 🧤" : ""));
+        if(names.length>0){
+          who = " | Em campo: " + names.join(", ");
+        }
+      }
+
+      lines.push(`${when} — ${desc}${who}`);
+    });
+
+    return lines;
+  }
+
+  const timelineLines = buildTimelineLines();
+  const hasTimeline = timelineLines.length > 0;
+
+  // DIMENSÕES
   const colWidths = [260,100,100,140,140,90,100,90,120];
   const tableWidth = colWidths.reduce((a,b)=>a+b,0);
   const margin = 20;
   const rowH = 32, headerH = 36;
   const titleH = 30;
   const padding = 12;
+
   const tableHeight = padding + headerH + rows.length*rowH + padding;
+
+  const timelineTitleH = 22;
+  const lineH = 16;
+  const timelineHeight = hasTimeline ? (timelineTitleH + 8 + timelineLines.length*lineH) : 0;
+
   const contentWidth = tableWidth + padding*2;
+  const contentHeight = tableHeight + (hasTimeline ? 20 + timelineHeight : 0);
+
   const canvasW = Math.max(900, contentWidth + margin*2);
-  const canvasH = margin + titleH + 10 + tableHeight + margin;
+  const canvasH = margin + titleH + 10 + contentHeight + margin;
 
   const canvas = document.createElement("canvas");
   canvas.width = canvasW;
   canvas.height = canvasH;
   const ctx = canvas.getContext("2d");
 
+  // Fundo
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0,0,canvasW,canvasH);
 
+  // Título
   ctx.fillStyle = "#000";
   ctx.font = "bold 22px Arial";
   ctx.textAlign = "center";
@@ -1651,6 +1712,7 @@ function exportPng(){
   const cardX = (canvasW - contentWidth)/2;
   const cardY = margin + titleH + 10;
 
+  // Cartão
   ctx.fillStyle = "#ffffff";
   ctx.strokeStyle = "#cccccc";
   ctx.lineWidth = 1;
@@ -1659,19 +1721,21 @@ function exportPng(){
   ctx.moveTo(cardX+r,cardY);
   ctx.lineTo(cardX+contentWidth-r,cardY);
   ctx.quadraticCurveTo(cardX+contentWidth,cardY,cardX+contentWidth,cardY+r);
-  ctx.lineTo(cardX+contentWidth,cardY+tableHeight-r);
-  ctx.quadraticCurveTo(cardX+contentWidth,cardY+tableHeight,cardX+contentWidth-r,cardY+tableHeight);
-  ctx.lineTo(cardX+r,cardY+tableHeight);
-  ctx.quadraticCurveTo(cardX,cardY+tableHeight,cardX,cardY+tableHeight-r);
+  ctx.lineTo(cardX+contentWidth,cardY+contentHeight-r);
+  ctx.quadraticCurveTo(cardX+contentWidth,cardY+contentHeight,cardX+contentWidth-r,cardY+contentHeight);
+  ctx.lineTo(cardX+r,cardY+contentHeight);
+  ctx.quadraticCurveTo(cardX,cardY+contentHeight,cardX,cardY+contentHeight-r);
   ctx.lineTo(cardX,cardY+r);
   ctx.quadraticCurveTo(cardX,cardY,cardX+r,cardY);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
 
+  // TABELA
   let x = cardX+padding;
   let y = cardY+padding;
 
+  // Cabeçalho
   ctx.fillStyle = "#eeeeee";
   ctx.fillRect(x-1,y,tableWidth+2,headerH);
   ctx.fillStyle = "#000";
@@ -1693,6 +1757,7 @@ function exportPng(){
   ctx.lineTo(x+tableWidth,y+headerH);
   ctx.stroke();
 
+  // Linhas
   ctx.font = "13px Arial";
   let rowY = y+headerH;
   rows.forEach(row=>{
@@ -1730,6 +1795,24 @@ function exportPng(){
     rowY += rowH;
   });
 
+  // TIMELINE
+  if(hasTimeline){
+    const timelineStartY = cardY + tableHeight + 20;
+
+    ctx.fillStyle = "#000";
+    ctx.textAlign = "left";
+    ctx.font = "bold 14px Arial";
+    ctx.fillText("Timeline do Jogo", cardX+padding, timelineStartY);
+
+    ctx.font = "11px Arial";
+    let ly = timelineStartY + 8 + lineH;
+    timelineLines.forEach(line=>{
+      ctx.fillText(line, cardX+padding, ly);
+      ly += lineH;
+    });
+  }
+
+  // Download
   const a = document.createElement("a");
   const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
   a.download = `Resumo_${teamA.replace(/\s+/g,"_")}_vs_${teamB.replace(/\s+/g,"_")}_${ts}.png`;
