@@ -409,7 +409,6 @@
     padding:0 5px;
   }
   .badge-yc, .badge-rc, .badge-goal, .badge-assist{
-    width:12px;
     height:18px;
     border-radius:2px;
     border:1px solid rgba(0,0,0,.4);
@@ -417,9 +416,10 @@
     align-items:center;
     justify-content:center;
     font-size:11px;
+    padding:0 3px;
   }
-  .badge-yc{ background:#f1c40f; }
-  .badge-rc{ background:#e74c3c; }
+  .badge-yc{ background:#f1c40f; min-width:12px; }
+  .badge-rc{ background:#e74c3c; min-width:12px; }
   .badge-goal{ background:#2ecc71; }
   .badge-assist{ background:#3498db; }
 
@@ -970,7 +970,7 @@ let scoreA = 0;
 let scoreB = 0;
 let pendingPlayerEvent = null;
 let pendingAssistForGoal = null;
-let pendingGoalScorer = null;   // para fluxo de golo (marcador)
+let pendingGoalScorer = null;
 
 let timeline = [];
 
@@ -1136,8 +1136,8 @@ function buildPlayersDOM(){
     const foulsHTML = p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : "";
     const ycHTML = p.yc ? `<span class="badge-yc" title="Amarelo"></span>` : "";
     const rcHTML = p.rc ? `<span class="badge-rc" title="Vermelho"></span>` : "";
-    const goalHTML = p.goals>0 ? `<span class="badge-goal" title="Golos">⚽</span>` : "";
-    const assistHTML = p.assists>0 ? `<span class="badge-assist" title="Assistências">👣</span>` : "";
+    const goalHTML = p.goals>0 ? `<span class="badge-goal" title="Golos">⚽${p.goals>1 ? "×"+p.goals : ""}</span>` : "";
+    const assistHTML = p.assists>0 ? `<span class="badge-assist" title="Assistências">👣${p.assists>1 ? "×"+p.assists : ""}</span>` : "";
     div.innerHTML = `
       <div class="gk-icon" style="display:${p.isGK?"flex":"none"}">🧤</div>
       <div class="card-badges">${foulsHTML}${ycHTML}${rcHTML}${goalHTML}${assistHTML}</div>
@@ -1178,8 +1178,8 @@ function updatePlayersUI(){
         (p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : "") +
         (p.yc ? `<span class="badge-yc" title="Amarelo"></span>` : "") +
         (p.rc ? `<span class="badge-rc" title="Vermelho"></span>` : "") +
-        (p.goals>0 ? `<span class="badge-goal" title="Golos">⚽</span>` : "") +
-        (p.assists>0 ? `<span class="badge-assist" title="Assistências">👣</span>` : "");
+        (p.goals>0 ? `<span class="badge-goal" title="Golos">⚽${p.goals>1 ? "×"+p.goals : ""}</span>` : "") +
+        (p.assists>0 ? `<span class="badge-assist" title="Assistências">👣${p.assists>1 ? "×"+p.assists : ""}</span>` : "");
     }
   });
 }
@@ -1253,7 +1253,7 @@ function addPlayerEvent(type, playerId){
   saveData();
 }
 
-/* Fluxo Golo + (marcador → assistência) */
+/* Fluxo Golo + (marcador → assistência opcional) */
 function startGoalFlow(){
   pendingPlayerEvent = null;
   pendingAssistForGoal = null;
@@ -1281,7 +1281,7 @@ function togglePlayer(id){
     addTimelineEvent(ev);
     pendingGoalScorer = null;
 
-    // Agora escolher assistência (opcional)
+    // Agora escolhemos assistência (opcional)
     pendingAssistForGoal = ev;
     updateScoreUI();
     updatePlayersUI();
@@ -1293,9 +1293,20 @@ function togglePlayer(id){
   // 2) Escolher assistência
   if(pendingAssistForGoal){
     const ev = pendingAssistForGoal;
+    const scorerId = ev.playerId;
+
+    // Se clicar outra vez no marcador → sem assistência
+    if(id === scorerId){
+      pendingAssistForGoal = null;
+      updatePlayersUI();
+      updateSummary();
+      saveData();
+      return;
+    }
+
     const pAssist = players.find(x=>x.id===id);
     if(pAssist){
-      pAssist.assists = (pAssist.assists||0)+1;
+      pAssist.assists = (p.assists||0)+1;
       ev.assistPlayerId = id;
       const scorer = players.find(x=>x.id===ev.playerId);
       ev.description = `Golo: ${scorer?scorer.name:"#"+ev.playerId} (assistência: ${pAssist.name})`;
