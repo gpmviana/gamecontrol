@@ -516,7 +516,6 @@
     border:none;
     color:#fff;
     font-size:18px;
-    cursor:pointer;
   }
 
   /* Painel Gestão de Cargas */
@@ -544,7 +543,6 @@
     border:none;
     color:#fff;
     font-size:18px;
-    cursor:pointer;
   }
   #loadPanel h3{
     margin:0 0 10px 0;
@@ -634,9 +632,15 @@
   .tl-btn span.icon{font-size:16px;}
   .tl-btn span.label{font-size:12px;}
 
+  /* Piscar quando estamos a escolher jogador (golo / falta / cartão / assistência) */
+  @keyframes selectBlink{
+    0%,100%{ outline-color:#fff; opacity:1; }
+    50%{ outline-color:transparent; opacity:0.6; }
+  }
   .player.selectEvent{
     outline:3px dashed #fff;
     outline-offset:-3px;
+    animation:selectBlink 1s infinite;
   }
 
   /* Assinatura @gpmviana */
@@ -958,7 +962,6 @@ let remaining = duration;
 let timerInterval = null;
 let running = false;
 let firstHalf = true;
-let halfStarted = false;              // 👈 NOVO: controlo de início da parte
 
 let players = [];
 let theme = "dark";
@@ -967,7 +970,7 @@ let scoreA = 0;
 let scoreB = 0;
 let pendingPlayerEvent = null;
 let pendingAssistForGoal = null;
-let pendingGoalScorer = null;         // 👈 NOVO: seleção de marcador de golo
+let pendingGoalScorer = null;   // para fluxo de golo (marcador)
 
 let timeline = [];
 
@@ -1043,18 +1046,6 @@ function tick(){
 
 function startTimer(){
   if(running) return;
-
-  // 👇 NOVO: 1ª vez de cada parte → garantir rotação 1 para titulares
-  if(!halfStarted){
-    players.forEach(p=>{
-      if(p.active && p.rotations === 0){
-        p.rotations = 1;
-      }
-    });
-    halfStarted = true;
-    updateSummary();
-  }
-
   running = true;
   clearInterval(timerInterval);
   timerInterval = setInterval(tick,1000);
@@ -1074,7 +1065,6 @@ function resetTimer(){
   duration = mins * 60;
   remaining = duration;
   firstHalf = true;
-  halfStarted = false;               // 👈 reset do estado da parte
   scoreA = 0;
   scoreB = 0;
   timeline = [];
@@ -1110,7 +1100,9 @@ function resetTimer(){
 function intervalTimer(){
   pauseTimer();
   firstHalf = false;
-  halfStarted = false;               // 👈 nova parte, volta a contar rotações iniciais
+  pendingAssistForGoal = null;
+  pendingGoalScorer = null;
+  pendingPlayerEvent = null;
   const mins = parseInt(document.getElementById("setMinutes").value)||20;
   duration = mins * 60;
   remaining = duration;
@@ -1164,7 +1156,7 @@ function updatePlayersUI(){
   players.forEach(p=>{
     const el = document.getElementById("player"+p.id);
     if(!el) return;
-    const selecting = pendingPlayerEvent || pendingAssistForGoal || pendingGoalScorer; // 👈 inclui golo
+    const selecting = pendingPlayerEvent || pendingAssistForGoal || pendingGoalScorer;
     el.className = "player " + (p.active ? "active" : "inactive") + (selecting ? " selectEvent" : "");
     const timeEl = el.querySelector(".time");
     const lastEl = el.querySelector(".last");
@@ -1261,9 +1253,8 @@ function addPlayerEvent(type, playerId){
   saveData();
 }
 
-/* 👇 NOVO: fluxo Golo + (marcador → assistência) */
+/* Fluxo Golo + (marcador → assistência) */
 function startGoalFlow(){
-  // limpa qualquer seleção anterior
   pendingPlayerEvent = null;
   pendingAssistForGoal = null;
   pendingGoalScorer = {
@@ -1273,12 +1264,11 @@ function startGoalFlow(){
     activeIds: players.filter(p=>p.active).map(p=>p.id),
     ts: Date.now()
   };
-  alert("Escolhe o jogador que marcou o golo.");
   updatePlayersUI();
 }
 
 function togglePlayer(id){
-  // 1️⃣ Se estamos a escolher marcador de GOLO
+  // 1) Escolher marcador de golo
   if(pendingGoalScorer){
     const ev = pendingGoalScorer;
     const scorer = players.find(x=>x.id===id);
@@ -1287,14 +1277,12 @@ function togglePlayer(id){
       ev.playerId = id;
       ev.description = `Golo: ${scorer.name}`;
     }
-    // golo a favor no marcador
     scoreA++;
     addTimelineEvent(ev);
     pendingGoalScorer = null;
 
-    // agora escolhemos assistência
+    // Agora escolher assistência (opcional)
     pendingAssistForGoal = ev;
-    alert("Agora escolhe o jogador da assistência.");
     updateScoreUI();
     updatePlayersUI();
     updateSummary();
@@ -1302,7 +1290,7 @@ function togglePlayer(id){
     return;
   }
 
-  // 2️⃣ Se estamos a escolher ASSISTÊNCIA
+  // 2) Escolher assistência
   if(pendingAssistForGoal){
     const ev = pendingAssistForGoal;
     const pAssist = players.find(x=>x.id===id);
@@ -1319,7 +1307,7 @@ function togglePlayer(id){
     return;
   }
 
-  // 3️⃣ Se estamos a registar falta/cartão em jogador
+  // 3) Falta / cartão em jogador
   if(pendingPlayerEvent){
     addPlayerEvent(pendingPlayerEvent, id);
     pendingPlayerEvent = null;
@@ -1327,7 +1315,7 @@ function togglePlayer(id){
     return;
   }
 
-  // 4️⃣ Normal: entra/sai e conta rotação em trocas
+  // 4) Troca normal (conta rotação quando entra)
   const p = players.find(x=>x.id===id);
   if(!p) return;
   const currently = activeCount();
@@ -1344,7 +1332,7 @@ function togglePlayer(id){
     p.rotationSecondsOut = 0;
   } else {
     p.active = true;
-    p.rotations++;                   // continua a contar cada entrada
+    p.rotations++;
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
   }
@@ -1631,7 +1619,6 @@ function loadData(){
     duration = typeof d.duration==="number" ? d.duration : duration;
     remaining = typeof d.remaining==="number" ? d.remaining : remaining;
     firstHalf = typeof d.firstHalf==="boolean" ? d.firstHalf : true;
-    halfStarted = false; // quando recarrega, volta a assumir que ainda não começou a parte
     theme = d.theme || "dark";
     scoreA = typeof d.scoreA==="number" ? d.scoreA : 0;
     scoreB = typeof d.scoreB==="number" ? d.scoreB : 0;
@@ -1701,7 +1688,7 @@ function loadData(){
   }
 }
 
-/* Export PNG – (igual ao teu) */
+/* Export PNG – igual ao original (já com golos/assistências e timeline) */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
@@ -1901,7 +1888,7 @@ function exportPng(){
   a.click();
 }
 
-/* Timeline – equipa (mantém para GA_A e afins) */
+/* Timeline – equipa (para GA_A e outros de equipa) */
 function handleTeamEvent(type){
   const half = firstHalf ? 1 : 2;
   const clock = formatTime(remaining);
@@ -1997,7 +1984,6 @@ document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   }else{
     btn.addEventListener("click", ()=>{
       if(type === "GF_A"){
-        // 🔥 Novo fluxo de Golo +
         startGoalFlow();
       }else{
         handleTeamEvent(type);
