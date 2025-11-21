@@ -44,7 +44,7 @@
   }
 
   .header-logo{
-    height:38px;       /* ajusta se quiseres maior/menor */
+    height:38px;
     width:auto;
     display:block;
   }
@@ -179,7 +179,6 @@
     color:#fff;
     cursor:pointer;
   }
-  /* Destaque Intervalo / Reset */
   #intervalBtn,
   #resetBtn{
     padding:10px 18px;
@@ -818,7 +817,6 @@
 <body>
 <header>
   <div class="header-left">
-    <!-- 👇 LOGO AQUI -->
     <img src="logo-gc.png" alt="Game Control" class="header-logo">
     <span class="header-title">GAME CONTROL</span>
   </div>
@@ -834,7 +832,6 @@
   </div>
 </header>
 
-<!-- 🔐 Ecrã de Login -->
 <div id="loginScreen">
   <div id="loginCard">
     <h2 id="loginTitle">Login Game Control</h2>
@@ -851,10 +848,8 @@
   </div>
 </div>
 
-<!-- 🔲 App inteira (só aparece depois do login) -->
 <div id="appWrapper" style="display:none;">
 
-  <!-- Botão flutuante Iniciar/Pausar -->
   <button id="floatingPlayBtn" class="paused" title="Iniciar / Pausar">⏵</button>
 
   <div id="teamInputs">
@@ -898,12 +893,8 @@
       </thead>
       <tbody id="summaryBody"></tbody>
     </table>
-
-    <!-- 🔻 BLOCO EXTRA PARA RESUMO DA TIMELINE NA EXPORTAÇÃO (TEXTO SÓ NO CANVAS) -->
-    <!-- (Não é mostrado aqui em HTML porque desenhamos diretamente no PNG) -->
   </div>
 
-  <!-- Painel Editar nomes -->
   <div id="editPanel">
     <button class="close-btn" id="closePanel">❌</button>
     <h3>Editar Jogadores</h3>
@@ -911,7 +902,6 @@
     <button class="save-btn" id="saveNamesBtn">Guardar Alterações</button>
   </div>
 
-  <!-- Painel Presets -->
   <div id="presetsPanel">
     <button class="close-btn" id="closePresets">❌</button>
     <h3 style="margin:0 0 10px 0;">Presets de Plantel</h3>
@@ -925,7 +915,6 @@
     </div>
   </div>
 
-  <!-- Painel Gestão de Cargas -->
   <div id="loadPanel">
     <button class="close-btn" id="closeLoad">❌</button>
     <h3>Gestão de Cargas</h3>
@@ -935,13 +924,11 @@
     <div id="loadList"></div>
   </div>
 
-  <!-- Assinatura -->
   <div id="brandSignature">
     <img src="signature-light.png" class="sig-on-dark" alt="@gpmviana">
     <img src="signature-dark.png" class="sig-on-light" alt="@gpmviana">
   </div>
 
-  <!-- Timeline fixa -->
   <div id="timelineBar">
     <button class="tl-btn" data-type="GF_A">
       <span class="icon">⚽</span><span class="label">Golo +</span>
@@ -971,6 +958,7 @@ let remaining = duration;
 let timerInterval = null;
 let running = false;
 let firstHalf = true;
+let halfStarted = false;              // 👈 NOVO: controlo de início da parte
 
 let players = [];
 let theme = "dark";
@@ -979,13 +967,13 @@ let scoreA = 0;
 let scoreB = 0;
 let pendingPlayerEvent = null;
 let pendingAssistForGoal = null;
+let pendingGoalScorer = null;         // 👈 NOVO: seleção de marcador de golo
 
 let timeline = [];
 
 const STORAGE_KEY = "gameControl_withWorkloadGestao_v2";
 const PRESETS_KEY = "gc_presets_v1";
 
-/* Botão flutuante */
 const floatingPlayBtn = document.getElementById("floatingPlayBtn");
 
 function pad(n){return String(n).padStart(2,"0");}
@@ -1007,7 +995,6 @@ function updateScoreUI(){
   document.getElementById("scoreB").textContent = scoreB;
 }
 
-/* Actualiza aparência do botão flutuante */
 function updateFloatingPlayBtn(){
   if(!floatingPlayBtn) return;
   if(running){
@@ -1053,29 +1040,47 @@ function tick(){
   updateSummary();
   saveData();
 }
+
 function startTimer(){
   if(running) return;
+
+  // 👇 NOVO: 1ª vez de cada parte → garantir rotação 1 para titulares
+  if(!halfStarted){
+    players.forEach(p=>{
+      if(p.active && p.rotations === 0){
+        p.rotations = 1;
+      }
+    });
+    halfStarted = true;
+    updateSummary();
+  }
+
   running = true;
   clearInterval(timerInterval);
   timerInterval = setInterval(tick,1000);
   updateFloatingPlayBtn();
 }
+
 function pauseTimer(){
   running = false;
   clearInterval(timerInterval);
   updateFloatingPlayBtn();
   saveData();
 }
+
 function resetTimer(){
   pauseTimer();
   const mins = parseInt(document.getElementById("setMinutes").value)||20;
   duration = mins * 60;
   remaining = duration;
   firstHalf = true;
+  halfStarted = false;               // 👈 reset do estado da parte
   scoreA = 0;
   scoreB = 0;
   timeline = [];
   pendingAssistForGoal = null;
+  pendingGoalScorer = null;
+  pendingPlayerEvent = null;
   players.forEach(p=>{
     p.seconds = 0;
     p.secondsOut = 0;
@@ -1101,9 +1106,11 @@ function resetTimer(){
   updateFloatingPlayBtn();
   saveData();
 }
+
 function intervalTimer(){
   pauseTimer();
   firstHalf = false;
+  halfStarted = false;               // 👈 nova parte, volta a contar rotações iniciais
   const mins = parseInt(document.getElementById("setMinutes").value)||20;
   duration = mins * 60;
   remaining = duration;
@@ -1157,7 +1164,7 @@ function updatePlayersUI(){
   players.forEach(p=>{
     const el = document.getElementById("player"+p.id);
     if(!el) return;
-    const selecting = pendingPlayerEvent || pendingAssistForGoal;
+    const selecting = pendingPlayerEvent || pendingAssistForGoal || pendingGoalScorer; // 👈 inclui golo
     el.className = "player " + (p.active ? "active" : "inactive") + (selecting ? " selectEvent" : "");
     const timeEl = el.querySelector(".time");
     const lastEl = el.querySelector(".last");
@@ -1227,12 +1234,10 @@ function flashLimit(id){
   setTimeout(()=>el.classList.remove("limit"),600);
 }
 
-/* Timeline helpers */
 function addTimelineEvent(ev){
   timeline.push(ev);
 }
 
-/* Player events */
 function addPlayerEvent(type, playerId){
   const p = players.find(x=>x.id===playerId);
   if(!p) return;
@@ -1256,14 +1261,48 @@ function addPlayerEvent(type, playerId){
   saveData();
 }
 
+/* 👇 NOVO: fluxo Golo + (marcador → assistência) */
+function startGoalFlow(){
+  // limpa qualquer seleção anterior
+  pendingPlayerEvent = null;
+  pendingAssistForGoal = null;
+  pendingGoalScorer = {
+    type: "GF_A",
+    half: firstHalf ? 1 : 2,
+    clock: formatTime(remaining),
+    activeIds: players.filter(p=>p.active).map(p=>p.id),
+    ts: Date.now()
+  };
+  alert("Escolhe o jogador que marcou o golo.");
+  updatePlayersUI();
+}
+
 function togglePlayer(id){
-  if(pendingPlayerEvent){
-    addPlayerEvent(pendingPlayerEvent, id);
-    pendingPlayerEvent = null;
+  // 1️⃣ Se estamos a escolher marcador de GOLO
+  if(pendingGoalScorer){
+    const ev = pendingGoalScorer;
+    const scorer = players.find(x=>x.id===id);
+    if(scorer){
+      scorer.goals = (scorer.goals||0)+1;
+      ev.playerId = id;
+      ev.description = `Golo: ${scorer.name}`;
+    }
+    // golo a favor no marcador
+    scoreA++;
+    addTimelineEvent(ev);
+    pendingGoalScorer = null;
+
+    // agora escolhemos assistência
+    pendingAssistForGoal = ev;
+    alert("Agora escolhe o jogador da assistência.");
+    updateScoreUI();
     updatePlayersUI();
+    updateSummary();
+    saveData();
     return;
   }
 
+  // 2️⃣ Se estamos a escolher ASSISTÊNCIA
   if(pendingAssistForGoal){
     const ev = pendingAssistForGoal;
     const pAssist = players.find(x=>x.id===id);
@@ -1271,7 +1310,7 @@ function togglePlayer(id){
       pAssist.assists = (pAssist.assists||0)+1;
       ev.assistPlayerId = id;
       const scorer = players.find(x=>x.id===ev.playerId);
-      ev.description = `Golo: ${scorer?scorer.name:"#"+ev.playerId}${pAssist ? " (assistência: "+pAssist.name+")":""}`;
+      ev.description = `Golo: ${scorer?scorer.name:"#"+ev.playerId} (assistência: ${pAssist.name})`;
     }
     pendingAssistForGoal = null;
     updatePlayersUI();
@@ -1280,6 +1319,15 @@ function togglePlayer(id){
     return;
   }
 
+  // 3️⃣ Se estamos a registar falta/cartão em jogador
+  if(pendingPlayerEvent){
+    addPlayerEvent(pendingPlayerEvent, id);
+    pendingPlayerEvent = null;
+    updatePlayersUI();
+    return;
+  }
+
+  // 4️⃣ Normal: entra/sai e conta rotação em trocas
   const p = players.find(x=>x.id===id);
   if(!p) return;
   const currently = activeCount();
@@ -1290,19 +1338,13 @@ function togglePlayer(id){
   }
 
   if(p.active){
-    // Jogador está a SAIR: só conta rotação se esteve algum tempo em campo
-    if(p.rotationSecondsCurrent > 0){
-      p.rotations++;
-      p.lastRotation = p.rotationSecondsCurrent;
-    } else {
-      p.lastRotation = 0;
-    }
     p.active = false;
+    p.lastRotation = p.rotationSecondsCurrent;
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
   } else {
-    // Jogador a ENTRAR: não aumenta rotações
     p.active = true;
+    p.rotations++;                   // continua a contar cada entrada
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
   }
@@ -1589,6 +1631,7 @@ function loadData(){
     duration = typeof d.duration==="number" ? d.duration : duration;
     remaining = typeof d.remaining==="number" ? d.remaining : remaining;
     firstHalf = typeof d.firstHalf==="boolean" ? d.firstHalf : true;
+    halfStarted = false; // quando recarrega, volta a assumir que ainda não começou a parte
     theme = d.theme || "dark";
     scoreA = typeof d.scoreA==="number" ? d.scoreA : 0;
     scoreB = typeof d.scoreB==="number" ? d.scoreB : 0;
@@ -1658,7 +1701,7 @@ function loadData(){
   }
 }
 
-/* Export PNG – tabela + título + resumo da timeline */
+/* Export PNG – (igual ao teu) */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
@@ -1693,7 +1736,6 @@ function exportPng(){
     ]);
   });
 
-  // Preparar texto da timeline (golos, faltas, cartões, etc.)
   const timelineLines = timeline
     .sort((a,b)=>a.ts-b.ts)
     .map(ev=>{
@@ -1719,7 +1761,6 @@ function exportPng(){
         const a = players.find(x=>x.id===ev.assistPlayerId);
         if(a) desc += ` (assistência: ${a.name})`;
       }
-      // quem estava em campo naquele momento (ids activos guardados no evento ou activeIds)
       let onFieldText = "";
       if(ev.activeIds && Array.isArray(ev.activeIds) && ev.activeIds.length){
         const names = ev.activeIds.map(id=>{
@@ -1737,14 +1778,10 @@ function exportPng(){
   const rowH = 32, headerH = 36;
   const titleH = 30;
   const padding = 12;
-
-  // Altura extra para timeline
   const timelineBlockH = timelineLines.length ? (24 + timelineLines.length * 18) : 0;
-
   const tableHeight = padding + headerH + rows.length*rowH + padding;
   const contentWidth = tableWidth + padding*2;
   const cardHeight = tableHeight + (timelineBlockH ? (timelineBlockH + 16) : 0);
-
   const canvasW = Math.max(900, contentWidth + margin*2);
   const canvasH = margin + titleH + 10 + cardHeight + margin;
 
@@ -1844,7 +1881,6 @@ function exportPng(){
     rowY += rowH;
   });
 
-  // Bloco da timeline por baixo da tabela
   if(timelineLines.length){
     const tlStartY = rowY + 16;
     ctx.font = "bold 14px Arial";
@@ -1865,7 +1901,7 @@ function exportPng(){
   a.click();
 }
 
-/* Timeline – equipa */
+/* Timeline – equipa (mantém para GA_A e afins) */
 function handleTeamEvent(type){
   const half = firstHalf ? 1 : 2;
   const clock = formatTime(remaining);
@@ -1886,18 +1922,23 @@ function handleTeamEvent(type){
   updateScoreUI();
   saveData();
 }
+
 function setPendingEvent(type){
   pendingPlayerEvent = type;
+  pendingGoalScorer = null;
+  pendingAssistForGoal = null;
   updatePlayersUI();
 }
 
-/* Vassoura – limpa marcador, sanções e timeline */
+/* Vassoura */
 document.getElementById("tlClearBtn").onclick = ()=>{
   if(!confirm("Limpar marcador, faltas/cartões, golos/assistências e timeline?")) return;
   scoreA = 0;
   scoreB = 0;
   timeline = [];
   pendingAssistForGoal = null;
+  pendingGoalScorer = null;
+  pendingPlayerEvent = null;
   players.forEach(p=>{
     p.fouls = 0;
     p.yc = false;
@@ -1928,7 +1969,6 @@ const presetsPanel = document.getElementById("presetsPanel");
 document.getElementById("presetsBtn").onclick = ()=>{
   renderPresetList();
   presetsPanel.classList.add("open");
-  // esconder botão play enquanto painel aberto
   if(floatingPlayBtn) floatingPlayBtn.style.display = "none";
 };
 document.getElementById("closePresets").onclick = ()=>{
@@ -1937,7 +1977,6 @@ document.getElementById("closePresets").onclick = ()=>{
 };
 document.getElementById("savePresetBtn").onclick = savePreset;
 
-/* Gestão de Cargas botões */
 document.getElementById("loadPanelBtn").onclick = ()=>{
   openLoadPanel();
   if(floatingPlayBtn) floatingPlayBtn.style.display = "none";
@@ -1953,31 +1992,21 @@ document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   if(!type) return;
   if(btn.classList.contains("tl-player")){
     btn.addEventListener("click", ()=>{
-      // se for golo por jogador, usamos FK_P / YC_P / RC_P
       setPendingEvent(type);
     });
   }else{
     btn.addEventListener("click", ()=>{
       if(type === "GF_A"){
-        // Primeiro escolhemos marcador
-        alert("Escolhe o jogador que marcou o golo.");
-        pendingPlayerEvent = null;
-        pendingAssistForGoal = null;
-
-        // Durante o próximo clique num jogador, registamos golo e depois pedimos assistência
-        const prevToggle = togglePlayer;
-        // mas já temos lógica no toggle, então simplificamos:
-        pendingPlayerEvent = null;
-        // usamos um mini truque: um 'listener' temporário? -> já resolvemos no fluxo anterior,
-        // por simplicidade deixamos o golo ser registado pelo botão de jogador (GF_P não existe)
-        // aqui continuamos como 'golo de equipa' normal
+        // 🔥 Novo fluxo de Golo +
+        startGoalFlow();
+      }else{
+        handleTeamEvent(type);
       }
-      handleTeamEvent(type);
     });
   }
 });
 
-/* Clique no botão flutuante */
+/* Botão flutuante */
 if(floatingPlayBtn){
   floatingPlayBtn.onclick = ()=>{
     if(running) pauseTimer();
