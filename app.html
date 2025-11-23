@@ -8,19 +8,12 @@
 <style>
   :root {
     --timeline-h: 54px;
-    --gc-bg:#0d0d0d;
-    --gc-surface:#141414;
-    --gc-header:#111111;
-    --gc-accent:#40c463;      /* verde principal (igual landing) */
-    --gc-accent-soft:#2ecc71; /* verde soft */
-    --gc-red:#e74c3c;         /* vermelho principal */
-    --gc-border:#2a2a2a;
   }
 
   body{
     font-family:Arial, sans-serif;
     margin:0;
-    background:var(--gc-bg);
+    background:#1e1e1e;
     color:#f5f5f5;
     text-align:center;
     padding-bottom: calc(var(--timeline-h) + 10px);
@@ -35,15 +28,13 @@
     display:flex;
     align-items:center;
     justify-content:space-between;
-    background:var(--gc-header);
+    background:#333;
     padding:8px 16px;
     box-sizing:border-box;
-    border-bottom:1px solid var(--gc-border);
   }
   body.light-mode header{
     background:#ddd;
     color:#111;
-    border-bottom:1px solid #ccc;
   }
 
   .header-left{
@@ -69,28 +60,13 @@
     gap:8px;
   }
   .top-buttons button{
-    background:#1f1f1f;
-    border:1px solid #333;
-    border-radius:999px;
-    padding:6px 9px;
-    font-size:18px;
+    background:none;
+    border:none;
+    font-size:22px;
     color:#fff;
     cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    transition:background .15s, transform .05s, box-shadow .15s;
-  }
-  .top-buttons button:hover{
-    background:#262626;
-    box-shadow:0 0 10px rgba(0,0,0,0.35);
-  }
-  .top-buttons button:active{
-    transform:scale(0.96);
   }
   body.light-mode .top-buttons button{
-    background:#f0f0f0;
-    border:1px solid #ccc;
     color:#222;
   }
 
@@ -110,18 +86,18 @@
     justify-content:center;
     cursor:pointer;
     z-index:1200;
-    box-shadow:0 4px 20px rgba(0,0,0,0.6);
+    box-shadow:0 4px 12px rgba(0,0,0,0.5);
     transition:background 0.2s, box-shadow 0.2s, transform 0.1s;
   }
   #floatingPlayBtn.running{
-    background:var(--gc-red);
+    background:#e74c3c;
     color:#fff;
-    box-shadow:0 0 18px rgba(231,76,60,0.85);
+    box-shadow:0 0 14px rgba(231,76,60,0.8);
   }
   #floatingPlayBtn.paused{
-    background:var(--gc-accent-soft);
+    background:#2ecc71;
     color:#000;
-    box-shadow:0 0 18px rgba(46,204,113,0.85);
+    box-shadow:0 0 14px rgba(46,204,113,0.8);
   }
   #floatingPlayBtn:active{
     transform:scale(0.95);
@@ -136,17 +112,10 @@
   }
   #teamInputs input{
     padding:6px 10px;
-    border-radius:999px;
-    border:1px solid var(--gc-border);
-    background:#111;
-    color:#f5f5f5;
+    border-radius:6px;
+    border:none;
     font-size:16px;
     text-align:center;
-  }
-  body.light-mode #teamInputs input{
-    background:#fff;
-    color:#222;
-    border-color:#ccc;
   }
   .scoreBubble{
     display:inline-flex;
@@ -154,11 +123,10 @@
     justify-content:center;
     min-width:34px;
     height:34px;
-    padding:0 10px;
+    padding:0 8px;
     margin:0 6px;
-    border-radius:999px;
-    background:#000;
-    border:1px solid var(--gc-border);
+    border-radius:8px;
+    background:#111;
     color:#fff;
     font-weight:800;
     font-size:20px;
@@ -166,7 +134,6 @@
   body.light-mode .scoreBubble{
     background:#e7e7e7;
     color:#111;
-    border-color:#d0d0d0;
   }
 
   .timer-row{
@@ -181,99 +148,61 @@
   }
   .half-badge{
     display:inline-block;
-    padding:4px 12px;
+    padding:4px 10px;
     border-radius:999px;
-    background:#1f1f1f;
-    border:1px solid var(--gc-border);
+    background:#444;
     color:#fff;
     font-size:12px;
     letter-spacing:.3px;
   }
   body.light-mode .half-badge{
-    background:#ececec;
+    background:#ccc;
     color:#111;
-    border-color:#ccc;
   }
 
   .controls{
     display:flex;
     justify-content:center;
     flex-wrap:wrap;
-    gap:8px;
-    background:var(--gc-surface);
-    padding:10px 12px;
-    border-top:1px solid var(--gc-border);
-    border-bottom:1px solid var(--gc-border);
+    gap:6px;
+    background:#2e2e2e;
+    padding:10px;
   }
   body.light-mode .controls{
     background:#e0e0e0;
   }
   .controls button{
-    padding:8px 12px;
+    padding:6px 10px;
     border:none;
-    border-radius:999px;
-    background:#222;
+    border-radius:6px;
+    background:#444;
     color:#fff;
     cursor:pointer;
-    font-size:14px;
-    transition:background .15s, transform .05s, box-shadow .15s;
   }
-  .controls button:hover{
-    background:#2b2b2b;
-    box-shadow:0 0 10px rgba(0,0,0,0.35);
-  }
-  .controls button:active{
-    transform:scale(0.97);
-  }
-
-  /* Destaque Intervalo / Reset */
   #intervalBtn,
   #resetBtn{
-    padding:9px 18px;
-    font-size:15px;
+    padding:10px 18px;
+    font-size:16px;
     font-weight:600;
-    border-radius:999px;
+    border-radius:10px;
   }
   #intervalBtn{
-    background:#ff8c42;
+    background:#f1c40f;
     color:#000;
   }
-  #intervalBtn:hover{
-    background:#ff9d5f;
-  }
   #resetBtn{
-    background:#b03232;
+    background:#e74c3c;
     color:#fff;
   }
-  #resetBtn:hover{
-    background:#c53b3b;
-  }
-
   body.light-mode .controls button{
     background:#555;
     color:#fff;
   }
-  body.light-mode #intervalBtn{
-    background:#ff9a55;
-    color:#000;
-  }
-  body.light-mode #resetBtn{
-    background:#d64545;
-  }
-
   .controls input{
-    padding:7px 10px;
-    border-radius:999px;
-    border:1px solid var(--gc-border);
-    background:#111;
-    color:#f5f5f5;
+    padding:6px 8px;
+    border-radius:6px;
+    border:none;
     text-align:center;
-    width:60px;
-  }
-  body.light-mode .controls input{
-    background:#fff;
-    color:#222;
-    border-color:#ccc;
   }
 
   /* Grelha dos jogadores */
@@ -283,8 +212,6 @@
     gap:10px;
     width:100%;
     margin:8px 0 16px 0;
-    padding:0 10px;
-    box-sizing:border-box;
     justify-items:center;
   }
   @media (max-width:1200px){
@@ -300,28 +227,22 @@
   .player{
     width:100%;
     height:100px;
-    border-radius:14px;
+    border-radius:10px;
     display:flex;
     flex-direction:column;
     align-items:center;
     justify-content:center;
     cursor:pointer;
-    transition:0.18s;
-    background:linear-gradient(135deg,#3b1414,#5b1f1f); /* base: fora (vermelho) */
-    border:1px solid rgba(231,76,60,0.7);
+    transition:0.2s;
+    background:#8b2c23; /* fora - vermelho escuro */
     color:#fff;
     position:relative;
     overflow:hidden;
     box-sizing:border-box;
   }
   .player.active{
-    background:linear-gradient(135deg,#115434,#1f8a50); /* em campo: verde */
-    border:1px solid rgba(64,196,99,0.9);
-    color:#fdfdfd;
-  }
-  .player:hover{
-    transform:translateY(-1px);
-    box-shadow:0 6px 16px rgba(0,0,0,0.45);
+    background:#1f6f3a; /* em campo - verde escuro */
+    color:#fff;
   }
 
   .player strong{
@@ -350,7 +271,7 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    background:rgba(0,0,0,0.55);
+    background:rgba(0,0,0,0.45);
     font-size:13px;
   }
 
@@ -358,17 +279,17 @@
     position:absolute;
     left:6px;
     right:6px;
-    bottom:6px;
+    bottom:5px;
     height:5px;
-    border-radius:999px;
+    border-radius:6px;
     background:rgba(255,255,255,0.3);
     overflow:hidden;
   }
   .fatigue-bar{
     height:100%;
     width:0%;
-    border-radius:999px;
-    background:var(--gc-accent-soft);
+    border-radius:6px;
+    background:#2ecc71;
     transition:width 0.2s linear, background 0.2s linear;
   }
 
@@ -382,26 +303,21 @@
     max-width:1100px;
     margin:10px auto 30px auto;
     padding:0;
-    background:var(--gc-surface);
-    border-radius:16px;
+    background:#242424;
+    border-radius:12px;
     box-shadow:0 8px 24px rgba(0,0,0,.35);
     overflow:hidden;
-    border:1px solid var(--gc-border);
   }
   body.light-mode .summary{
     background:#ffffff;
     box-shadow:0 4px 10px rgba(0,0,0,.1);
-    border-color:#ddd;
   }
   .summary h3{
     margin:0;
     padding:12px 16px;
-    background:#1b1b1b;
-    border-bottom:1px solid var(--gc-border);
+    background:#2f2f2f;
+    border-bottom:1px solid #3a3a3a;
     text-align:left;
-    font-size:15px;
-    letter-spacing:.04em;
-    text-transform:uppercase;
   }
   body.light-mode .summary h3{
     background:#e0e0e0;
@@ -416,7 +332,7 @@
   .summary thead th{
     position:sticky;
     top:0;
-    background:#202020;
+    background:#303030;
     z-index:1;
     text-transform:uppercase;
     font-size:12px;
@@ -433,7 +349,6 @@
   .summary tbody td{
     padding:10px 12px;
     border-bottom:1px solid #333;
-    font-size:13px;
   }
   body.light-mode .summary tbody td{
     border-bottom:1px solid #e0e0e0;
@@ -463,12 +378,12 @@
     font-size:12px;
   }
   .pill.work-pos{
-    color:var(--gc-accent-soft);
+    color:#2ecc71;
     background:rgba(46,204,113,.12);
     border:1px solid rgba(46,204,113,.35);
   }
   .pill.work-neg{
-    color:var(--gc-red);
+    color:#e74c3c;
     background:rgba(231,76,60,.12);
     border:1px solid rgba(231,76,60,.35);
   }
@@ -483,43 +398,30 @@
   }
   .badge-fouls{
     min-width:16px;
-    height:16px;
+    height:18px;
     border-radius:999px;
-    background:#202020;
+    background:#444;
     color:#fff;
     font-size:10px;
     display:flex;
     align-items:center;
     justify-content:center;
     padding:0 5px;
-    border:1px solid rgba(255,255,255,0.2);
   }
   .badge-yc, .badge-rc, .badge-goal, .badge-assist{
-    height:16px;
-    min-width:14px;
-    border-radius:3px;
+    height:18px;
+    border-radius:2px;
     border:1px solid rgba(0,0,0,.4);
     display:flex;
     align-items:center;
     justify-content:center;
     font-size:11px;
-    padding:0 2px;
-    box-sizing:border-box;
+    padding:0 4px;
   }
-  .badge-yc{
-    background:#f1c40f;
-  }
-  .badge-rc{
-    background:#e74c3c;
-  }
-  .badge-goal{
-    background:var(--gc-accent-soft);
-    color:#000;
-  }
-  .badge-assist{
-    background:#3498db;
-    color:#fff;
-  }
+  .badge-yc{ background:#f1c40f; min-width:14px; }
+  .badge-rc{ background:#e74c3c; min-width:14px; }
+  .badge-goal{ background:#2ecc71; }
+  .badge-assist{ background:#3498db; }
 
   /* Painel editar nomes */
   #editPanel{
@@ -692,6 +594,71 @@
     color:#e74c3c;
   }
 
+  /* Painel Eventos (timeline) */
+  #eventsPanel{
+    position:fixed;
+    right:-420px;
+    top:10%;
+    width:380px;
+    height:80%;
+    background:rgba(0,0,0,0.96);
+    border-left:2px solid #555;
+    border-radius:10px 0 0 10px;
+    padding:15px;
+    box-shadow:-4px 0 8px rgba(0,0,0,.4);
+    transition:right .2s;
+    z-index:999;
+    overflow-y:auto;
+  }
+  #eventsPanel.open{ right:0; }
+  #eventsPanel .close-btn{
+    position:absolute;
+    top:6px;
+    right:8px;
+    background:transparent;
+    border:none;
+    color:#fff;
+    font-size:18px;
+    cursor:pointer;
+  }
+  #eventsPanel h3{
+    margin:0 0 10px 0;
+  }
+  .event-row{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    padding:6px 8px;
+    border-radius:8px;
+    margin-bottom:6px;
+    background:#1f1f1f;
+    border:1px solid #444;
+    font-size:12px;
+    text-align:left;
+  }
+  .event-main{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:6px;
+  }
+  .event-meta{
+    font-size:11px;
+    color:#ccc;
+  }
+  .event-type{
+    font-weight:600;
+  }
+  .event-delete{
+    border:none;
+    border-radius:999px;
+    padding:3px 8px;
+    font-size:11px;
+    cursor:pointer;
+    background:#e74c3c;
+    color:#fff;
+  }
+
   /* Timeline fixa em baixo */
   #timelineBar{
     position:fixed;
@@ -699,8 +666,8 @@
     right:0;
     bottom:0;
     height:var(--timeline-h);
-    background:#111111;
-    border-top:1px solid var(--gc-border);
+    background:#212121;
+    border-top:1px solid #444;
     display:flex;
     align-items:center;
     justify-content:center;
@@ -714,35 +681,26 @@
   .tl-btn{
     border:none;
     border-radius:999px;
-    padding:6px 12px;
+    padding:6px 10px;
     font-size:14px;
     cursor:pointer;
-    background:#222;
+    background:#3b3b3b;
     color:#fff;
     display:flex;
     align-items:center;
     gap:5px;
-    box-shadow:0 3px 8px rgba(0,0,0,0.4);
-    transition:background .15s, transform .05s, box-shadow .15s;
-  }
-  .tl-btn span.icon{font-size:16px;}
-  .tl-btn span.label{font-size:12px;}
-  .tl-btn:hover{
-    background:#2b2b2b;
-    box-shadow:0 5px 14px rgba(0,0,0,0.5);
-  }
-  .tl-btn:active{
-    transform:scale(0.97);
   }
   body.light-mode .tl-btn{
     background:#666;
     color:#fff;
   }
+  .tl-btn span.icon{font-size:16px;}
+  .tl-btn span.label{font-size:12px;}
 
   /* Piscar quando estamos a escolher jogador (golo / falta / cartão / assistência) */
   @keyframes selectBlink{
     0%,100%{ outline-color:#fff; opacity:1; }
-    50%{ outline-color:transparent; opacity:0.7; }
+    50%{ outline-color:transparent; opacity:0.6; }
   }
   .player.selectEvent{
     outline:3px dashed #fff;
@@ -778,7 +736,7 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    background:radial-gradient(circle at top, #333 0, #000 55%);
+    background:radial-gradient(circle at top, #333 0, #111 55%);
     z-index:1500;
   }
   #loginCard{
@@ -792,7 +750,6 @@
     flex-direction:column;
     gap:10px;
     text-align:left;
-    border:1px solid var(--gc-border);
   }
   #loginTitle{
     font-size:20px;
@@ -814,7 +771,7 @@
   #loginScreen input{
     padding:8px 10px;
     border-radius:6px;
-    border:1px solid #444;
+    border:none;
     background:#2b2b2b;
     color:#fff;
     width:100%;
@@ -849,7 +806,6 @@
   body.light-mode #loginScreen input{
     background:#f3f3f3;
     color:#111;
-    border-color:#ccc;
   }
   body.light-mode #loginScreen button{
     background:#005ea6;
@@ -979,7 +935,7 @@
   </div>
 
   <div class="controls">
-    <input id="setMinutes" type="number" value="20" min="1">
+    <input id="setMinutes" type="number" value="20" min="1" style="width:60px;">
     <button id="intervalBtn">Intervalo</button>
     <button id="resetBtn">Reset</button>
     <button id="addBtn">+</button>
@@ -1037,6 +993,16 @@
     <div id="loadList"></div>
   </div>
 
+  <!-- Painel de Eventos / Timeline -->
+  <div id="eventsPanel">
+    <button class="close-btn" id="closeEvents">❌</button>
+    <h3>Eventos de jogo</h3>
+    <p style="font-size:12px;color:#ccc;margin:0 0 8px 0;">
+      Apaga eventos individuais da timeline. Os golos, cartões e faltas são recalculados automaticamente.
+    </p>
+    <div id="eventsList"></div>
+  </div>
+
   <div id="brandSignature">
     <img src="signature-light.png" class="sig-on-dark" alt="@gpmviana">
     <img src="signature-dark.png" class="sig-on-light" alt="@gpmviana">
@@ -1057,6 +1023,9 @@
     </button>
     <button class="tl-btn tl-player" data-type="RC_P">
       <span class="icon">🟥</span><span class="label">Vermelho</span>
+    </button>
+    <button class="tl-btn" id="eventsPanelBtn">
+      <span class="icon">🕒</span><span class="label">Eventos</span>
     </button>
     <button class="tl-btn" id="tlClearBtn">
       <span class="icon">🧹</span><span class="label">Limpar</span>
@@ -1273,7 +1242,8 @@ function updatePlayersUI(){
     if(nameEl) nameEl.textContent = p.name;
     const displaySec = p.active ? p.rotationSecondsCurrent : p.rotationSecondsOut;
     timeEl.textContent = formatTime(displaySec);
-    lastEl.textContent = (!p.active && p.lastRotation>0) ? ("Últ. rotação: " + formatTime(p.lastRotation)) : "";
+    // Agora mostra sempre a última rotação, mesmo quando está em campo
+    lastEl.textContent = (p.lastRotation>0) ? ("Últ. rotação: " + formatTime(p.lastRotation)) : "";
     if(!p.isGK){
       const fb = document.getElementById("fatigue"+p.id);
       if(fb){
@@ -1337,6 +1307,44 @@ function flashLimit(id){
 
 function addTimelineEvent(ev){
   timeline.push(ev);
+}
+
+/* Recalcula golos, faltas, cartões e assistências a partir da timeline */
+function rebuildStatsFromTimeline(){
+  scoreA = 0;
+  scoreB = 0;
+  players.forEach(p=>{
+    p.fouls = 0;
+    p.yc = false;
+    p.rc = false;
+    p.goals = 0;
+    p.assists = 0;
+  });
+
+  timeline.forEach(ev=>{
+    if(ev.type === "GF_A"){
+      scoreA++;
+      if(ev.playerId){
+        const pl = players.find(x=>x.id===ev.playerId);
+        if(pl) pl.goals = (pl.goals||0)+1;
+      }
+      if(ev.assistPlayerId){
+        const as = players.find(x=>x.id===ev.assistPlayerId);
+        if(as) as.assists = (as.assists||0)+1;
+      }
+    }else if(ev.type === "GA_A"){
+      scoreB++;
+    }else if(ev.type === "FK_P" && ev.playerId){
+      const pl = players.find(x=>x.id===ev.playerId);
+      if(pl) pl.fouls = (pl.fouls||0)+1;
+    }else if(ev.type === "YC_P" && ev.playerId){
+      const pl = players.find(x=>x.id===ev.playerId);
+      if(pl) pl.yc = true;
+    }else if(ev.type === "RC_P" && ev.playerId){
+      const pl = players.find(x=>x.id===ev.playerId);
+      if(pl) pl.rc = true;
+    }
+  });
 }
 
 function addPlayerEvent(type, playerId){
@@ -1415,7 +1423,8 @@ function togglePlayer(id){
 
     const pAssist = players.find(x=>x.id===id);
     if(pAssist){
-      pAssist.assists = (pAssist.assists||0)+1;   // ✅ bug corrigido aqui
+      // BUG corrigido: usar pAssist, não p
+      pAssist.assists = (pAssist.assists||0)+1;
       ev.assistPlayerId = id;
       const scorer = players.find(x=>x.id===ev.playerId);
       ev.description = `Golo: ${scorer?scorer.name:"#"+ev.playerId} (assistência: ${pAssist.name})`;
@@ -1571,9 +1580,11 @@ const loadList = document.getElementById("loadList");
 function openLoadPanel(){
   renderLoadPanel();
   loadPanel.classList.add("open");
+  if(floatingPlayBtn) floatingPlayBtn.style.display = "none";
 }
 function closeLoadPanel(){
   loadPanel.classList.remove("open");
+  if(floatingPlayBtn) floatingPlayBtn.style.display = "block";
 }
 function renderLoadPanel(){
   loadList.innerHTML = "";
@@ -1610,6 +1621,96 @@ function renderLoadPanel(){
     `;
     loadList.appendChild(div);
   });
+}
+
+/* Painel Eventos */
+const eventsPanel = document.getElementById("eventsPanel");
+const eventsList = document.getElementById("eventsList");
+
+function describeEvent(ev){
+  const halfTxt = ev.half === 1 ? "1ª parte" : "2ª parte";
+  const baseTime = ev.clock || formatTime(remaining);
+  let typeTxt = "";
+  if(ev.type === "GF_A") typeTxt = "Golo a favor";
+  else if(ev.type === "GA_A") typeTxt = "Golo sofrido";
+  else if(ev.type === "FK_P") typeTxt = "Falta";
+  else if(ev.type === "YC_P") typeTxt = "Cartão amarelo";
+  else if(ev.type === "RC_P") typeTxt = "Cartão vermelho";
+
+  let playerTxt = "";
+  if(ev.playerId){
+    const p = players.find(x=>x.id===ev.playerId);
+    if(p) playerTxt = p.name;
+  }
+  let assistTxt = "";
+  if(ev.assistPlayerId){
+    const a = players.find(x=>x.id===ev.assistPlayerId);
+    if(a) assistTxt = "Assistência: " + a.name;
+  }
+
+  let onFieldText = "";
+  if(ev.activeIds && Array.isArray(ev.activeIds) && ev.activeIds.length){
+    const names = ev.activeIds.map(id=>{
+      const pl = players.find(x=>x.id===id);
+      return pl ? pl.name : "#"+id;
+    });
+    onFieldText = "Em campo: " + names.join(", ");
+  }
+
+  return {
+    header: `${halfTxt} · ${baseTime}`,
+    main: [typeTxt, playerTxt].filter(Boolean).join(" – "),
+    extra: [assistTxt, onFieldText].filter(Boolean).join(" | ")
+  };
+}
+
+function renderEventsPanel(){
+  eventsList.innerHTML = "";
+  if(!timeline.length){
+    eventsList.innerHTML = '<div style="color:#ccc;font-size:12px;">Sem eventos registados.</div>';
+    return;
+  }
+  timeline.forEach((ev, idx)=>{
+    const info = describeEvent(ev);
+    const row = document.createElement("div");
+    row.className = "event-row";
+    row.innerHTML = `
+      <div class="event-main">
+        <div>
+          <div class="event-meta">${info.header}</div>
+          <div class="event-type">${info.main || "Evento"}</div>
+          ${info.extra ? `<div class="event-meta">${info.extra}</div>` : ""}
+        </div>
+        <button class="event-delete" data-idx="${idx}">Apagar</button>
+      </div>
+    `;
+    eventsList.appendChild(row);
+  });
+
+  eventsList.querySelectorAll(".event-delete").forEach(btn=>{
+    btn.onclick = ()=>{
+      const i = parseInt(btn.getAttribute("data-idx"),10);
+      if(isNaN(i) || i<0 || i>=timeline.length) return;
+      if(!confirm("Apagar este evento da timeline?")) return;
+      timeline.splice(i,1);
+      rebuildStatsFromTimeline();
+      updateScoreUI();
+      updatePlayersUI();
+      updateSummary();
+      saveData();
+      renderEventsPanel();
+    };
+  });
+}
+
+function openEventsPanel(){
+  renderEventsPanel();
+  eventsPanel.classList.add("open");
+  if(floatingPlayBtn) floatingPlayBtn.style.display = "none";
+}
+function closeEventsPanel(){
+  eventsPanel.classList.remove("open");
+  if(floatingPlayBtn) floatingPlayBtn.style.display = "block";
 }
 
 /* Presets */
@@ -2084,14 +2185,12 @@ document.getElementById("closePresets").onclick = ()=>{
 };
 document.getElementById("savePresetBtn").onclick = savePreset;
 
-document.getElementById("loadPanelBtn").onclick = ()=>{
-  openLoadPanel();
-  if(floatingPlayBtn) floatingPlayBtn.style.display = "none";
-};
-document.getElementById("closeLoad").onclick = ()=>{
-  closeLoadPanel();
-  if(floatingPlayBtn) floatingPlayBtn.style.display = "block";
-};
+document.getElementById("loadPanelBtn").onclick = openLoadPanel;
+document.getElementById("closeLoad").onclick = closeLoadPanel;
+
+/* Eventos – botões */
+document.getElementById("eventsPanelBtn").onclick = openEventsPanel;
+document.getElementById("closeEvents").onclick = closeEventsPanel;
 
 /* Timeline buttons */
 document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
