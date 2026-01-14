@@ -1,4 +1,3 @@
-<!-- ✅ PARTE 1/3 (do início até ao fim do <head> com login atualizado) -->
 <!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -205,7 +204,8 @@
     border:none;
     text-align:center;
   }
-
+</style>
+  <style>
   /* Grelha dos jogadores */
   #players{
     display:grid;
@@ -423,7 +423,8 @@
   .badge-rc{ background:#e74c3c; min-width:14px; }
   .badge-goal{ background:#2ecc71; }
   .badge-assist{ background:#3498db; }
-
+</style>
+<style>
   /* Painel editar nomes */
   #editPanel{
     position:fixed;
@@ -698,7 +699,6 @@
   .tl-btn span.icon{font-size:16px;}
   .tl-btn span.label{font-size:12px;}
 
-  /* Piscar quando estamos a escolher jogador (golo / falta / cartão / assistência) */
   @keyframes selectBlink{
     0%,100%{ outline-color:#fff; opacity:1; }
     50%{ outline-color:transparent; opacity:0.6; }
@@ -709,7 +709,6 @@
     animation:selectBlink 1s infinite;
   }
 
-  /* Assinatura @gpmviana */
   #brandSignature{
     position:fixed;
     bottom:-5px;
@@ -813,11 +812,14 @@
   }
 </style>
 
-<!-- 🔐 Firebase Auth + ✅ Firestore (validação do utilizador em /users/{uid}) -->
+<!-- 🔐 Firebase Auth + Firestore (controlo de dispositivos) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, updateDoc,
+    collection, getDocs, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCPiS92A0ZUNaCl4clAkxBbYFQrgJDSiUY",
@@ -829,9 +831,95 @@
     measurementId: "G-LQFHN83HQ0"
   };
 
-  const app  = initializeApp(firebaseConfig);
+  const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const db   = getFirestore(app);
+  const db  = getFirestore(app);
+
+  // ✅ deviceId único por browser
+  function getDeviceId(){
+    const k = "gc_device_id";
+    let v = localStorage.getItem(k);
+    if(!v){
+      v = crypto.randomUUID();
+      localStorage.setItem(k, v);
+    }
+    return v;
+  }
+
+  // ✅ tenta encontrar o documento em users/{uid} ou clubs/{uid}
+  async function resolveProfile(uid){
+    const uRef = doc(db, "users", uid);
+    const uSnap = await getDoc(uRef);
+    if(uSnap.exists()) return { kind:"user", baseRef:uRef, data:uSnap.data() };
+
+    const cRef = doc(db, "clubs", uid);
+    const cSnap = await getDoc(cRef);
+    if(cSnap.exists()) return { kind:"club", baseRef:cRef, data:cSnap.data() };
+
+    return null;
+  }
+
+  async function countAllowedDevices(profile){
+    const devicesCol = collection(profile.baseRef, "devices");
+    const snap = await getDocs(devicesCol);
+    let count = 0;
+    snap.forEach(d=>{
+      const data = d.data() || {};
+      if(data.blocked === true) return;
+      count++;
+    });
+    return count;
+  }
+
+  async function ensureDeviceAllowed(profile){
+    const deviceId = getDeviceId();
+
+    // regras base
+    const active = profile.data?.active;
+    if(active === false){
+      throw new Error("Conta desativada.");
+    }
+
+    const limit = Number(profile.data?.deviceLimit ?? 3); // default 3
+
+    const deviceRef = doc(profile.baseRef, "devices", deviceId);
+    const deviceSnap = await getDoc(deviceRef);
+
+    if(deviceSnap.exists()){
+      const dv = deviceSnap.data() || {};
+      if(dv.blocked === true) throw new Error("Este dispositivo está bloqueado.");
+      // ok: já existe e está permitido
+      await updateDoc(deviceRef, { lastSeen: serverTimestamp() }).catch(()=>{});
+      return { deviceId, deviceRef, limit };
+    }
+
+    // device novo -> conta quantos já existem (não bloqueados)
+    const used = await countAllowedDevices(profile);
+    if(used >= limit){
+      throw new Error(`Limite de dispositivos atingido (${limit}).`);
+    }
+
+    // cria device
+    await setDoc(deviceRef, {
+      createdAt: serverTimestamp(),
+      lastSeen: serverTimestamp(),
+      blocked: false,
+      userAgent: navigator.userAgent || "",
+      platform: navigator.platform || ""
+    }, { merge:true });
+
+    return { deviceId, deviceRef, limit };
+  }
+
+  let heartbeatInterval = null;
+  function startHeartbeat(deviceRef){
+    if(heartbeatInterval) clearInterval(heartbeatInterval);
+    heartbeatInterval = setInterval(async ()=>{
+      try{
+        await updateDoc(deviceRef, { lastSeen: serverTimestamp() });
+      }catch(e){}
+    }, 30000); // 30s
+  }
 
   window.addEventListener("DOMContentLoaded", () => {
     const loginScreen   = document.getElementById("loginScreen");
@@ -863,6 +951,7 @@
     if(logoutBtn){
       logoutBtn.addEventListener("click", async () => {
         try{
+          if(heartbeatInterval) clearInterval(heartbeatInterval);
           await signOut(auth);
         }catch(err){
           console.error(err);
@@ -870,47 +959,38 @@
       });
     }
 
-    // ✅ Agora validamos sempre o /users/{uid} quando faz login
     onAuthStateChanged(auth, async (user) => {
       const logged = !!user;
 
       if(logged){
+        // antes de abrir a app: valida perfil + device
         try{
-          const ref  = doc(db, "users", user.uid);
-          const snap = await getDoc(ref);
-
-          // Se não existir doc no Firestore → bloqueia (é por isso que alguns "não davam")
-          if(!snap.exists()){
-            loginError.textContent = "Conta sem perfil (/users). Contacta o administrador.";
+          const profile = await resolveProfile(user.uid);
+          if(!profile){
+            loginError.textContent = "Sem permissões (conta não registada).";
             await signOut(auth);
             return;
           }
 
-          const u = snap.data() || {};
+          const { deviceRef } = await ensureDeviceAllowed(profile);
 
-          // Se active=false → bloqueia
-          if(u.active === false){
-            loginError.textContent = "Conta desativada.";
-            await signOut(auth);
-            return;
-          }
-
-          // Guardamos role para usarmos depois (admin/coach)
-          window.GC_ROLE = u.role || "coach";
+          // opcional: marca lastLogin no doc base
+          await updateDoc(profile.baseRef, { lastLogin: serverTimestamp() }).catch(()=>{});
+          startHeartbeat(deviceRef);
 
           loginScreen.style.display = "none";
           appWrapper.style.display  = "block";
           if(logoutBtn) logoutBtn.style.display = "inline-flex";
-
-        }catch(err){
-          console.error(err);
-          loginError.textContent = "Erro a validar conta. Tenta novamente.";
-          await signOut(auth);
-          return;
+        }catch(e){
+          console.error(e);
+          loginError.textContent = e?.message || "Acesso recusado.";
+          try{ await signOut(auth); }catch(_){}
+          loginScreen.style.display = "flex";
+          appWrapper.style.display  = "none";
+          if(logoutBtn) logoutBtn.style.display = "none";
         }
-
       }else{
-        window.GC_ROLE = null;
+        if(heartbeatInterval) clearInterval(heartbeatInterval);
         loginScreen.style.display = "flex";
         appWrapper.style.display  = "none";
         if(logoutBtn) logoutBtn.style.display = "none";
@@ -918,9 +998,10 @@
     });
   });
 </script>
+
 </head>
-<!-- ✅ PARTE 2/3 (body + início do script principal até rebuildStatsFromTimeline) -->
 <body>
+
 <header>
   <div class="header-left">
     <img src="logo-gc.png" alt="Game Control" class="header-logo">
@@ -938,31 +1019,33 @@
   </div>
 </header>
 
+<!-- LOGIN -->
 <div id="loginScreen">
   <div id="loginCard">
     <h2 id="loginTitle">Login Game Control</h2>
     <p id="loginSubtitle">Acede ao teu painel de gestão de jogo.</p>
 
-    <label class="login-label" for="loginEmail">Email</label>
-    <input id="loginEmail" type="email" placeholder="exemplo@club.pt" autocomplete="username" />
+    <label class="login-label">Email</label>
+    <input id="loginEmail" type="email" placeholder="exemplo@club.pt">
 
-    <label class="login-label" for="loginPassword">Password</label>
-    <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
+    <label class="login-label">Password</label>
+    <input id="loginPassword" type="password" placeholder="Password">
 
     <button id="loginBtn">Entrar</button>
-    <p id="loginError"></p>
+    <div id="loginError"></div>
   </div>
 </div>
 
+<!-- APP -->
 <div id="appWrapper" style="display:none;">
 
-  <button id="floatingPlayBtn" class="paused" title="Iniciar / Pausar">⏵</button>
+  <button id="floatingPlayBtn" class="paused">⏵</button>
 
   <div id="teamInputs">
     <span class="scoreBubble" id="scoreA">0</span>
-    <input id="teamA" placeholder="Equipa A" />
-    <span style="font-weight:bold;">vs</span>
-    <input id="teamB" placeholder="Equipa B" />
+    <input id="teamA" placeholder="Equipa A">
+    <strong>vs</strong>
+    <input id="teamB" placeholder="Equipa B">
     <span class="scoreBubble" id="scoreB">0</span>
   </div>
 
@@ -972,7 +1055,7 @@
   </div>
 
   <div class="controls">
-    <input id="setMinutes" type="number" value="20" min="1" style="width:60px;">
+    <input id="setMinutes" type="number" value="20" min="1" style="width:60px">
     <button id="intervalBtn">Intervalo</button>
     <button id="resetBtn">Reset</button>
     <button id="addBtn">+</button>
@@ -981,7 +1064,7 @@
 
   <div id="players"></div>
 
-  <div class="summary" id="summaryCard">
+  <div class="summary">
     <h3>Resumo de Jogo</h3>
     <table>
       <thead>
@@ -989,11 +1072,11 @@
           <th>Jogador</th>
           <th>1ª Parte</th>
           <th>2ª Parte</th>
-          <th>Total em Campo</th>
-          <th>Tempo Fora</th>
+          <th>Total</th>
+          <th>Fora</th>
           <th>Rotações</th>
           <th>Média</th>
-          <th>% Jogo</th>
+          <th>%</th>
           <th>Workload</th>
         </tr>
       </thead>
@@ -1001,76 +1084,45 @@
     </table>
   </div>
 
+  <!-- PAINÉIS -->
   <div id="editPanel">
     <button class="close-btn" id="closePanel">❌</button>
     <h3>Editar Jogadores</h3>
     <div id="editList"></div>
-    <button class="save-btn" id="saveNamesBtn">Guardar Alterações</button>
+    <button class="save-btn" id="saveNamesBtn">Guardar</button>
   </div>
 
   <div id="presetsPanel">
     <button class="close-btn" id="closePresets">❌</button>
-    <h3 style="margin:0 0 10px 0;">Presets de Plantel</h3>
-    <div style="display:flex; gap:6px; margin-bottom:8px;">
-      <input id="presetName" placeholder="Nome do preset" style="flex:1;padding:6px;border-radius:6px;border:1px solid #777;background:#1f1f1f;color:#fff"/>
-      <button id="savePresetBtn" style="padding:6px 10px;border:none;border-radius:6px;background:#0078d7;color:#fff;cursor:pointer">Guardar</button>
-    </div>
-    <div>
-      <h4 style="margin:10px 0 6px 0;">Carregar</h4>
-      <div id="presetList"></div>
-    </div>
+    <h3>Presets</h3>
+    <input id="presetName" placeholder="Nome do preset">
+    <button id="savePresetBtn">Guardar</button>
+    <div id="presetList"></div>
   </div>
 
   <div id="loadPanel">
     <button class="close-btn" id="closeLoad">❌</button>
     <h3>Gestão de Cargas</h3>
-    <p style="font-size:12px;color:#ccc;margin:0 0 8px 0;">
-      Workload = tempo em campo − tempo ideal (se todos jogassem igual).
-    </p>
     <div id="loadList"></div>
   </div>
 
-  <!-- Painel de Eventos / Timeline -->
   <div id="eventsPanel">
     <button class="close-btn" id="closeEvents">❌</button>
-    <h3>Eventos de jogo</h3>
-    <p style="font-size:12px;color:#ccc;margin:0 0 8px 0;">
-      Apaga eventos individuais da timeline. Os golos, cartões e faltas são recalculados automaticamente.
-    </p>
+    <h3>Eventos</h3>
     <div id="eventsList"></div>
   </div>
 
-  <div id="brandSignature">
-    <img src="signature-light.png" class="sig-on-dark" alt="@gpmviana">
-    <img src="signature-dark.png" class="sig-on-light" alt="@gpmviana">
-  </div>
-
   <div id="timelineBar">
-    <button class="tl-btn" data-type="GF_A">
-      <span class="icon">⚽</span><span class="label">Golo +</span>
-    </button>
-    <button class="tl-btn" data-type="GA_A">
-      <span class="icon">⚽</span><span class="label">Golo −</span>
-    </button>
-    <button class="tl-btn tl-player" data-type="FK_P">
-      <span class="icon">❌</span><span class="label">Falta</span>
-    </button>
-    <button class="tl-btn tl-player" data-type="YC_P">
-      <span class="icon">🟨</span><span class="label">Amarelo</span>
-    </button>
-    <button class="tl-btn tl-player" data-type="RC_P">
-      <span class="icon">🟥</span><span class="label">Vermelho</span>
-    </button>
-    <button class="tl-btn" id="eventsPanelBtn">
-      <span class="icon">🕒</span><span class="label">Eventos</span>
-    </button>
-    <button class="tl-btn" id="tlClearBtn">
-      <span class="icon">🧹</span><span class="label">Limpar</span>
-    </button>
+    <button class="tl-btn" data-type="GF_A">⚽ +</button>
+    <button class="tl-btn" data-type="GA_A">⚽ −</button>
+    <button class="tl-btn tl-player" data-type="FK_P">❌</button>
+    <button class="tl-btn tl-player" data-type="YC_P">🟨</button>
+    <button class="tl-btn tl-player" data-type="RC_P">🟥</button>
+    <button class="tl-btn" id="eventsPanelBtn">🕒</button>
+    <button class="tl-btn" id="tlClearBtn">🧹</button>
   </div>
 
-</div> <!-- fim appWrapper -->
-
+</div>
 <script>
 let duration = 20 * 60;
 let remaining = duration;
@@ -1132,6 +1184,7 @@ function tick(){
     return;
   }
   remaining--;
+
   players.forEach(p=>{
     if(p.active){
       p.seconds++;
@@ -1153,6 +1206,7 @@ function tick(){
       if(p.fatigue > 1) p.fatigue = 1;
     }
   });
+
   updateTimerDisplay();
   updatePlayersUI();
   updateSummary();
@@ -1180,12 +1234,14 @@ function resetTimer(){
   duration = mins * 60;
   remaining = duration;
   firstHalf = true;
+
   scoreA = 0;
   scoreB = 0;
   timeline = [];
   pendingAssistForGoal = null;
   pendingGoalScorer = null;
   pendingPlayerEvent = null;
+
   players.forEach(p=>{
     p.seconds = 0;
     p.secondsOut = 0;
@@ -1203,6 +1259,7 @@ function resetTimer(){
     p.goals = 0;
     p.assists = 0;
   });
+
   updateTimerDisplay();
   updateHalfBadge();
   updatePlayersUI();
@@ -1215,12 +1272,15 @@ function resetTimer(){
 function intervalTimer(){
   pauseTimer();
   firstHalf = false;
+
   pendingAssistForGoal = null;
   pendingGoalScorer = null;
   pendingPlayerEvent = null;
+
   const mins = parseInt(document.getElementById("setMinutes").value)||20;
   duration = mins * 60;
   remaining = duration;
+
   players.forEach(p=>{
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
@@ -1228,6 +1288,7 @@ function intervalTimer(){
       p.fatigue *= 0.3;
     }
   });
+
   updateTimerDisplay();
   updateHalfBadge();
   updatePlayersUI();
@@ -1248,11 +1309,13 @@ function buildPlayersDOM(){
     const div = document.createElement("div");
     div.id = "player"+p.id;
     div.className = "player " + (p.active ? "active" : "inactive");
+
     const foulsHTML = p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : "";
     const ycHTML = p.yc ? `<span class="badge-yc" title="Amarelo"></span>` : "";
     const rcHTML = p.rc ? `<span class="badge-rc" title="Vermelho"></span>` : "";
     const goalHTML = p.goals>0 ? `<span class="badge-goal" title="Golos">⚽${p.goals>1 ? "×"+p.goals : ""}</span>` : "";
     const assistHTML = p.assists>0 ? `<span class="badge-assist" title="Assistências">👣${p.assists>1 ? "×"+p.assists : ""}</span>` : "";
+
     div.innerHTML = `
       <div class="gk-icon" style="display:${p.isGK?"flex":"none"}">🧤</div>
       <div class="card-badges">${foulsHTML}${ycHTML}${rcHTML}${goalHTML}${assistHTML}</div>
@@ -1271,15 +1334,21 @@ function updatePlayersUI(){
   players.forEach(p=>{
     const el = document.getElementById("player"+p.id);
     if(!el) return;
+
     const selecting = pendingPlayerEvent || pendingAssistForGoal || pendingGoalScorer;
     el.className = "player " + (p.active ? "active" : "inactive") + (selecting ? " selectEvent" : "");
+
     const timeEl = el.querySelector(".time");
     const lastEl = el.querySelector(".last");
     const nameEl = el.querySelector(".name");
     if(nameEl) nameEl.textContent = p.name;
+
     const displaySec = p.active ? p.rotationSecondsCurrent : p.rotationSecondsOut;
     timeEl.textContent = formatTime(displaySec);
+
+    // última rotação sempre visível
     lastEl.textContent = (p.lastRotation>0) ? ("Últ. rotação: " + formatTime(p.lastRotation)) : "";
+
     if(!p.isGK){
       const fb = document.getElementById("fatigue"+p.id);
       if(fb){
@@ -1287,6 +1356,7 @@ function updatePlayersUI(){
         fb.style.background = fatigueColor(p.fatigue);
       }
     }
+
     const badges = el.querySelector(".card-badges");
     if(badges){
       badges.innerHTML =
@@ -1345,7 +1415,6 @@ function addTimelineEvent(ev){
   timeline.push(ev);
 }
 
-/* Recalcula golos, faltas, cartões e assistências a partir da timeline */
 function rebuildStatsFromTimeline(){
   scoreA = 0;
   scoreB = 0;
@@ -1382,7 +1451,6 @@ function rebuildStatsFromTimeline(){
     }
   });
 }
-  <!-- ✅ PARTE 3/3 (resto do script + fecho do HTML) -->
 
 function addPlayerEvent(type, playerId){
   const p = players.find(x=>x.id===playerId);
@@ -1394,20 +1462,13 @@ function addPlayerEvent(type, playerId){
 
   const half = firstHalf ? 1 : 2;
   const clock = formatTime(remaining);
-  addTimelineEvent({
-    type,
-    half,
-    clock,
-    playerId,
-    ts: Date.now()
-  });
+  addTimelineEvent({ type, half, clock, playerId, ts: Date.now() });
 
   updatePlayersUI();
   updateSummary();
   saveData();
 }
 
-/* Fluxo Golo + (marcador → assistência opcional) */
 function startGoalFlow(){
   pendingPlayerEvent = null;
   pendingAssistForGoal = null;
@@ -1422,7 +1483,7 @@ function startGoalFlow(){
 }
 
 function togglePlayer(id){
-  // 1) Escolher marcador de golo
+  // marcador
   if(pendingGoalScorer){
     const ev = pendingGoalScorer;
     const scorer = players.find(x=>x.id===id);
@@ -1435,7 +1496,6 @@ function togglePlayer(id){
     addTimelineEvent(ev);
     pendingGoalScorer = null;
 
-    // Agora escolhemos assistência (opcional)
     pendingAssistForGoal = ev;
     updateScoreUI();
     updatePlayersUI();
@@ -1444,12 +1504,11 @@ function togglePlayer(id){
     return;
   }
 
-  // 2) Escolher assistência
+  // assistência
   if(pendingAssistForGoal){
     const ev = pendingAssistForGoal;
     const scorerId = ev.playerId;
 
-    // Se clicar outra vez no marcador → sem assistência
     if(id === scorerId){
       pendingAssistForGoal = null;
       updatePlayersUI();
@@ -1472,7 +1531,7 @@ function togglePlayer(id){
     return;
   }
 
-  // 3) Falta / cartão em jogador
+  // falta/cartão
   if(pendingPlayerEvent){
     addPlayerEvent(pendingPlayerEvent, id);
     pendingPlayerEvent = null;
@@ -1480,11 +1539,11 @@ function togglePlayer(id){
     return;
   }
 
-  // 4) Troca normal (conta rotação quando entra)
+  // troca normal
   const p = players.find(x=>x.id===id);
   if(!p) return;
-  const currently = activeCount();
 
+  const currently = activeCount();
   if(!p.active && currently >= maxOnField){
     flashLimit(id);
     return;
@@ -1507,7 +1566,6 @@ function togglePlayer(id){
   saveData();
 }
 
-/* Workload inteligente */
 function computeGameTime(){
   if(players.length===0) return 0;
   return players.reduce((max,p)=>{
@@ -1562,7 +1620,6 @@ function updateSummary(){
   });
 }
 
-/* Tema / fullscreen */
 function toggleTheme(){
   document.body.classList.toggle("light-mode");
   theme = document.body.classList.contains("light-mode") ? "light" : "dark";
@@ -1574,7 +1631,7 @@ function toggleFullscreen(){
   else document.exitFullscreen();
 }
 
-/* Painel editar nomes */
+/* Edit panel */
 const editPanel = document.getElementById("editPanel");
 const editList = document.getElementById("editList");
 
@@ -1609,7 +1666,7 @@ function saveNamesFromPanel(){
   saveData();
 }
 
-/* Painel Gestão de Cargas */
+/* Load panel */
 const loadPanel = document.getElementById("loadPanel");
 const loadList = document.getElementById("loadList");
 
@@ -1634,6 +1691,7 @@ function renderLoadPanel(){
     const wlMin = wlSec/60;
     const totalSec = (p.seconds||0);
     const fad = p.fatigue || 0;
+
     let fadClass="fat-low", fadTxt="Fadiga baixa";
     if(fad>=0.7){ fadClass="fat-high"; fadTxt="Fadiga alta"; }
     else if(fad>=0.4){ fadClass="fat-mid"; fadTxt="Fadiga média"; }
@@ -1659,7 +1717,7 @@ function renderLoadPanel(){
   });
 }
 
-/* Painel Eventos */
+/* Events panel */
 const eventsPanel = document.getElementById("eventsPanel");
 const eventsList = document.getElementById("eventsList");
 
@@ -1835,6 +1893,7 @@ function saveData(){
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
+
 function loadData(){
   const raw = localStorage.getItem(STORAGE_KEY);
   if(!raw){
@@ -1869,6 +1928,7 @@ function loadData(){
     updateFloatingPlayBtn();
     return;
   }
+
   try{
     const d = JSON.parse(raw);
     document.getElementById("teamA").value = d.teamA || "";
@@ -1943,9 +2003,7 @@ function loadData(){
     localStorage.removeItem(STORAGE_KEY);
     loadData();
   }
-}
-
-/* Export PNG */
+}/* Export PNG – igual ao original (já com golos/assistências e timeline) */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
@@ -1963,6 +2021,7 @@ function exportPng(){
     const wlSec = computePlayerWorkload(p, gameTime, ideal);
     const wlMin = wlSec/60;
     const wTxt = `${wlMin>=0?"+":""}${wlMin.toFixed(1)}m`;
+
     const extra = [];
     if(p.goals>0) extra.push(`⚽ ${p.goals}`);
     if(p.assists>0) extra.push(`👣 ${p.assists}`);
@@ -2073,20 +2132,16 @@ function exportPng(){
   ctx.font = "bold 14px Arial";
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
+
   let cx = x;
   headers.forEach((h,i)=>{
     ctx.fillText(h, cx+6, y+headerH/2);
     cx += colWidths[i];
   });
+
   ctx.strokeStyle = "#cccccc";
-  ctx.beginPath();
-  ctx.moveTo(x,y);
-  ctx.lineTo(x+tableWidth,y);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x,y+headerH);
-  ctx.lineTo(x+tableWidth,y+headerH);
-  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+tableWidth,y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x,y+headerH); ctx.lineTo(x+tableWidth,y+headerH); ctx.stroke();
 
   ctx.font = "13px Arial";
   let rowY = y+headerH;
@@ -2110,13 +2165,16 @@ function exportPng(){
       }
       if(t!==text) t = t.slice(0,-1)+"…";
       ctx.fillText(t, cxx+5, rowY+rowH/2);
+
       ctx.strokeStyle="#ececec";
       ctx.beginPath();
       ctx.moveTo(cxx,rowY);
       ctx.lineTo(cxx,rowY+rowH);
       ctx.stroke();
+
       cxx += colWidths[i];
     });
+
     ctx.beginPath();
     ctx.moveTo(x+tableWidth,rowY);
     ctx.lineTo(x+tableWidth,rowY+rowH);
@@ -2126,8 +2184,7 @@ function exportPng(){
   });
 
   if(timelineLines.length){
-    const tlStartY
-        const tlStartY = rowY + 16;
+    const tlStartY = rowY + 16;
     ctx.font = "bold 14px Arial";
     ctx.fillStyle = "#000";
     ctx.fillText("Eventos de jogo (timeline)", x, tlStartY);
@@ -2155,13 +2212,7 @@ function handleTeamEvent(type){
   if(type==="GF_A") scoreA++;
   if(type==="GA_A") scoreB++;
 
-  const ev = {
-    type,
-    half,
-    clock,
-    activeIds,
-    ts: Date.now()
-  };
+  const ev = { type, half, clock, activeIds, ts: Date.now() };
 
   addTimelineEvent(ev);
   updateScoreUI();
@@ -2178,12 +2229,14 @@ function setPendingEvent(type){
 /* Vassoura */
 document.getElementById("tlClearBtn").onclick = ()=>{
   if(!confirm("Limpar marcador, faltas/cartões, golos/assistências e timeline?")) return;
+
   scoreA = 0;
   scoreB = 0;
   timeline = [];
   pendingAssistForGoal = null;
   pendingGoalScorer = null;
   pendingPlayerEvent = null;
+
   players.forEach(p=>{
     p.fouls = 0;
     p.yc = false;
@@ -2191,6 +2244,7 @@ document.getElementById("tlClearBtn").onclick = ()=>{
     p.goals = 0;
     p.assists = 0;
   });
+
   updateScoreUI();
   updatePlayersUI();
   updateSummary();
@@ -2210,6 +2264,7 @@ document.getElementById("editNamesBtn").onclick = openEditPanel;
 document.getElementById("closePanel").onclick = closeEditPanel;
 document.getElementById("saveNamesBtn").onclick = saveNamesFromPanel;
 
+/* Presets – painel */
 const presetsPanel = document.getElementById("presetsPanel");
 document.getElementById("presetsBtn").onclick = ()=>{
   renderPresetList();
@@ -2222,10 +2277,11 @@ document.getElementById("closePresets").onclick = ()=>{
 };
 document.getElementById("savePresetBtn").onclick = savePreset;
 
+/* Gestão de cargas – painel */
 document.getElementById("loadPanelBtn").onclick = openLoadPanel;
 document.getElementById("closeLoad").onclick = closeLoadPanel;
 
-/* Eventos – botões */
+/* Eventos – painel */
 document.getElementById("eventsPanelBtn").onclick = openEventsPanel;
 document.getElementById("closeEvents").onclick = closeEventsPanel;
 
@@ -2233,17 +2289,13 @@ document.getElementById("closeEvents").onclick = closeEventsPanel;
 document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   const type = btn.dataset.type;
   if(!type) return;
+
   if(btn.classList.contains("tl-player")){
-    btn.addEventListener("click", ()=>{
-      setPendingEvent(type);
-    });
+    btn.addEventListener("click", ()=> setPendingEvent(type));
   }else{
     btn.addEventListener("click", ()=>{
-      if(type === "GF_A"){
-        startGoalFlow();
-      }else{
-        handleTeamEvent(type);
-      }
+      if(type === "GF_A") startGoalFlow();
+      else handleTeamEvent(type);
     });
   }
 });
