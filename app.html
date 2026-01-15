@@ -2,13 +2,11 @@
 <html lang="pt">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Game Control</title>
 
 <style>
-  :root {
-    --timeline-h: 54px;
-  }
+  :root { --timeline-h: 54px; }
 
   body{
     font-family:Arial, sans-serif;
@@ -17,10 +15,22 @@
     color:#f5f5f5;
     text-align:center;
     padding-bottom: calc(var(--timeline-h) + 10px);
+    -webkit-tap-highlight-color: transparent;
   }
-  body.light-mode{
-    background:#f5f5f5;
-    color:#222;
+  body.light-mode{ background:#f5f5f5; color:#222; }
+
+  /* ====== PSEUDO FULLSCREEN (mobile/tablet fallback) ====== */
+  body.pseudo-fullscreen{ height:100vh; overflow:hidden; }
+  body.pseudo-fullscreen #appWrapper{
+    height:calc(100vh - var(--timeline-h));
+    overflow:auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 20px;
+  }
+  body.pseudo-fullscreen header{
+    position:sticky;
+    top:0;
+    z-index:1600;
   }
 
   /* HEADER NOVO COM LOGO À ESQUERDA */
@@ -32,42 +42,71 @@
     padding:8px 16px;
     box-sizing:border-box;
   }
-  body.light-mode header{
-    background:#ddd;
-    color:#111;
-  }
+  body.light-mode header{ background:#ddd; color:#111; }
 
-  .header-left{
-    display:flex;
-    align-items:center;
-    gap:8px;
-  }
+  .header-left{ display:flex; align-items:center; gap:8px; }
+  .header-logo{ height:38px; width:auto; display:block; }
+  .header-title{ font-size:18px; font-weight:700; letter-spacing:.06em; }
 
-  .header-logo{
-    height:38px;
-    width:auto;
-    display:block;
-  }
-
-  .header-title{
-    font-size:18px;
-    font-weight:700;
-    letter-spacing:.06em;
-  }
-
-  .top-buttons{
-    display:flex;
-    gap:8px;
-  }
+  .top-buttons{ display:flex; gap:8px; align-items:center; }
   .top-buttons button{
     background:none;
     border:none;
     font-size:22px;
     color:#fff;
     cursor:pointer;
+    padding:6px;
+    border-radius:10px;
   }
-  body.light-mode .top-buttons button{
-    color:#222;
+  .top-buttons button:active{ transform:scale(0.96); }
+  body.light-mode .top-buttons button{ color:#222; }
+
+  /* 🔒 LOCK MODE (bloqueia cliques perigosos) */
+  body.gc-locked .lock-disabled{
+    opacity:.35;
+    pointer-events:none !important;
+    filter:grayscale(1);
+  }
+  /* mas deixa o play sempre clicável */
+  body.gc-locked #floatingPlayBtn{
+    pointer-events:auto !important;
+    opacity:1 !important;
+    filter:none !important;
+  }
+
+  /* Toast lock */
+  #lockToast{
+    position:fixed;
+    top:58px;
+    left:50%;
+    transform:translateX(-50%);
+    background:rgba(0,0,0,.85);
+    color:#fff;
+    padding:8px 12px;
+    border-radius:999px;
+    font-size:12px;
+    z-index:1900;
+    display:none;
+    max-width:92vw;
+    box-sizing:border-box;
+  }
+  body.light-mode #lockToast{ background:rgba(20,20,20,.85); }
+
+  /* Dica fullscreen mobile */
+  #fsHint{
+    position:fixed;
+    top:58px;
+    left:50%;
+    transform:translateX(-50%);
+    background:rgba(0,0,0,.75);
+    color:#fff;
+    padding:8px 12px;
+    border-radius:999px;
+    font-size:12px;
+    z-index:1850;
+    display:none;
+    max-width:92vw;
+    box-sizing:border-box;
   }
 
   /* BOTÃO FLUTUANTE INICIAR/PAUSAR */
@@ -87,7 +126,7 @@
     cursor:pointer;
     z-index:1200;
     box-shadow:0 4px 12px rgba(0,0,0,0.5);
-    transition:background 0.2s, box-shadow 0.2s, transform 0.1s;
+    transition:background 0.2s, box-shadow 0.2s, transform 0.1s, opacity .2s;
   }
   #floatingPlayBtn.running{
     background:#e74c3c;
@@ -99,9 +138,7 @@
     color:#000;
     box-shadow:0 0 14px rgba(46,204,113,0.8);
   }
-  #floatingPlayBtn:active{
-    transform:scale(0.95);
-  }
+  #floatingPlayBtn:active{ transform:scale(0.95); }
 
   #teamInputs{
     display:flex;
@@ -109,6 +146,7 @@
     align-items:center;
     gap:10px;
     margin:10px;
+    flex-wrap:wrap;
   }
   #teamInputs input{
     padding:6px 10px;
@@ -131,10 +169,7 @@
     font-weight:800;
     font-size:20px;
   }
-  body.light-mode .scoreBubble{
-    background:#e7e7e7;
-    color:#111;
-  }
+  body.light-mode .scoreBubble{ background:#e7e7e7; color:#111; }
 
   .timer-row{
     display:flex;
@@ -143,9 +178,7 @@
     gap:10px;
     margin:6px 0 0 0;
   }
-  #timer{
-    font-size:3em;
-  }
+  #timer{ font-size:3em; }
   .half-badge{
     display:inline-block;
     padding:4px 10px;
@@ -155,10 +188,7 @@
     font-size:12px;
     letter-spacing:.3px;
   }
-  body.light-mode .half-badge{
-    background:#ccc;
-    color:#111;
-  }
+  body.light-mode .half-badge{ background:#ccc; color:#111; }
 
   .controls{
     display:flex;
@@ -168,9 +198,7 @@
     background:#2e2e2e;
     padding:10px;
   }
-  body.light-mode .controls{
-    background:#e0e0e0;
-  }
+  body.light-mode .controls{ background:#e0e0e0; }
   .controls button{
     padding:6px 10px;
     border:none;
@@ -179,33 +207,22 @@
     color:#fff;
     cursor:pointer;
   }
-  #intervalBtn,
-  #resetBtn{
+  #intervalBtn,#resetBtn{
     padding:10px 18px;
     font-size:16px;
     font-weight:600;
     border-radius:10px;
   }
-  #intervalBtn{
-    background:#f1c40f;
-    color:#000;
-  }
-  #resetBtn{
-    background:#e74c3c;
-    color:#fff;
-  }
-  body.light-mode .controls button{
-    background:#555;
-    color:#fff;
-  }
+  #intervalBtn{ background:#f1c40f; color:#000; }
+  #resetBtn{ background:#e74c3c; color:#fff; }
+  body.light-mode .controls button{ background:#555; color:#fff; }
   .controls input{
     padding:6px 8px;
     border-radius:6px;
     border:none;
     text-align:center;
   }
-</style>
-  <style>
+
   /* Grelha dos jogadores */
   #players{
     display:grid;
@@ -215,15 +232,9 @@
     margin:8px 0 16px 0;
     justify-items:center;
   }
-  @media (max-width:1200px){
-    #players{grid-template-columns:repeat(4,minmax(0,1fr));}
-  }
-  @media (max-width:900px){
-    #players{grid-template-columns:repeat(3,minmax(0,1fr));}
-  }
-  @media (max-width:600px){
-    #players{grid-template-columns:repeat(2,minmax(0,1fr));}
-  }
+  @media (max-width:1200px){ #players{grid-template-columns:repeat(4,minmax(0,1fr));} }
+  @media (max-width:900px){ #players{grid-template-columns:repeat(3,minmax(0,1fr));} }
+  @media (max-width:600px){ #players{grid-template-columns:repeat(2,minmax(0,1fr));} }
 
   .player{
     width:100%;
@@ -235,65 +246,35 @@
     justify-content:center;
     cursor:pointer;
     transition:0.2s;
-    background:#8b2c23; /* fora - vermelho escuro */
+    background:#8b2c23;
     color:#fff;
     position:relative;
     overflow:hidden;
     box-sizing:border-box;
   }
-  .player.active{
-    background:#1f6f3a; /* em campo - verde escuro */
-    color:#fff;
-  }
+  .player.active{ background:#1f6f3a; color:#fff; }
 
-  .player strong{
-    font-size:12px;
-    margin-bottom:2px;
-    padding:0 3px;
-  }
-  .player .time{
-    font-size:20px;
-    font-weight:bold;
-    line-height:1;
-  }
-  .player .last{
-    font-size:8px;
-    opacity:.9;
-    margin-top:1px;
-  }
+  .player strong{ font-size:12px; margin-bottom:2px; padding:0 3px; }
+  .player .time{ font-size:20px; font-weight:bold; line-height:1; }
+  .player .last{ font-size:8px; opacity:.9; margin-top:1px; }
 
   .gk-icon{
-    position:absolute;
-    top:6px;
-    left:6px;
-    width:20px;
-    height:20px;
-    border-radius:50%;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:rgba(0,0,0,0.45);
-    font-size:13px;
+    position:absolute; top:6px; left:6px;
+    width:20px; height:20px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.45); font-size:13px;
   }
 
   .fatigue-container{
-    position:absolute;
-    left:6px;
-    right:6px;
-    bottom:5px;
-    height:5px;
-    border-radius:6px;
-    background:rgba(255,255,255,0.3);
-    overflow:hidden;
+    position:absolute; left:6px; right:6px; bottom:5px;
+    height:5px; border-radius:6px;
+    background:rgba(255,255,255,0.3); overflow:hidden;
   }
   .fatigue-bar{
-    height:100%;
-    width:0%;
-    border-radius:6px;
-    background:#2ecc71;
+    height:100%; width:0%;
+    border-radius:6px; background:#2ecc71;
     transition:width 0.2s linear, background 0.2s linear;
   }
-
   .player.limit{
     outline:3px solid #ff4d4d;
     box-shadow:0 0 0 3px rgba(255,77,77,0.35);
@@ -309,67 +290,31 @@
     box-shadow:0 8px 24px rgba(0,0,0,.35);
     overflow:hidden;
   }
-  body.light-mode .summary{
-    background:#ffffff;
-    box-shadow:0 4px 10px rgba(0,0,0,.1);
-  }
+  body.light-mode .summary{ background:#ffffff; box-shadow:0 4px 10px rgba(0,0,0,.1); }
   .summary h3{
-    margin:0;
-    padding:12px 16px;
+    margin:0; padding:12px 16px;
     background:#2f2f2f;
     border-bottom:1px solid #3a3a3a;
     text-align:left;
   }
-  body.light-mode .summary h3{
-    background:#e0e0e0;
-    border-bottom:1px solid #ccc;
-    color:#111;
-  }
-  .summary table{
-    width:100%;
-    border-collapse:separate;
-    border-spacing:0;
-  }
+  body.light-mode .summary h3{ background:#e0e0e0; border-bottom:1px solid #ccc; color:#111; }
+  .summary table{ width:100%; border-collapse:separate; border-spacing:0; }
   .summary thead th{
-    position:sticky;
-    top:0;
-    background:#303030;
-    z-index:1;
+    position:sticky; top:0;
+    background:#303030; z-index:1;
     text-transform:uppercase;
-    font-size:12px;
-    letter-spacing:.4px;
-    color:#ddd;
-    border-bottom:1px solid #3a3a3a;
+    font-size:12px; letter-spacing:.4px;
+    color:#ddd; border-bottom:1px solid #3a3a3a;
     padding:10px 12px;
   }
-  body.light-mode .summary thead th{
-    background:#f0f0f0;
-    color:#222;
-    border-bottom:1px solid #ddd;
-  }
-  .summary tbody td{
-    padding:10px 12px;
-    border-bottom:1px solid #333;
-  }
-  body.light-mode .summary tbody td{
-    border-bottom:1px solid #e0e0e0;
-  }
-  .summary tbody tr:nth-child(even){
-    background:rgba(255,255,255,0.03);
-  }
-  body.light-mode .summary tbody tr:nth-child(even){
-    background:#fafafa;
-  }
-  .summary tbody tr:hover{
-    background:rgba(255,255,255,0.06);
-  }
-  body.light-mode .summary tbody tr:hover{
-    background:#f2f2f2;
-  }
-  .summary td:nth-child(1){
-    text-align:left;
-    font-weight:600;
-  }
+  body.light-mode .summary thead th{ background:#f0f0f0; color:#222; border-bottom:1px solid #ddd; }
+  .summary tbody td{ padding:10px 12px; border-bottom:1px solid #333; }
+  body.light-mode .summary tbody td{ border-bottom:1px solid #e0e0e0; }
+  .summary tbody tr:nth-child(even){ background:rgba(255,255,255,0.03); }
+  body.light-mode .summary tbody tr:nth-child(even){ background:#fafafa; }
+  .summary tbody tr:hover{ background:rgba(255,255,255,0.06); }
+  body.light-mode .summary tbody tr:hover{ background:#f2f2f2; }
+  .summary td:nth-child(1){ text-align:left; font-weight:600; }
 
   .pill{
     display:inline-block;
@@ -390,111 +335,28 @@
   }
 
   .card-badges{
-    position:absolute;
-    top:6px;
-    right:6px;
-    display:flex;
-    gap:4px;
-    align-items:center;
+    position:absolute; top:6px; right:6px;
+    display:flex; gap:4px; align-items:center;
   }
   .badge-fouls{
-    min-width:16px;
-    height:18px;
-    border-radius:999px;
-    background:#444;
-    color:#fff;
-    font-size:10px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    min-width:16px; height:18px; border-radius:999px;
+    background:#444; color:#fff; font-size:10px;
+    display:flex; align-items:center; justify-content:center;
     padding:0 5px;
   }
   .badge-yc, .badge-rc, .badge-goal, .badge-assist{
-    height:18px;
-    border-radius:2px;
+    height:18px; border-radius:2px;
     border:1px solid rgba(0,0,0,.4);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:11px;
-    padding:0 4px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; padding:0 4px;
   }
   .badge-yc{ background:#f1c40f; min-width:14px; }
   .badge-rc{ background:#e74c3c; min-width:14px; }
   .badge-goal{ background:#2ecc71; }
   .badge-assist{ background:#3498db; }
-</style>
-<style>
-  /* Painel editar nomes */
-  #editPanel{
-    position:fixed;
-    right:-420px;
-    top:20%;
-    width:380px;
-    height:60%;
-    background:rgba(0,0,0,0.96);
-    border-left:2px solid #555;
-    border-radius:10px 0 0 10px;
-    padding:15px;
-    box-shadow:-4px 0 8px rgba(0,0,0,.4);
-    transition:right .2s;
-    z-index:999;
-    overflow-y:auto;
-  }
-  #editPanel.open{ right:0; }
-  #editPanel .close-btn{
-    position:absolute;
-    top:6px;
-    right:8px;
-    background:transparent;
-    border:none;
-    color:#fff;
-    font-size:18px;
-    cursor:pointer;
-  }
-  #editPanel h3{
-    margin:0 0 10px 0;
-  }
-  #editPanel .row{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    margin-bottom:8px;
-  }
-  #editPanel .row span{
-    width:24px;
-    text-align:right;
-    color:#ccc;
-    font-size:13px;
-  }
-  #editPanel .row input[type="text"]{
-    flex:1;
-    padding:6px;
-    border-radius:6px;
-    border:1px solid #777;
-    background:#1f1f1f;
-    color:#fff;
-  }
-  #editPanel .row label{
-    display:flex;
-    align-items:center;
-    gap:4px;
-    color:#ddd;
-    font-size:13px;
-  }
-  #editPanel .save-btn{
-    width:100%;
-    padding:8px;
-    border:none;
-    border-radius:6px;
-    background:#0078d7;
-    color:#fff;
-    cursor:pointer;
-    margin-top:8px;
-  }
 
-  /* Painel Presets */
-  #presetsPanel{
+  /* Painéis */
+  #editPanel, #presetsPanel, #eventsPanel{
     position:fixed;
     right:-420px;
     top:10%;
@@ -509,18 +371,34 @@
     z-index:999;
     overflow-y:auto;
   }
-  #presetsPanel.open{ right:0; }
-  #presetsPanel .close-btn{
-    position:absolute;
-    top:6px;
-    right:8px;
-    background:transparent;
-    border:none;
-    color:#fff;
-    font-size:18px;
+  #editPanel{ top:20%; height:60%; }
+  #editPanel.open, #presetsPanel.open, #eventsPanel.open{ right:0; }
+  #editPanel .close-btn, #presetsPanel .close-btn, #eventsPanel .close-btn{
+    position:absolute; top:6px; right:8px;
+    background:transparent; border:none; color:#fff;
+    font-size:18px; cursor:pointer;
+  }
+  #editPanel h3, #presetsPanel h3, #eventsPanel h3{ margin:0 0 10px 0; }
+  #editPanel .row{
+    display:flex; align-items:center; gap:8px;
+    margin-bottom:8px;
+  }
+  #editPanel .row span{ width:24px; text-align:right; color:#ccc; font-size:13px; }
+  #editPanel .row input[type="text"]{
+    flex:1; padding:6px; border-radius:6px;
+    border:1px solid #777; background:#1f1f1f; color:#fff;
+  }
+  #editPanel .row label{
+    display:flex; align-items:center; gap:4px;
+    color:#ddd; font-size:13px;
+  }
+  #editPanel .save-btn{
+    width:100%; padding:8px; border:none;
+    border-radius:6px; background:#0078d7; color:#fff;
+    cursor:pointer; margin-top:8px;
   }
 
-  /* Painel Gestão de Cargas */
+  /* Load panel (esquerda) */
   #loadPanel{
     position:fixed;
     left:-420px;
@@ -538,135 +416,47 @@
   }
   #loadPanel.open{ left:0; }
   #loadPanel .close-btn{
-    position:absolute;
-    top:6px;
-    right:8px;
-    background:transparent;
-    border:none;
-    color:#fff;
-    font-size:18px;
+    position:absolute; top:6px; right:8px;
+    background:transparent; border:none; color:#fff;
+    font-size:18px; cursor:pointer;
   }
-  #loadPanel h3{
-    margin:0 0 10px 0;
-  }
+  #loadPanel h3{ margin:0 0 10px 0; }
   .load-row{
-    display:flex;
-    flex-direction:column;
-    padding:6px 8px;
-    border-radius:8px;
-    margin-bottom:6px;
-    background:#1f1f1f;
-    border:1px solid #444;
-    text-align:left;
+    display:flex; flex-direction:column;
+    padding:6px 8px; border-radius:8px;
+    margin-bottom:6px; background:#1f1f1f;
+    border:1px solid #444; text-align:left;
     font-size:13px;
   }
-  .load-row strong{
-    font-size:13px;
-  }
-  .load-meta{
-    display:flex;
-    justify-content:space-between;
-    margin-top:2px;
-    font-size:12px;
-  }
+  .load-meta{ display:flex; justify-content:space-between; margin-top:2px; font-size:12px; }
   .load-tag{
-    display:inline-block;
-    padding:2px 8px;
-    border-radius:999px;
-    font-size:11px;
-    font-weight:600;
+    display:inline-block; padding:2px 8px;
+    border-radius:999px; font-size:11px; font-weight:600;
   }
-  .load-pos{
-    background:rgba(46,204,113,.15);
-    color:#2ecc71;
-    border:1px solid rgba(46,204,113,.5);
-  }
-  .load-neg{
-    background:rgba(231,76,60,.15);
-    color:#e74c3c;
-    border:1px solid rgba(231,76,60,.5);
-  }
-  .fat-low{
-    color:#2ecc71;
-  }
-  .fat-mid{
-    color:#f1c40f;
-  }
-  .fat-high{
-    color:#e74c3c;
-  }
+  .load-pos{ background:rgba(46,204,113,.15); color:#2ecc71; border:1px solid rgba(46,204,113,.5); }
+  .load-neg{ background:rgba(231,76,60,.15); color:#e74c3c; border:1px solid rgba(231,76,60,.5); }
+  .fat-low{ color:#2ecc71; }
+  .fat-mid{ color:#f1c40f; }
+  .fat-high{ color:#e74c3c; }
 
-  /* Painel Eventos (timeline) */
-  #eventsPanel{
-    position:fixed;
-    right:-420px;
-    top:10%;
-    width:380px;
-    height:80%;
-    background:rgba(0,0,0,0.96);
-    border-left:2px solid #555;
-    border-radius:10px 0 0 10px;
-    padding:15px;
-    box-shadow:-4px 0 8px rgba(0,0,0,.4);
-    transition:right .2s;
-    z-index:999;
-    overflow-y:auto;
-  }
-  #eventsPanel.open{ right:0; }
-  #eventsPanel .close-btn{
-    position:absolute;
-    top:6px;
-    right:8px;
-    background:transparent;
-    border:none;
-    color:#fff;
-    font-size:18px;
-    cursor:pointer;
-  }
-  #eventsPanel h3{
-    margin:0 0 10px 0;
-  }
+  /* Eventos */
   .event-row{
-    display:flex;
-    flex-direction:column;
-    gap:2px;
-    padding:6px 8px;
-    border-radius:8px;
-    margin-bottom:6px;
-    background:#1f1f1f;
-    border:1px solid #444;
-    font-size:12px;
-    text-align:left;
+    display:flex; flex-direction:column; gap:2px;
+    padding:6px 8px; border-radius:8px; margin-bottom:6px;
+    background:#1f1f1f; border:1px solid #444;
+    font-size:12px; text-align:left;
   }
-  .event-main{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:6px;
-  }
-  .event-meta{
-    font-size:11px;
-    color:#ccc;
-  }
-  .event-type{
-    font-weight:600;
-  }
+  .event-main{ display:flex; justify-content:space-between; align-items:center; gap:6px; }
+  .event-meta{ font-size:11px; color:#ccc; }
+  .event-type{ font-weight:600; }
   .event-delete{
-    border:none;
-    border-radius:999px;
-    padding:3px 8px;
-    font-size:11px;
-    cursor:pointer;
-    background:#e74c3c;
-    color:#fff;
+    border:none; border-radius:999px; padding:3px 8px;
+    font-size:11px; cursor:pointer; background:#e74c3c; color:#fff;
   }
 
-  /* Timeline fixa em baixo */
+  /* Timeline fixa */
   #timelineBar{
-    position:fixed;
-    left:0;
-    right:0;
-    bottom:0;
+    position:fixed; left:0; right:0; bottom:0;
     height:var(--timeline-h);
     background:#212121;
     border-top:1px solid #444;
@@ -676,10 +466,8 @@
     gap:8px;
     z-index:900;
   }
-  body.light-mode #timelineBar{
-    background:#f0f0f0;
-    border-top:1px solid #ccc;
-  }
+  body.light-mode #timelineBar{ background:#f0f0f0; border-top:1px solid #ccc; }
+
   .tl-btn{
     border:none;
     border-radius:999px;
@@ -692,12 +480,9 @@
     align-items:center;
     gap:5px;
   }
-  body.light-mode .tl-btn{
-    background:#666;
-    color:#fff;
-  }
-  .tl-btn span.icon{font-size:16px;}
-  .tl-btn span.label{font-size:12px;}
+  body.light-mode .tl-btn{ background:#666; color:#fff; }
+  .tl-btn span.icon{ font-size:16px; }
+  .tl-btn span.label{ font-size:12px; }
 
   @keyframes selectBlink{
     0%,100%{ outline-color:#fff; opacity:1; }
@@ -709,33 +494,10 @@
     animation:selectBlink 1s infinite;
   }
 
-  #brandSignature{
-    position:fixed;
-    bottom:-5px;
-    right:12px;
-    z-index:9999;
-    pointer-events:none;
-  }
-  #brandSignature img{
-    height:65px;
-    opacity:0.7;
-    display:none;
-    user-select:none;
-  }
-  body:not(.light-mode) #brandSignature .sig-on-dark{
-    display:block;
-  }
-  body.light-mode #brandSignature .sig-on-light{
-    display:block;
-  }
-
-  /* 🔐 LOGIN SCREEN BONITO */
+  /* 🔐 LOGIN SCREEN */
   #loginScreen{
-    position:fixed;
-    inset:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
     background:radial-gradient(circle at top, #333 0, #111 55%);
     z-index:1500;
   }
@@ -751,16 +513,8 @@
     gap:10px;
     text-align:left;
   }
-  #loginTitle{
-    font-size:20px;
-    font-weight:700;
-    margin:0;
-  }
-  #loginSubtitle{
-    font-size:12px;
-    color:#ccc;
-    margin:0 0 4px 0;
-  }
+  #loginTitle{ font-size:20px; font-weight:700; margin:0; }
+  #loginSubtitle{ font-size:12px; color:#ccc; margin:0 0 4px 0; }
   .login-label{
     font-size:11px;
     text-transform:uppercase;
@@ -777,9 +531,7 @@
     width:100%;
     box-sizing:border-box;
   }
-  #loginScreen input::placeholder{
-    color:#777;
-  }
+  #loginScreen input::placeholder{ color:#777; }
   #loginScreen button{
     margin-top:10px;
     padding:9px 14px;
@@ -791,33 +543,73 @@
     font-weight:600;
     width:100%;
   }
-  #loginScreen button:hover{
-    filter:brightness(1.1);
+  #loginError{ color:#ff5555; font-size:11px; min-height:16px; }
+
+  body.light-mode #loginCard{ background:#ffffff; color:#111; }
+  body.light-mode #loginScreen input{ background:#f3f3f3; color:#111; }
+  body.light-mode #loginScreen button{ background:#005ea6; }
+
+  /* 🛡️ ADMIN PANEL */
+  #adminPanel{
+    position:fixed;
+    left:-520px;
+    top:8%;
+    width:480px;
+    height:84%;
+    background:rgba(0,0,0,0.96);
+    border-right:2px solid #555;
+    border-radius:0 14px 14px 0;
+    padding:14px;
+    box-shadow:6px 0 18px rgba(0,0,0,.45);
+    transition:left .2s;
+    z-index:1600;
+    overflow:auto;
+    text-align:left;
+    color:#fff;
   }
-  #loginError{
-    color:#ff5555;
+  #adminPanel.open{ left:0; }
+  #adminPanel h3{ margin:0 0 10px 0; }
+  #adminPanel .close-btn{
+    position:absolute; top:8px; right:10px;
+    background:transparent; border:none; color:#fff;
+    font-size:18px; cursor:pointer;
+  }
+  .admin-user{
+    border:1px solid #444;
+    background:#1f1f1f;
+    border-radius:10px;
+    padding:10px;
+    margin-bottom:10px;
+  }
+  .admin-user .row{
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    margin-top:6px;
+  }
+  .admin-user button{
+    padding:6px 10px; border:none; border-radius:10px;
+    background:#444; color:#fff; cursor:pointer;
+  }
+  .admin-user button.danger{ background:#a33; }
+  .admin-user button.ok{ background:#2e8b57; }
+  .chip{
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:999px;
     font-size:11px;
-    min-height:16px;
+    border:1px solid #555;
+    margin-left:6px;
+    opacity:.95;
   }
-  body.light-mode #loginCard{
-    background:#ffffff;
-    color:#111;
-  }
-  body.light-mode #loginScreen input{
-    background:#f3f3f3;
-    color:#111;
-  }
-  body.light-mode #loginScreen button{
-    background:#005ea6;
-  }
+  .chip.ok{ border-color:rgba(46,204,113,.5); color:#2ecc71; }
+  .chip.bad{ border-color:rgba(231,76,60,.5); color:#e74c3c; }
 </style>
 
-<!-- 🔐 Firebase Auth + Firestore (controlo de dispositivos) -->
+<!-- 🔐 Firebase Auth + Firestore (devices + roles/admin) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
   import {
-    getFirestore, doc, getDoc, setDoc, updateDoc,
+    getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
     collection, getDocs, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
@@ -835,7 +627,9 @@
   const auth = getAuth(app);
   const db  = getFirestore(app);
 
-  // ✅ deviceId único por browser
+  // =========================
+  // ✅ Helpers
+  // =========================
   function getDeviceId(){
     const k = "gc_device_id";
     let v = localStorage.getItem(k);
@@ -846,7 +640,7 @@
     return v;
   }
 
-  // ✅ tenta encontrar o documento em users/{uid} ou clubs/{uid}
+  // tenta users/{uid} primeiro, se não existir tenta clubs/{uid}
   async function resolveProfile(uid){
     const uRef = doc(db, "users", uid);
     const uSnap = await getDoc(uRef);
@@ -874,13 +668,10 @@
   async function ensureDeviceAllowed(profile){
     const deviceId = getDeviceId();
 
-    // regras base
     const active = profile.data?.active;
-    if(active === false){
-      throw new Error("Conta desativada.");
-    }
+    if(active === false) throw new Error("Conta desativada.");
 
-    const limit = Number(profile.data?.deviceLimit ?? 3); // default 3
+    const limit = Number(profile.data?.deviceLimit ?? 3);
 
     const deviceRef = doc(profile.baseRef, "devices", deviceId);
     const deviceSnap = await getDoc(deviceRef);
@@ -888,18 +679,15 @@
     if(deviceSnap.exists()){
       const dv = deviceSnap.data() || {};
       if(dv.blocked === true) throw new Error("Este dispositivo está bloqueado.");
-      // ok: já existe e está permitido
       await updateDoc(deviceRef, { lastSeen: serverTimestamp() }).catch(()=>{});
       return { deviceId, deviceRef, limit };
     }
 
-    // device novo -> conta quantos já existem (não bloqueados)
     const used = await countAllowedDevices(profile);
     if(used >= limit){
       throw new Error(`Limite de dispositivos atingido (${limit}).`);
     }
 
-    // cria device
     await setDoc(deviceRef, {
       createdAt: serverTimestamp(),
       lastSeen: serverTimestamp(),
@@ -915,13 +703,330 @@
   function startHeartbeat(deviceRef){
     if(heartbeatInterval) clearInterval(heartbeatInterval);
     heartbeatInterval = setInterval(async ()=>{
-      try{
-        await updateDoc(deviceRef, { lastSeen: serverTimestamp() });
-      }catch(e){}
-    }, 30000); // 30s
+      try{ await updateDoc(deviceRef, { lastSeen: serverTimestamp() }); }catch(e){}
+    }, 30000);
   }
 
+  // =========================
+  // ✅ FULLSCREEN (PC) + fallback telemóvel/tablet (pseudo fullscreen)
+  // =========================
+  function supportsNativeFullscreen(){
+    const el = document.documentElement;
+    return !!(el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen);
+  }
+  function isIOS(){
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  }
+  function isMobileLike(){
+    return (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
+           /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
+  function showHint(el, text){
+    if(!el) return;
+    el.textContent = text;
+    el.style.display = "block";
+    clearTimeout(window.__gcHintT);
+    window.__gcHintT = setTimeout(()=>{ el.style.display="none"; }, 2200);
+  }
+
+  async function requestFS(){
+    const el = document.documentElement;
+    try{
+      if(el.requestFullscreen) return await el.requestFullscreen();
+      if(el.webkitRequestFullscreen) return await el.webkitRequestFullscreen();
+      if(el.msRequestFullscreen) return await el.msRequestFullscreen();
+    }catch(e){}
+  }
+
+  async function exitFS(){
+    try{
+      if(document.exitFullscreen) return await document.exitFullscreen();
+      if(document.webkitExitFullscreen) return await document.webkitExitFullscreen();
+      if(document.msExitFullscreen) return await document.msExitFullscreen();
+    }catch(e){}
+  }
+
+  function isFS(){
+    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+  }
+
+  function enterPseudoFullscreen(){
+    document.body.classList.add("pseudo-fullscreen");
+    localStorage.setItem("gc_pseudo_fs","1");
+  }
+  function exitPseudoFullscreen(){
+    document.body.classList.remove("pseudo-fullscreen");
+    localStorage.setItem("gc_pseudo_fs","0");
+  }
+
+  async function toggleFullscreen(){
+    const fsHint = document.getElementById("fsHint");
+
+    // iOS / mobile: pseudo fullscreen (mais estável)
+    if(isMobileLike() && (isIOS() || !supportsNativeFullscreen())){
+      if(document.body.classList.contains("pseudo-fullscreen")){
+        exitPseudoFullscreen();
+        showHint(fsHint, "Saiu do modo ecrã inteiro (mobile).");
+      }else{
+        enterPseudoFullscreen();
+        showHint(fsHint, "Modo ecrã inteiro (mobile) ativo.");
+      }
+      return;
+    }
+
+    // Desktop / suportado
+    if(!isFS()){
+      const ok = await requestFS();
+      if(!ok){
+        enterPseudoFullscreen();
+        showHint(fsHint, "Fullscreen não permitido. Ativei modo alternativo.");
+      }
+    }else{
+      await exitFS();
+    }
+  }
+
+  // =========================
+  // ✅ LOCK: bloqueia botões perigosos durante jogo
+  // =========================
+  let uiLocked = false;
+  function setLocked(v){
+    uiLocked = !!v;
+    document.body.classList.toggle("gc-locked", uiLocked);
+    localStorage.setItem("gc_ui_locked", uiLocked ? "1":"0");
+
+    const lockBtn = document.getElementById("lockBtn");
+    if(lockBtn) lockBtn.textContent = uiLocked ? "🔒" : "🔓";
+
+    const toast = document.getElementById("lockToast");
+    if(toast){
+      if(uiLocked){
+        toast.style.display = "block";
+        clearTimeout(window.__lockToastT);
+        window.__lockToastT = setTimeout(()=>{ toast.style.display="none"; }, 2200);
+      }else{
+        toast.style.display = "none";
+      }
+    }
+  }
+  function toggleLock(){ setLocked(!uiLocked); }
+
+  // =========================
+  // ✅ ADMIN UI (role === admin/owner)
+  // =========================
+  let currentProfile = null;
+
+  function isAdminRole(profile){
+    const role = String(profile?.data?.role || "").toLowerCase();
+    return role === "admin" || role === "owner";
+  }
+
+  async function fetchUsersForAdmin(){
+    const colRef = collection(db, "users");
+    const snap = await getDocs(colRef);
+    const arr = [];
+    snap.forEach(docu=>{
+      arr.push({ uid: docu.id, ...docu.data() });
+    });
+    arr.sort((a,b)=> (a.name||a.email||a.uid).localeCompare(b.name||b.email||b.uid));
+    return arr;
+  }
+
+  async function fetchDevicesFor(uid){
+    const baseRef = doc(db, "users", uid);
+    const devCol = collection(baseRef, "devices");
+    const snap = await getDocs(devCol);
+    const devs = [];
+    snap.forEach(d=> devs.push({ id: d.id, ...d.data() }));
+    devs.sort((a,b)=>{
+      const ta = a.lastSeen?.seconds || 0;
+      const tb = b.lastSeen?.seconds || 0;
+      return tb - ta;
+    });
+    return devs;
+  }
+
+  function fmtTS(ts){
+    if(!ts || !ts.seconds) return "—";
+    const d = new Date(ts.seconds * 1000);
+    return d.toLocaleString("pt-PT");
+  }
+
+  async function openAdminPanel(){
+    const panel = document.getElementById("adminPanel");
+    const list = document.getElementById("adminList");
+    if(!panel || !list) return;
+
+    list.innerHTML = `<div style="color:#ccc;font-size:12px;">A carregar...</div>`;
+    panel.classList.add("open");
+
+    try{
+      const users = await fetchUsersForAdmin();
+      list.innerHTML = users.length ? "" : `<div style="color:#ccc;font-size:12px;">Sem users.</div>`;
+
+      for(const u of users){
+        const wrap = document.createElement("div");
+        wrap.className = "admin-user";
+
+        const role = (u.role || "user");
+        const active = (u.active !== false);
+        const limit = Number(u.deviceLimit ?? 3);
+
+        wrap.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <div>
+              <div style="font-weight:700;font-size:14px;">${u.name || u.email || u.uid}</div>
+              <div style="font-size:12px;color:#bbb;">
+                UID: <span style="opacity:.9">${u.uid}</span>
+                ${active ? `<span class="chip ok">ativo</span>` : `<span class="chip bad">inativo</span>`}
+                <span class="chip">${role}</span>
+              </div>
+            </div>
+            <button class="danger" data-uid="${u.uid}" data-act="${active ? "1":"0"}">
+              ${active ? "Desativar" : "Ativar"}
+            </button>
+          </div>
+
+          <div class="row">
+            <label style="font-size:12px;color:#ddd;">Limite:</label>
+            <input type="number" min="1" max="20" value="${limit}" id="lim_${u.uid}" style="width:90px;">
+            <button class="ok" data-save="${u.uid}">Guardar</button>
+            <button data-dev="${u.uid}">Ver devices</button>
+            <button class="danger" data-clear="${u.uid}">Limpar devices</button>
+          </div>
+
+          <div class="admin-dev" id="dev_${u.uid}" style="display:none;"></div>
+        `;
+
+        list.appendChild(wrap);
+      }
+
+      // binds
+      list.querySelectorAll("button[data-save]").forEach(btn=>{
+        btn.onclick = async ()=>{
+          const uid = btn.dataset.save;
+          const v = Number(document.getElementById("lim_"+uid).value || 3);
+          await updateDoc(doc(db,"users",uid), { deviceLimit: v }).catch(()=>{});
+          alert("Guardado.");
+        };
+      });
+
+      list.querySelectorAll("button[data-act]").forEach(btn=>{
+        btn.onclick = async ()=>{
+          const uid = btn.dataset.uid;
+          const nowActive = btn.dataset.act === "1";
+          await updateDoc(doc(db,"users",uid), { active: !nowActive }).catch(()=>{});
+          alert("Atualizado.");
+          openAdminPanel();
+        };
+      });
+
+      list.querySelectorAll("button[data-clear]").forEach(btn=>{
+        btn.onclick = async ()=>{
+          const uid = btn.dataset.clear;
+          if(!confirm("Limpar TODOS os devices deste user?")) return;
+          const devs = await fetchDevicesFor(uid);
+          for(const d of devs){
+            await deleteDoc(doc(db,"users",uid,"devices",d.id)).catch(()=>{});
+          }
+          alert("Devices apagados.");
+          openAdminPanel();
+        };
+      });
+
+      list.querySelectorAll("button[data-dev]").forEach(btn=>{
+        btn.onclick = async ()=>{
+          const uid = btn.dataset.dev;
+          const box = document.getElementById("dev_"+uid);
+          if(!box) return;
+
+          if(box.style.display === "block"){
+            box.style.display = "none";
+            box.innerHTML = "";
+            return;
+          }
+
+          box.style.display = "block";
+          box.innerHTML = `<div style="color:#ccc;">A carregar devices...</div>`;
+
+          const devs = await fetchDevicesFor(uid);
+
+          if(!devs.length){
+            box.innerHTML = `<div style="color:#ccc;">Sem devices.</div>`;
+            return;
+          }
+
+          box.innerHTML = devs.map(d=>{
+            const blocked = d.blocked === true;
+            return `
+              <div style="border:1px solid #333;background:#141414;border-radius:10px;padding:8px;margin-top:8px;">
+                <div><b>ID:</b> ${d.id} ${blocked ? `<span class="chip bad">blocked</span>` : `<span class="chip ok">ok</span>`}</div>
+                <div><b>Criado:</b> ${fmtTS(d.createdAt)}</div>
+                <div><b>LastSeen:</b> ${fmtTS(d.lastSeen)}</div>
+                <div style="opacity:.85"><b>UA:</b> ${(d.userAgent||"").slice(0,80)}${(d.userAgent||"").length>80?"…":""}</div>
+                <div class="row" style="margin-top:8px;">
+                  <button data-block="${uid}::${d.id}" class="danger">${blocked ? "Desbloquear" : "Bloquear"}</button>
+                  <button data-del="${uid}::${d.id}" class="danger">Apagar</button>
+                </div>
+              </div>
+            `;
+          }).join("");
+
+          box.querySelectorAll("button[data-block]").forEach(b=>{
+            b.onclick = async ()=>{
+              const [u, devId] = b.dataset.block.split("::");
+              const ref = doc(db,"users",u,"devices",devId);
+              const snap = await getDoc(ref);
+              const cur = snap.exists() ? !!(snap.data().blocked) : false;
+              await updateDoc(ref, { blocked: !cur }).catch(()=>{});
+              openAdminPanel();
+            };
+          });
+
+          box.querySelectorAll("button[data-del]").forEach(b=>{
+            b.onclick = async ()=>{
+              const [u, devId] = b.dataset.del.split("::");
+              if(!confirm("Apagar este device?")) return;
+              await deleteDoc(doc(db,"users",u,"devices",devId)).catch(()=>{});
+              openAdminPanel();
+            };
+          });
+        };
+      });
+
+    }catch(e){
+      console.error(e);
+      list.innerHTML = `<div style="color:#ff6666;font-size:12px;">Erro ao carregar users.</div>`;
+    }
+  }
+
+  function closeAdminPanel(){
+    const panel = document.getElementById("adminPanel");
+    if(panel) panel.classList.remove("open");
+  }
+
+  // =========================
+  // ✅ DOM Ready + Auth flow
+  // =========================
   window.addEventListener("DOMContentLoaded", () => {
+    // restore lock
+    const lockSaved = localStorage.getItem("gc_ui_locked");
+    setLocked(lockSaved === "1");
+
+    // restore pseudo fs
+    const pfs = localStorage.getItem("gc_pseudo_fs");
+    if(pfs === "1") document.body.classList.add("pseudo-fullscreen");
+
+    // bind lock button
+    const lockBtn = document.getElementById("lockBtn");
+    if(lockBtn) lockBtn.addEventListener("click", toggleLock);
+
+    // bind fullscreen
+    const fsBtn = document.getElementById("fullscreenBtn");
+    if(fsBtn) fsBtn.addEventListener("click", toggleFullscreen);
+
+    // login refs
     const loginScreen   = document.getElementById("loginScreen");
     const appWrapper    = document.getElementById("appWrapper");
     const loginEmail    = document.getElementById("loginEmail");
@@ -929,6 +1034,12 @@
     const loginBtn      = document.getElementById("loginBtn");
     const loginError    = document.getElementById("loginError");
     const logoutBtn     = document.getElementById("logoutBtn");
+
+    // admin refs
+    const adminBtn = document.getElementById("adminBtn");
+    const adminClose = document.getElementById("adminClose");
+    if(adminBtn) adminBtn.onclick = openAdminPanel;
+    if(adminClose) adminClose.onclick = closeAdminPanel;
 
     if(loginBtn){
       loginBtn.addEventListener("click", async () => {
@@ -950,6 +1061,11 @@
 
     if(logoutBtn){
       logoutBtn.addEventListener("click", async () => {
+        // se locked, bloqueia logout para evitar cliques acidentais
+        if(document.body.classList.contains("gc-locked")){
+          alert("🔒 O ecrã está bloqueado. Desbloqueia para terminar sessão.");
+          return;
+        }
         try{
           if(heartbeatInterval) clearInterval(heartbeatInterval);
           await signOut(auth);
@@ -960,10 +1076,7 @@
     }
 
     onAuthStateChanged(auth, async (user) => {
-      const logged = !!user;
-
-      if(logged){
-        // antes de abrir a app: valida perfil + device
+      if(user){
         try{
           const profile = await resolveProfile(user.uid);
           if(!profile){
@@ -972,15 +1085,21 @@
             return;
           }
 
-          const { deviceRef } = await ensureDeviceAllowed(profile);
+          currentProfile = profile;
 
-          // opcional: marca lastLogin no doc base
+          const { deviceRef } = await ensureDeviceAllowed(profile);
           await updateDoc(profile.baseRef, { lastLogin: serverTimestamp() }).catch(()=>{});
           startHeartbeat(deviceRef);
+
+          // role
+          if(adminBtn){
+            adminBtn.style.display = isAdminRole(profile) ? "inline-flex" : "none";
+          }
 
           loginScreen.style.display = "none";
           appWrapper.style.display  = "block";
           if(logoutBtn) logoutBtn.style.display = "inline-flex";
+
         }catch(e){
           console.error(e);
           loginError.textContent = e?.message || "Acesso recusado.";
@@ -988,12 +1107,18 @@
           loginScreen.style.display = "flex";
           appWrapper.style.display  = "none";
           if(logoutBtn) logoutBtn.style.display = "none";
+          if(adminBtn) adminBtn.style.display = "none";
         }
       }else{
         if(heartbeatInterval) clearInterval(heartbeatInterval);
+        currentProfile = null;
+
         loginScreen.style.display = "flex";
         appWrapper.style.display  = "none";
         if(logoutBtn) logoutBtn.style.display = "none";
+        const panel = document.getElementById("adminPanel");
+        if(panel) panel.classList.remove("open");
+        if(adminBtn) adminBtn.style.display = "none";
       }
     });
   });
@@ -1001,6 +1126,9 @@
 
 </head>
 <body>
+
+<div id="fsHint"></div>
+<div id="lockToast">🔒 Botões bloqueados (toca no 🔒 para desbloquear)</div>
 
 <header>
   <div class="header-left">
@@ -1010,14 +1138,30 @@
 
   <div class="top-buttons">
     <button id="themeToggle" title="Tema">🌙</button>
+
+    <!-- 🔒 novo -->
+    <button id="lockBtn" title="Bloquear cliques">🔓</button>
+
     <button id="fullscreenBtn" title="Fullscreen">⛶</button>
-    <button id="loadPanelBtn" title="Gestão de Cargas">⚡</button>
-    <button id="editNamesBtn" title="Editar nomes">👥</button>
-    <button id="presetsBtn" title="Presets">💾</button>
-    <button id="printBtn" title="Exportar PNG">📸</button>
-    <button id="logoutBtn" title="Sair" style="display:none;">🚪</button>
+
+    <button id="loadPanelBtn" title="Gestão de Cargas" class="lock-disabled">⚡</button>
+    <button id="editNamesBtn" title="Editar nomes" class="lock-disabled">👥</button>
+    <button id="presetsBtn" title="Presets" class="lock-disabled">💾</button>
+    <button id="printBtn" title="Exportar PNG" class="lock-disabled">📸</button>
+
+    <!-- 🛡️ admin (só aparece para admins) -->
+    <button id="adminBtn" title="Admin" style="display:none;">🛡️</button>
+
+    <button id="logoutBtn" title="Sair" style="display:none;" class="lock-disabled">🚪</button>
   </div>
 </header>
+
+<!-- 🛡️ ADMIN PANEL -->
+<div id="adminPanel">
+  <button class="close-btn" id="adminClose">❌</button>
+  <h3>Admin — Users & Devices</h3>
+  <div id="adminList"></div>
+</div>
 
 <!-- LOGIN -->
 <div id="loginScreen">
@@ -1026,10 +1170,10 @@
     <p id="loginSubtitle">Acede ao teu painel de gestão de jogo.</p>
 
     <label class="login-label">Email</label>
-    <input id="loginEmail" type="email" placeholder="exemplo@club.pt">
+    <input id="loginEmail" type="email" placeholder="exemplo@club.pt" autocomplete="username">
 
     <label class="login-label">Password</label>
-    <input id="loginPassword" type="password" placeholder="Password">
+    <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password">
 
     <button id="loginBtn">Entrar</button>
     <div id="loginError"></div>
@@ -1054,7 +1198,7 @@
     <span id="halfBadge" class="half-badge">1ª Parte</span>
   </div>
 
-  <div class="controls">
+  <div class="controls lock-disabled">
     <input id="setMinutes" type="number" value="20" min="1" style="width:60px">
     <button id="intervalBtn">Intervalo</button>
     <button id="resetBtn">Reset</button>
@@ -1112,17 +1256,33 @@
     <div id="eventsList"></div>
   </div>
 
-  <div id="timelineBar">
-    <button class="tl-btn" data-type="GF_A">⚽ +</button>
-    <button class="tl-btn" data-type="GA_A">⚽ −</button>
-    <button class="tl-btn tl-player" data-type="FK_P">❌</button>
-    <button class="tl-btn tl-player" data-type="YC_P">🟨</button>
-    <button class="tl-btn tl-player" data-type="RC_P">🟥</button>
-    <button class="tl-btn" id="eventsPanelBtn">🕒</button>
-    <button class="tl-btn" id="tlClearBtn">🧹</button>
+  <!-- TIMELINE COM LEGENDA -->
+  <div id="timelineBar" class="lock-disabled">
+    <button class="tl-btn" data-type="GF_A">
+      <span class="icon">⚽</span><span class="label">Golo +</span>
+    </button>
+    <button class="tl-btn" data-type="GA_A">
+      <span class="icon">⚽</span><span class="label">Golo −</span>
+    </button>
+    <button class="tl-btn tl-player" data-type="FK_P">
+      <span class="icon">❌</span><span class="label">Falta</span>
+    </button>
+    <button class="tl-btn tl-player" data-type="YC_P">
+      <span class="icon">🟨</span><span class="label">Amarelo</span>
+    </button>
+    <button class="tl-btn tl-player" data-type="RC_P">
+      <span class="icon">🟥</span><span class="label">Vermelho</span>
+    </button>
+    <button class="tl-btn" id="eventsPanelBtn">
+      <span class="icon">🕒</span><span class="label">Eventos</span>
+    </button>
+    <button class="tl-btn" id="tlClearBtn">
+      <span class="icon">🧹</span><span class="label">Limpar</span>
+    </button>
   </div>
 
 </div>
+
 <script>
 let duration = 20 * 60;
 let remaining = duration;
@@ -1345,8 +1505,6 @@ function updatePlayersUI(){
 
     const displaySec = p.active ? p.rotationSecondsCurrent : p.rotationSecondsOut;
     timeEl.textContent = formatTime(displaySec);
-
-    // última rotação sempre visível
     lastEl.textContent = (p.lastRotation>0) ? ("Últ. rotação: " + formatTime(p.lastRotation)) : "";
 
     if(!p.isGK){
@@ -1400,9 +1558,7 @@ function ensurePlayerCount(n){
   saveData();
 }
 
-function activeCount(){
-  return players.reduce((a,p)=>a+(p.active?1:0),0);
-}
+function activeCount(){ return players.reduce((a,p)=>a+(p.active?1:0),0); }
 
 function flashLimit(id){
   const el = document.getElementById("player"+id);
@@ -1411,9 +1567,7 @@ function flashLimit(id){
   setTimeout(()=>el.classList.remove("limit"),600);
 }
 
-function addTimelineEvent(ev){
-  timeline.push(ev);
-}
+function addTimelineEvent(ev){ timeline.push(ev); }
 
 function rebuildStatsFromTimeline(){
   scoreA = 0;
@@ -1573,12 +1727,10 @@ function computeGameTime(){
     return t>max?t:max;
   },0);
 }
-
 function computeIdealPerPlayer(gameTime){
   if(players.length===0) return 0;
   return gameTime * (maxOnField / players.length);
 }
-
 function computePlayerWorkload(p, gameTime, idealPerPlayer){
   if(gameTime <= 0) return 0;
   return (p.seconds || 0) - idealPerPlayer;
@@ -1626,10 +1778,6 @@ function toggleTheme(){
   document.getElementById("themeToggle").textContent = theme==="dark" ? "🌙" : "🌞";
   saveData();
 }
-function toggleFullscreen(){
-  if(!document.fullscreenElement) document.documentElement.requestFullscreen();
-  else document.exitFullscreen();
-}
 
 /* Edit panel */
 const editPanel = document.getElementById("editPanel");
@@ -1649,9 +1797,7 @@ function openEditPanel(){
   });
   editPanel.classList.add("open");
 }
-function closeEditPanel(){
-  editPanel.classList.remove("open");
-}
+function closeEditPanel(){ editPanel.classList.remove("open"); }
 function saveNamesFromPanel(){
   players.forEach(p=>{
     const v = document.getElementById("nameEdit"+p.id).value.trim();
@@ -1808,12 +1954,9 @@ function closeEventsPanel(){
 }
 
 /* Presets */
-function getPresets(){
-  return JSON.parse(localStorage.getItem(PRESETS_KEY) || "{}");
-}
-function setPresets(obj){
-  localStorage.setItem(PRESETS_KEY, JSON.stringify(obj));
-}
+function getPresets(){ return JSON.parse(localStorage.getItem(PRESETS_KEY) || "{}"); }
+function setPresets(obj){ localStorage.setItem(PRESETS_KEY, JSON.stringify(obj)); }
+
 function renderPresetList(){
   const list = document.getElementById("presetList");
   const all = getPresets();
@@ -1843,6 +1986,7 @@ function renderPresetList(){
     renderPresetList();
   });
 }
+
 function savePreset(){
   const nm = (document.getElementById("presetName").value || "").trim();
   if(!nm){
@@ -1859,6 +2003,7 @@ function savePreset(){
   renderPresetList();
   alert("Preset guardado.");
 }
+
 function loadPreset(name){
   const all = getPresets();
   const p = all[name];
@@ -1900,24 +2045,10 @@ function loadData(){
     players = [];
     for(let i=1;i<=14;i++){
       players.push({
-        id:i,
-        name:"Jogador "+i,
-        active:false,
-        isGK:(i===1),
-        seconds:0,
-        secondsOut:0,
-        part1:0,
-        part2:0,
-        rotations:0,
-        rotationSecondsCurrent:0,
-        rotationSecondsOut:0,
-        lastRotation:0,
-        fatigue:0,
-        fouls:0,
-        yc:false,
-        rc:false,
-        goals:0,
-        assists:0
+        id:i, name:"Jogador "+i, active:false, isGK:(i===1),
+        seconds:0, secondsOut:0, part1:0, part2:0, rotations:0,
+        rotationSecondsCurrent:0, rotationSecondsOut:0, lastRotation:0,
+        fatigue:0, fouls:0, yc:false, rc:false, goals:0, assists:0
       });
     }
     buildPlayersDOM();
@@ -1965,24 +2096,10 @@ function loadData(){
     if(players.length===0){
       for(let i=1;i<=14;i++){
         players.push({
-          id:i,
-          name:"Jogador "+i,
-          active:false,
-          isGK:(i===1),
-          seconds:0,
-          secondsOut:0,
-          part1:0,
-          part2:0,
-          rotations:0,
-          rotationSecondsCurrent:0,
-          rotationSecondsOut:0,
-          lastRotation:0,
-          fatigue:0,
-          fouls:0,
-          yc:false,
-          rc:false,
-          goals:0,
-          assists:0
+          id:i, name:"Jogador "+i, active:false, isGK:(i===1),
+          seconds:0, secondsOut:0, part1:0, part2:0, rotations:0,
+          rotationSecondsCurrent:0, rotationSecondsOut:0, lastRotation:0,
+          fatigue:0, fouls:0, yc:false, rc:false, goals:0, assists:0
         });
       }
     }
@@ -2003,7 +2120,9 @@ function loadData(){
     localStorage.removeItem(STORAGE_KEY);
     loadData();
   }
-}/* Export PNG – igual ao original (já com golos/assistências e timeline) */
+}
+
+/* Export PNG (igual ao teu original) */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
@@ -2045,17 +2164,12 @@ function exportPng(){
       const halfTxt = ev.half === 1 ? "1ª" : "2ª";
       const baseTime = ev.clock || formatTime(remaining);
       let desc = "";
-      if(ev.type === "GF_A"){
-        desc = "Golo a favor";
-      } else if(ev.type === "GA_A"){
-        desc = "Golo sofrido";
-      } else if(ev.type === "FK_P"){
-        desc = "Falta";
-      } else if(ev.type === "YC_P"){
-        desc = "Cartão amarelo";
-      } else if(ev.type === "RC_P"){
-        desc = "Cartão vermelho";
-      }
+      if(ev.type === "GF_A") desc = "Golo a favor";
+      else if(ev.type === "GA_A") desc = "Golo sofrido";
+      else if(ev.type === "FK_P") desc = "Falta";
+      else if(ev.type === "YC_P") desc = "Cartão amarelo";
+      else if(ev.type === "RC_P") desc = "Cartão vermelho";
+
       if(ev.playerId){
         const p = players.find(x=>x.id===ev.playerId);
         if(p) desc += ` – ${p.name}`;
@@ -2203,7 +2317,7 @@ function exportPng(){
   a.click();
 }
 
-/* Timeline – equipa (para GA_A e outros de equipa) */
+/* Timeline – equipa */
 function handleTeamEvent(type){
   const half = firstHalf ? 1 : 2;
   const clock = formatTime(remaining);
@@ -2214,7 +2328,7 @@ function handleTeamEvent(type){
 
   const ev = { type, half, clock, activeIds, ts: Date.now() };
 
-  addTimelineEvent(ev);
+  timeline.push(ev);
   updateScoreUI();
   saveData();
 }
@@ -2228,6 +2342,10 @@ function setPendingEvent(type){
 
 /* Vassoura */
 document.getElementById("tlClearBtn").onclick = ()=>{
+  if(document.body.classList.contains("gc-locked")){
+    alert("🔒 Está bloqueado. Desbloqueia para limpar.");
+    return;
+  }
   if(!confirm("Limpar marcador, faltas/cartões, golos/assistências e timeline?")) return;
 
   scoreA = 0;
@@ -2252,21 +2370,61 @@ document.getElementById("tlClearBtn").onclick = ()=>{
 };
 
 /* Ligações de botões base */
-document.getElementById("resetBtn").onclick = resetTimer;
-document.getElementById("intervalBtn").onclick = intervalTimer;
-document.getElementById("addBtn").onclick = ()=>ensurePlayerCount(players.length+1);
-document.getElementById("removeBtn").onclick = ()=>{ if(players.length>1) ensurePlayerCount(players.length-1); };
+document.getElementById("resetBtn").onclick = ()=>{
+  if(document.body.classList.contains("gc-locked")){
+    alert("🔒 Está bloqueado. Desbloqueia para fazer reset.");
+    return;
+  }
+  resetTimer();
+};
+document.getElementById("intervalBtn").onclick = ()=>{
+  if(document.body.classList.contains("gc-locked")){
+    alert("🔒 Está bloqueado. Desbloqueia para intervalo.");
+    return;
+  }
+  intervalTimer();
+};
+document.getElementById("addBtn").onclick = ()=>{
+  if(document.body.classList.contains("gc-locked")){
+    alert("🔒 Está bloqueado. Desbloqueia para adicionar jogador.");
+    return;
+  }
+  ensurePlayerCount(players.length+1);
+};
+document.getElementById("removeBtn").onclick = ()=>{
+  if(document.body.classList.contains("gc-locked")){
+    alert("🔒 Está bloqueado. Desbloqueia para remover jogador.");
+    return;
+  }
+  if(players.length>1) ensurePlayerCount(players.length-1);
+};
 document.getElementById("themeToggle").onclick = toggleTheme;
-document.getElementById("fullscreenBtn").onclick = toggleFullscreen;
-document.getElementById("printBtn").onclick = exportPng;
+// fullscreen é tratado pelo módulo
+document.getElementById("printBtn").onclick = ()=>{
+  if(document.body.classList.contains("gc-locked")){
+    alert("🔒 Está bloqueado. Desbloqueia para exportar.");
+    return;
+  }
+  exportPng();
+};
 
-document.getElementById("editNamesBtn").onclick = openEditPanel;
+document.getElementById("editNamesBtn").onclick = ()=>{
+  if(document.body.classList.contains("gc-locked")){
+    alert("🔒 Está bloqueado. Desbloqueia para editar nomes.");
+    return;
+  }
+  openEditPanel();
+};
 document.getElementById("closePanel").onclick = closeEditPanel;
 document.getElementById("saveNamesBtn").onclick = saveNamesFromPanel;
 
 /* Presets – painel */
 const presetsPanel = document.getElementById("presetsPanel");
 document.getElementById("presetsBtn").onclick = ()=>{
+  if(document.body.classList.contains("gc-locked")){
+    alert("🔒 Está bloqueado. Desbloqueia para presets.");
+    return;
+  }
   renderPresetList();
   presetsPanel.classList.add("open");
   if(floatingPlayBtn) floatingPlayBtn.style.display = "none";
@@ -2275,14 +2433,28 @@ document.getElementById("closePresets").onclick = ()=>{
   presetsPanel.classList.remove("open");
   if(floatingPlayBtn) floatingPlayBtn.style.display = "block";
 };
-document.getElementById("savePresetBtn").onclick = savePreset;
+document.getElementById("savePresetBtn").onclick = ()=>{
+  if(document.body.classList.contains("gc-locked")){
+    alert("🔒 Está bloqueado. Desbloqueia para guardar preset.");
+    return;
+  }
+  savePreset();
+};
 
 /* Gestão de cargas – painel */
-document.getElementById("loadPanelBtn").onclick = openLoadPanel;
+document.getElementById("loadPanelBtn").onclick = ()=>{
+  if(document.body.classList.contains("gc-locked")){
+    alert("🔒 Está bloqueado. Desbloqueia para Gestão de Cargas.");
+    return;
+  }
+  openLoadPanel();
+};
 document.getElementById("closeLoad").onclick = closeLoadPanel;
 
 /* Eventos – painel */
-document.getElementById("eventsPanelBtn").onclick = openEventsPanel;
+document.getElementById("eventsPanelBtn").onclick = ()=>{
+  openEventsPanel();
+};
 document.getElementById("closeEvents").onclick = closeEventsPanel;
 
 /* Timeline buttons */
@@ -2291,9 +2463,19 @@ document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   if(!type) return;
 
   if(btn.classList.contains("tl-player")){
-    btn.addEventListener("click", ()=> setPendingEvent(type));
+    btn.addEventListener("click", ()=>{
+      if(document.body.classList.contains("gc-locked")){
+        alert("🔒 Está bloqueado. Desbloqueia para registar eventos.");
+        return;
+      }
+      setPendingEvent(type);
+    });
   }else{
     btn.addEventListener("click", ()=>{
+      if(document.body.classList.contains("gc-locked")){
+        alert("🔒 Está bloqueado. Desbloqueia para registar eventos.");
+        return;
+      }
       if(type === "GF_A") startGoalFlow();
       else handleTeamEvent(type);
     });
@@ -2318,5 +2500,6 @@ updateHalfBadge();
 updateScoreUI();
 updateFloatingPlayBtn();
 </script>
+
 </body>
 </html>
