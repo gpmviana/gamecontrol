@@ -19,7 +19,7 @@
   }
   body.light-mode{ background:#f5f5f5; color:#222; }
 
-  /* ====== PSEUDO FULLSCREEN (mobile/tablet fallback) ====== */
+  /* PSEUDO FULLSCREEN (fallback mobile/tablet) */
   body.pseudo-fullscreen{ height:100vh; overflow:hidden; }
   body.pseudo-fullscreen #appWrapper{
     height:calc(100vh - var(--timeline-h));
@@ -27,13 +27,9 @@
     -webkit-overflow-scrolling: touch;
     padding-bottom: 20px;
   }
-  body.pseudo-fullscreen header{
-    position:sticky;
-    top:0;
-    z-index:1600;
-  }
+  body.pseudo-fullscreen header{ position:sticky; top:0; z-index:1400; }
 
-  /* HEADER NOVO COM LOGO À ESQUERDA */
+  /* HEADER */
   header{
     display:flex;
     align-items:center;
@@ -61,55 +57,14 @@
   .top-buttons button:active{ transform:scale(0.96); }
   body.light-mode .top-buttons button{ color:#222; }
 
-  /* 🔒 LOCK MODE (bloqueia cliques perigosos) */
-  body.gc-locked .lock-disabled{
+  /* 🔒 LOCK MODE — SÓ BLOQUEIA BOTÕES DO HEADER (não mexe na timeline!) */
+  body.gc-locked header .top-buttons button:not(#lockBtn):not(#themeToggle):not(#fullscreenBtn){
     opacity:.35;
-    pointer-events:none !important;
+    pointer-events:none;
     filter:grayscale(1);
   }
-  /* mas deixa o play sempre clicável */
-  body.gc-locked #floatingPlayBtn{
-    pointer-events:auto !important;
-    opacity:1 !important;
-    filter:none !important;
-  }
 
-  /* Toast lock */
-  #lockToast{
-    position:fixed;
-    top:58px;
-    left:50%;
-    transform:translateX(-50%);
-    background:rgba(0,0,0,.85);
-    color:#fff;
-    padding:8px 12px;
-    border-radius:999px;
-    font-size:12px;
-    z-index:1900;
-    display:none;
-    max-width:92vw;
-    box-sizing:border-box;
-  }
-  body.light-mode #lockToast{ background:rgba(20,20,20,.85); }
-
-  /* Dica fullscreen mobile */
-  #fsHint{
-    position:fixed;
-    top:58px;
-    left:50%;
-    transform:translateX(-50%);
-    background:rgba(0,0,0,.75);
-    color:#fff;
-    padding:8px 12px;
-    border-radius:999px;
-    font-size:12px;
-    z-index:1850;
-    display:none;
-    max-width:92vw;
-    box-sizing:border-box;
-  }
-
-  /* BOTÃO FLUTUANTE INICIAR/PAUSAR */
+  /* BOTÃO FLUTUANTE PLAY */
   #floatingPlayBtn{
     position:fixed;
     top:64px;
@@ -140,6 +95,15 @@
   }
   #floatingPlayBtn:active{ transform:scale(0.95); }
 
+  /* Dica (mobile fullscreen) */
+  #fsHint{
+    display:none;
+    padding:6px 10px;
+    font-size:12px;
+    opacity:.85;
+  }
+
+  /* EQUIPAS */
   #teamInputs{
     display:flex;
     justify-content:center;
@@ -223,7 +187,7 @@
     text-align:center;
   }
 
-  /* Grelha dos jogadores */
+  /* Grelha jogadores */
   #players{
     display:grid;
     grid-template-columns:repeat(5,minmax(0,1fr));
@@ -280,6 +244,7 @@
     box-shadow:0 0 0 3px rgba(255,77,77,0.35);
   }
 
+  /* Resumo */
   .summary{
     width:90%;
     max-width:1100px;
@@ -344,7 +309,7 @@
     display:flex; align-items:center; justify-content:center;
     padding:0 5px;
   }
-  .badge-yc, .badge-rc, .badge-goal, .badge-assist{
+  .badge-yc,.badge-rc,.badge-goal,.badge-assist{
     height:18px; border-radius:2px;
     border:1px solid rgba(0,0,0,.4);
     display:flex; align-items:center; justify-content:center;
@@ -378,12 +343,13 @@
     background:transparent; border:none; color:#fff;
     font-size:18px; cursor:pointer;
   }
-  #editPanel h3, #presetsPanel h3, #eventsPanel h3{ margin:0 0 10px 0; }
   #editPanel .row{
     display:flex; align-items:center; gap:8px;
     margin-bottom:8px;
   }
-  #editPanel .row span{ width:24px; text-align:right; color:#ccc; font-size:13px; }
+  #editPanel .row span{
+    width:24px; text-align:right; color:#ccc; font-size:13px;
+  }
   #editPanel .row input[type="text"]{
     flex:1; padding:6px; border-radius:6px;
     border:1px solid #777; background:#1f1f1f; color:#fff;
@@ -420,7 +386,6 @@
     background:transparent; border:none; color:#fff;
     font-size:18px; cursor:pointer;
   }
-  #loadPanel h3{ margin:0 0 10px 0; }
   .load-row{
     display:flex; flex-direction:column;
     padding:6px 8px; border-radius:8px;
@@ -438,21 +403,6 @@
   .fat-low{ color:#2ecc71; }
   .fat-mid{ color:#f1c40f; }
   .fat-high{ color:#e74c3c; }
-
-  /* Eventos */
-  .event-row{
-    display:flex; flex-direction:column; gap:2px;
-    padding:6px 8px; border-radius:8px; margin-bottom:6px;
-    background:#1f1f1f; border:1px solid #444;
-    font-size:12px; text-align:left;
-  }
-  .event-main{ display:flex; justify-content:space-between; align-items:center; gap:6px; }
-  .event-meta{ font-size:11px; color:#ccc; }
-  .event-type{ font-weight:600; }
-  .event-delete{
-    border:none; border-radius:999px; padding:3px 8px;
-    font-size:11px; cursor:pointer; background:#e74c3c; color:#fff;
-  }
 
   /* Timeline fixa */
   #timelineBar{
@@ -481,8 +431,8 @@
     gap:5px;
   }
   body.light-mode .tl-btn{ background:#666; color:#fff; }
-  .tl-btn span.icon{ font-size:16px; }
-  .tl-btn span.label{ font-size:12px; }
+  .tl-btn span.icon{font-size:16px;}
+  .tl-btn span.label{font-size:12px;}
 
   @keyframes selectBlink{
     0%,100%{ outline-color:#fff; opacity:1; }
@@ -494,7 +444,7 @@
     animation:selectBlink 1s infinite;
   }
 
-  /* 🔐 LOGIN SCREEN */
+  /* LOGIN */
   #loginScreen{
     position:fixed; inset:0;
     display:flex; align-items:center; justify-content:center;
@@ -549,67 +499,21 @@
   body.light-mode #loginScreen input{ background:#f3f3f3; color:#111; }
   body.light-mode #loginScreen button{ background:#005ea6; }
 
-  /* 🛡️ ADMIN PANEL */
-  #adminPanel{
-    position:fixed;
-    left:-520px;
-    top:8%;
-    width:480px;
-    height:84%;
-    background:rgba(0,0,0,0.96);
-    border-right:2px solid #555;
-    border-radius:0 14px 14px 0;
-    padding:14px;
-    box-shadow:6px 0 18px rgba(0,0,0,.45);
-    transition:left .2s;
-    z-index:1600;
-    overflow:auto;
-    text-align:left;
-    color:#fff;
+  /* Dispositivo / sessão */
+  #sessionInfo{
+    font-size:12px;
+    opacity:.85;
+    margin:6px auto 0 auto;
+    max-width:980px;
   }
-  #adminPanel.open{ left:0; }
-  #adminPanel h3{ margin:0 0 10px 0; }
-  #adminPanel .close-btn{
-    position:absolute; top:8px; right:10px;
-    background:transparent; border:none; color:#fff;
-    font-size:18px; cursor:pointer;
-  }
-  .admin-user{
-    border:1px solid #444;
-    background:#1f1f1f;
-    border-radius:10px;
-    padding:10px;
-    margin-bottom:10px;
-  }
-  .admin-user .row{
-    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
-    margin-top:6px;
-  }
-  .admin-user button{
-    padding:6px 10px; border:none; border-radius:10px;
-    background:#444; color:#fff; cursor:pointer;
-  }
-  .admin-user button.danger{ background:#a33; }
-  .admin-user button.ok{ background:#2e8b57; }
-  .chip{
-    display:inline-block;
-    padding:2px 8px;
-    border-radius:999px;
-    font-size:11px;
-    border:1px solid #555;
-    margin-left:6px;
-    opacity:.95;
-  }
-  .chip.ok{ border-color:rgba(46,204,113,.5); color:#2ecc71; }
-  .chip.bad{ border-color:rgba(231,76,60,.5); color:#e74c3c; }
 </style>
 
-<!-- 🔐 Firebase Auth + Firestore (devices + roles/admin) -->
+<!-- 🔐 Firebase Auth + Firestore (devices + lastSeen + "ativo há X") -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
   import {
-    getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
+    getFirestore, doc, getDoc, setDoc, updateDoc,
     collection, getDocs, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
@@ -627,9 +531,7 @@
   const auth = getAuth(app);
   const db  = getFirestore(app);
 
-  // =========================
-  // ✅ Helpers
-  // =========================
+  // ===== Helpers =====
   function getDeviceId(){
     const k = "gc_device_id";
     let v = localStorage.getItem(k);
@@ -640,12 +542,13 @@
     return v;
   }
 
-  // tenta users/{uid} primeiro, se não existir tenta clubs/{uid}
   async function resolveProfile(uid){
+    // users/{uid} primeiro
     const uRef = doc(db, "users", uid);
     const uSnap = await getDoc(uRef);
     if(uSnap.exists()) return { kind:"user", baseRef:uRef, data:uSnap.data() };
 
+    // fallback clubs/{uid} (mantém compatibilidade)
     const cRef = doc(db, "clubs", uid);
     const cSnap = await getDoc(cRef);
     if(cSnap.exists()) return { kind:"club", baseRef:cRef, data:cSnap.data() };
@@ -668,6 +571,7 @@
   async function ensureDeviceAllowed(profile){
     const deviceId = getDeviceId();
 
+    // ⚠️ active (és tu que controlas)
     const active = profile.data?.active;
     if(active === false) throw new Error("Conta desativada.");
 
@@ -684,9 +588,7 @@
     }
 
     const used = await countAllowedDevices(profile);
-    if(used >= limit){
-      throw new Error(`Limite de dispositivos atingido (${limit}).`);
-    }
+    if(used >= limit) throw new Error(`Limite de dispositivos atingido (${limit}).`);
 
     await setDoc(deviceRef, {
       createdAt: serverTimestamp(),
@@ -707,12 +609,9 @@
     }, 30000);
   }
 
-  // =========================
-  // ✅ FULLSCREEN (PC) + fallback telemóvel/tablet (pseudo fullscreen)
-  // =========================
+  // ===== Fullscreen =====
   function supportsNativeFullscreen(){
-    const el = document.documentElement;
-    return !!(el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen);
+    return !!(document.documentElement.requestFullscreen);
   }
   function isIOS(){
     return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -721,36 +620,6 @@
     return (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
            /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   }
-
-  function showHint(el, text){
-    if(!el) return;
-    el.textContent = text;
-    el.style.display = "block";
-    clearTimeout(window.__gcHintT);
-    window.__gcHintT = setTimeout(()=>{ el.style.display="none"; }, 2200);
-  }
-
-  async function requestFS(){
-    const el = document.documentElement;
-    try{
-      if(el.requestFullscreen) return await el.requestFullscreen();
-      if(el.webkitRequestFullscreen) return await el.webkitRequestFullscreen();
-      if(el.msRequestFullscreen) return await el.msRequestFullscreen();
-    }catch(e){}
-  }
-
-  async function exitFS(){
-    try{
-      if(document.exitFullscreen) return await document.exitFullscreen();
-      if(document.webkitExitFullscreen) return await document.webkitExitFullscreen();
-      if(document.msExitFullscreen) return await document.msExitFullscreen();
-    }catch(e){}
-  }
-
-  function isFS(){
-    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
-  }
-
   function enterPseudoFullscreen(){
     document.body.classList.add("pseudo-fullscreen");
     localStorage.setItem("gc_pseudo_fs","1");
@@ -759,270 +628,84 @@
     document.body.classList.remove("pseudo-fullscreen");
     localStorage.setItem("gc_pseudo_fs","0");
   }
-
-  async function toggleFullscreen(){
-    const fsHint = document.getElementById("fsHint");
-
-    // iOS / mobile: pseudo fullscreen (mais estável)
+  function toggleFullscreen(){
+    // mobile/tablet: pseudo fullscreen
     if(isMobileLike() && (isIOS() || !supportsNativeFullscreen())){
-      if(document.body.classList.contains("pseudo-fullscreen")){
-        exitPseudoFullscreen();
-        showHint(fsHint, "Saiu do modo ecrã inteiro (mobile).");
-      }else{
-        enterPseudoFullscreen();
-        showHint(fsHint, "Modo ecrã inteiro (mobile) ativo.");
-      }
+      if(document.body.classList.contains("pseudo-fullscreen")) exitPseudoFullscreen();
+      else enterPseudoFullscreen();
       return;
     }
-
-    // Desktop / suportado
-    if(!isFS()){
-      const ok = await requestFS();
-      if(!ok){
-        enterPseudoFullscreen();
-        showHint(fsHint, "Fullscreen não permitido. Ativei modo alternativo.");
-      }
+    // desktop: Fullscreen API
+    if(!document.fullscreenElement){
+      document.documentElement.requestFullscreen().catch(()=> enterPseudoFullscreen());
     }else{
-      await exitFS();
+      document.exitFullscreen().catch(()=>{});
     }
   }
 
-  // =========================
-  // ✅ LOCK: bloqueia botões perigosos durante jogo
-  // =========================
-  let uiLocked = false;
+  // ===== Lock (só header) =====
+  const LOCK_KEY = "gc_ui_locked_header_v1";
   function setLocked(v){
-    uiLocked = !!v;
-    document.body.classList.toggle("gc-locked", uiLocked);
-    localStorage.setItem("gc_ui_locked", uiLocked ? "1":"0");
-
+    const on = !!v;
+    document.body.classList.toggle("gc-locked", on);
+    localStorage.setItem(LOCK_KEY, on ? "1" : "0");
     const lockBtn = document.getElementById("lockBtn");
-    if(lockBtn) lockBtn.textContent = uiLocked ? "🔒" : "🔓";
-
-    const toast = document.getElementById("lockToast");
-    if(toast){
-      if(uiLocked){
-        toast.style.display = "block";
-        clearTimeout(window.__lockToastT);
-        window.__lockToastT = setTimeout(()=>{ toast.style.display="none"; }, 2200);
-      }else{
-        toast.style.display = "none";
-      }
-    }
+    if(lockBtn) lockBtn.textContent = on ? "🔒" : "🔓";
+    if(lockBtn) lockBtn.title = on ? "Desbloquear botões do topo" : "Bloquear botões do topo";
   }
-  function toggleLock(){ setLocked(!uiLocked); }
-
-  // =========================
-  // ✅ ADMIN UI (role === admin/owner)
-  // =========================
-  let currentProfile = null;
-
-  function isAdminRole(profile){
-    const role = String(profile?.data?.role || "").toLowerCase();
-    return role === "admin" || role === "owner";
+  function toggleLock(){
+    const now = document.body.classList.contains("gc-locked");
+    setLocked(!now);
   }
 
-  async function fetchUsersForAdmin(){
-    const colRef = collection(db, "users");
-    const snap = await getDocs(colRef);
-    const arr = [];
-    snap.forEach(docu=>{
-      arr.push({ uid: docu.id, ...docu.data() });
-    });
-    arr.sort((a,b)=> (a.name||a.email||a.uid).localeCompare(b.name||b.email||b.uid));
-    return arr;
+  // ===== "Ativo há X" =====
+  function fmtAgo(ms){
+    ms = Math.max(0, ms);
+    const s = Math.floor(ms/1000);
+    if(s < 10) return "agora";
+    if(s < 60) return `há ${s}s`;
+    const m = Math.floor(s/60);
+    if(m < 60) return `há ${m}m`;
+    const h = Math.floor(m/60);
+    if(h < 24) return `há ${h}h`;
+    const d = Math.floor(h/24);
+    return `há ${d}d`;
   }
 
-  async function fetchDevicesFor(uid){
-    const baseRef = doc(db, "users", uid);
-    const devCol = collection(baseRef, "devices");
-    const snap = await getDocs(devCol);
-    const devs = [];
-    snap.forEach(d=> devs.push({ id: d.id, ...d.data() }));
-    devs.sort((a,b)=>{
-      const ta = a.lastSeen?.seconds || 0;
-      const tb = b.lastSeen?.seconds || 0;
-      return tb - ta;
-    });
-    return devs;
+  let sessionTicker = null;
+  let lastSeenLocal = null;
+
+  function startSessionTicker(){
+    const box = document.getElementById("sessionInfo");
+    if(!box) return;
+    if(sessionTicker) clearInterval(sessionTicker);
+
+    sessionTicker = setInterval(()=>{
+      if(!lastSeenLocal) return;
+      const ms = Date.now() - lastSeenLocal;
+      box.textContent = `Sessão: ativo ${fmtAgo(ms)} · Device: ${getDeviceId().slice(0,8)}…`;
+    }, 1000);
   }
 
-  function fmtTS(ts){
-    if(!ts || !ts.seconds) return "—";
-    const d = new Date(ts.seconds * 1000);
-    return d.toLocaleString("pt-PT");
-  }
-
-  async function openAdminPanel(){
-    const panel = document.getElementById("adminPanel");
-    const list = document.getElementById("adminList");
-    if(!panel || !list) return;
-
-    list.innerHTML = `<div style="color:#ccc;font-size:12px;">A carregar...</div>`;
-    panel.classList.add("open");
-
-    try{
-      const users = await fetchUsersForAdmin();
-      list.innerHTML = users.length ? "" : `<div style="color:#ccc;font-size:12px;">Sem users.</div>`;
-
-      for(const u of users){
-        const wrap = document.createElement("div");
-        wrap.className = "admin-user";
-
-        const role = (u.role || "user");
-        const active = (u.active !== false);
-        const limit = Number(u.deviceLimit ?? 3);
-
-        wrap.innerHTML = `
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-            <div>
-              <div style="font-weight:700;font-size:14px;">${u.name || u.email || u.uid}</div>
-              <div style="font-size:12px;color:#bbb;">
-                UID: <span style="opacity:.9">${u.uid}</span>
-                ${active ? `<span class="chip ok">ativo</span>` : `<span class="chip bad">inativo</span>`}
-                <span class="chip">${role}</span>
-              </div>
-            </div>
-            <button class="danger" data-uid="${u.uid}" data-act="${active ? "1":"0"}">
-              ${active ? "Desativar" : "Ativar"}
-            </button>
-          </div>
-
-          <div class="row">
-            <label style="font-size:12px;color:#ddd;">Limite:</label>
-            <input type="number" min="1" max="20" value="${limit}" id="lim_${u.uid}" style="width:90px;">
-            <button class="ok" data-save="${u.uid}">Guardar</button>
-            <button data-dev="${u.uid}">Ver devices</button>
-            <button class="danger" data-clear="${u.uid}">Limpar devices</button>
-          </div>
-
-          <div class="admin-dev" id="dev_${u.uid}" style="display:none;"></div>
-        `;
-
-        list.appendChild(wrap);
-      }
-
-      // binds
-      list.querySelectorAll("button[data-save]").forEach(btn=>{
-        btn.onclick = async ()=>{
-          const uid = btn.dataset.save;
-          const v = Number(document.getElementById("lim_"+uid).value || 3);
-          await updateDoc(doc(db,"users",uid), { deviceLimit: v }).catch(()=>{});
-          alert("Guardado.");
-        };
-      });
-
-      list.querySelectorAll("button[data-act]").forEach(btn=>{
-        btn.onclick = async ()=>{
-          const uid = btn.dataset.uid;
-          const nowActive = btn.dataset.act === "1";
-          await updateDoc(doc(db,"users",uid), { active: !nowActive }).catch(()=>{});
-          alert("Atualizado.");
-          openAdminPanel();
-        };
-      });
-
-      list.querySelectorAll("button[data-clear]").forEach(btn=>{
-        btn.onclick = async ()=>{
-          const uid = btn.dataset.clear;
-          if(!confirm("Limpar TODOS os devices deste user?")) return;
-          const devs = await fetchDevicesFor(uid);
-          for(const d of devs){
-            await deleteDoc(doc(db,"users",uid,"devices",d.id)).catch(()=>{});
-          }
-          alert("Devices apagados.");
-          openAdminPanel();
-        };
-      });
-
-      list.querySelectorAll("button[data-dev]").forEach(btn=>{
-        btn.onclick = async ()=>{
-          const uid = btn.dataset.dev;
-          const box = document.getElementById("dev_"+uid);
-          if(!box) return;
-
-          if(box.style.display === "block"){
-            box.style.display = "none";
-            box.innerHTML = "";
-            return;
-          }
-
-          box.style.display = "block";
-          box.innerHTML = `<div style="color:#ccc;">A carregar devices...</div>`;
-
-          const devs = await fetchDevicesFor(uid);
-
-          if(!devs.length){
-            box.innerHTML = `<div style="color:#ccc;">Sem devices.</div>`;
-            return;
-          }
-
-          box.innerHTML = devs.map(d=>{
-            const blocked = d.blocked === true;
-            return `
-              <div style="border:1px solid #333;background:#141414;border-radius:10px;padding:8px;margin-top:8px;">
-                <div><b>ID:</b> ${d.id} ${blocked ? `<span class="chip bad">blocked</span>` : `<span class="chip ok">ok</span>`}</div>
-                <div><b>Criado:</b> ${fmtTS(d.createdAt)}</div>
-                <div><b>LastSeen:</b> ${fmtTS(d.lastSeen)}</div>
-                <div style="opacity:.85"><b>UA:</b> ${(d.userAgent||"").slice(0,80)}${(d.userAgent||"").length>80?"…":""}</div>
-                <div class="row" style="margin-top:8px;">
-                  <button data-block="${uid}::${d.id}" class="danger">${blocked ? "Desbloquear" : "Bloquear"}</button>
-                  <button data-del="${uid}::${d.id}" class="danger">Apagar</button>
-                </div>
-              </div>
-            `;
-          }).join("");
-
-          box.querySelectorAll("button[data-block]").forEach(b=>{
-            b.onclick = async ()=>{
-              const [u, devId] = b.dataset.block.split("::");
-              const ref = doc(db,"users",u,"devices",devId);
-              const snap = await getDoc(ref);
-              const cur = snap.exists() ? !!(snap.data().blocked) : false;
-              await updateDoc(ref, { blocked: !cur }).catch(()=>{});
-              openAdminPanel();
-            };
-          });
-
-          box.querySelectorAll("button[data-del]").forEach(b=>{
-            b.onclick = async ()=>{
-              const [u, devId] = b.dataset.del.split("::");
-              if(!confirm("Apagar este device?")) return;
-              await deleteDoc(doc(db,"users",u,"devices",devId)).catch(()=>{});
-              openAdminPanel();
-            };
-          });
-        };
-      });
-
-    }catch(e){
-      console.error(e);
-      list.innerHTML = `<div style="color:#ff6666;font-size:12px;">Erro ao carregar users.</div>`;
-    }
-  }
-
-  function closeAdminPanel(){
-    const panel = document.getElementById("adminPanel");
-    if(panel) panel.classList.remove("open");
-  }
-
-  // =========================
-  // ✅ DOM Ready + Auth flow
-  // =========================
+  // ===== DOM + Auth =====
   window.addEventListener("DOMContentLoaded", () => {
     // restore lock
-    const lockSaved = localStorage.getItem("gc_ui_locked");
-    setLocked(lockSaved === "1");
+    setLocked(localStorage.getItem(LOCK_KEY) === "1");
 
-    // restore pseudo fs
-    const pfs = localStorage.getItem("gc_pseudo_fs");
-    if(pfs === "1") document.body.classList.add("pseudo-fullscreen");
+    // restore pseudo fullscreen
+    if(localStorage.getItem("gc_pseudo_fs") === "1") document.body.classList.add("pseudo-fullscreen");
 
-    // bind lock button
+    // fs hint
+    const fsHint = document.getElementById("fsHint");
+    if(fsHint && isMobileLike() && (isIOS() || !supportsNativeFullscreen())){
+      fsHint.style.display = "block";
+      fsHint.textContent = "ℹ️ No telemóvel/tablet, o fullscreen é modo 'ecrã inteiro' (pseudo).";
+    }
+
+    // bind buttons
     const lockBtn = document.getElementById("lockBtn");
     if(lockBtn) lockBtn.addEventListener("click", toggleLock);
 
-    // bind fullscreen
     const fsBtn = document.getElementById("fullscreenBtn");
     if(fsBtn) fsBtn.addEventListener("click", toggleFullscreen);
 
@@ -1034,12 +717,7 @@
     const loginBtn      = document.getElementById("loginBtn");
     const loginError    = document.getElementById("loginError");
     const logoutBtn     = document.getElementById("logoutBtn");
-
-    // admin refs
-    const adminBtn = document.getElementById("adminBtn");
-    const adminClose = document.getElementById("adminClose");
-    if(adminBtn) adminBtn.onclick = openAdminPanel;
-    if(adminClose) adminClose.onclick = closeAdminPanel;
+    const sessionInfo   = document.getElementById("sessionInfo");
 
     if(loginBtn){
       loginBtn.addEventListener("click", async () => {
@@ -1061,13 +739,14 @@
 
     if(logoutBtn){
       logoutBtn.addEventListener("click", async () => {
-        // se locked, bloqueia logout para evitar cliques acidentais
+        // se bloqueado, evita logout acidental
         if(document.body.classList.contains("gc-locked")){
-          alert("🔒 O ecrã está bloqueado. Desbloqueia para terminar sessão.");
+          alert("🔒 Botões do topo bloqueados. Desbloqueia para terminar sessão.");
           return;
         }
         try{
           if(heartbeatInterval) clearInterval(heartbeatInterval);
+          if(sessionTicker) clearInterval(sessionTicker);
           await signOut(auth);
         }catch(err){
           console.error(err);
@@ -1085,16 +764,17 @@
             return;
           }
 
-          currentProfile = profile;
-
           const { deviceRef } = await ensureDeviceAllowed(profile);
           await updateDoc(profile.baseRef, { lastLogin: serverTimestamp() }).catch(()=>{});
           startHeartbeat(deviceRef);
 
-          // role
-          if(adminBtn){
-            adminBtn.style.display = isAdminRole(profile) ? "inline-flex" : "none";
+          // “Ativo há X”: como lastSeen é serverTimestamp, vamos mostrar “agora” e ir contando localmente
+          lastSeenLocal = Date.now();
+          if(sessionInfo){
+            sessionInfo.style.display = "block";
+            sessionInfo.textContent = `Sessão: ativo agora · Device: ${getDeviceId().slice(0,8)}…`;
           }
+          startSessionTicker();
 
           loginScreen.style.display = "none";
           appWrapper.style.display  = "block";
@@ -1107,29 +787,24 @@
           loginScreen.style.display = "flex";
           appWrapper.style.display  = "none";
           if(logoutBtn) logoutBtn.style.display = "none";
-          if(adminBtn) adminBtn.style.display = "none";
+          if(sessionInfo) sessionInfo.style.display = "none";
         }
       }else{
         if(heartbeatInterval) clearInterval(heartbeatInterval);
-        currentProfile = null;
+        if(sessionTicker) clearInterval(sessionTicker);
+        lastSeenLocal = null;
 
         loginScreen.style.display = "flex";
         appWrapper.style.display  = "none";
         if(logoutBtn) logoutBtn.style.display = "none";
-        const panel = document.getElementById("adminPanel");
-        if(panel) panel.classList.remove("open");
-        if(adminBtn) adminBtn.style.display = "none";
+        if(sessionInfo) sessionInfo.style.display = "none";
       }
     });
   });
 </script>
-
 </head>
+
 <body>
-
-<div id="fsHint"></div>
-<div id="lockToast">🔒 Botões bloqueados (toca no 🔒 para desbloquear)</div>
-
 <header>
   <div class="header-left">
     <img src="logo-gc.png" alt="Game Control" class="header-logo">
@@ -1139,29 +814,20 @@
   <div class="top-buttons">
     <button id="themeToggle" title="Tema">🌙</button>
 
-    <!-- 🔒 novo -->
-    <button id="lockBtn" title="Bloquear cliques">🔓</button>
+    <!-- 🔒 novo lock (só header) -->
+    <button id="lockBtn" title="Bloquear botões do topo">🔓</button>
 
     <button id="fullscreenBtn" title="Fullscreen">⛶</button>
-
-    <button id="loadPanelBtn" title="Gestão de Cargas" class="lock-disabled">⚡</button>
-    <button id="editNamesBtn" title="Editar nomes" class="lock-disabled">👥</button>
-    <button id="presetsBtn" title="Presets" class="lock-disabled">💾</button>
-    <button id="printBtn" title="Exportar PNG" class="lock-disabled">📸</button>
-
-    <!-- 🛡️ admin (só aparece para admins) -->
-    <button id="adminBtn" title="Admin" style="display:none;">🛡️</button>
-
-    <button id="logoutBtn" title="Sair" style="display:none;" class="lock-disabled">🚪</button>
+    <button id="loadPanelBtn" title="Gestão de Cargas">⚡</button>
+    <button id="editNamesBtn" title="Editar nomes">👥</button>
+    <button id="presetsBtn" title="Presets">💾</button>
+    <button id="printBtn" title="Exportar PNG">📸</button>
+    <button id="logoutBtn" title="Sair" style="display:none;">🚪</button>
   </div>
 </header>
 
-<!-- 🛡️ ADMIN PANEL -->
-<div id="adminPanel">
-  <button class="close-btn" id="adminClose">❌</button>
-  <h3>Admin — Users & Devices</h3>
-  <div id="adminList"></div>
-</div>
+<div id="fsHint"></div>
+<div id="sessionInfo" style="display:none;"></div>
 
 <!-- LOGIN -->
 <div id="loginScreen">
@@ -1198,7 +864,7 @@
     <span id="halfBadge" class="half-badge">1ª Parte</span>
   </div>
 
-  <div class="controls lock-disabled">
+  <div class="controls">
     <input id="setMinutes" type="number" value="20" min="1" style="width:60px">
     <button id="intervalBtn">Intervalo</button>
     <button id="resetBtn">Reset</button>
@@ -1256,8 +922,8 @@
     <div id="eventsList"></div>
   </div>
 
-  <!-- TIMELINE COM LEGENDA -->
-  <div id="timelineBar" class="lock-disabled">
+  <!-- TIMELINE -->
+  <div id="timelineBar">
     <button class="tl-btn" data-type="GF_A">
       <span class="icon">⚽</span><span class="label">Golo +</span>
     </button>
@@ -1280,10 +946,12 @@
       <span class="icon">🧹</span><span class="label">Limpar</span>
     </button>
   </div>
-
 </div>
 
 <script>
+/* =========================
+   CORE (o teu original)
+========================= */
 let duration = 20 * 60;
 let remaining = duration;
 let timerInterval = null;
@@ -1505,6 +1173,7 @@ function updatePlayersUI(){
 
     const displaySec = p.active ? p.rotationSecondsCurrent : p.rotationSecondsOut;
     timeEl.textContent = formatTime(displaySec);
+
     lastEl.textContent = (p.lastRotation>0) ? ("Últ. rotação: " + formatTime(p.lastRotation)) : "";
 
     if(!p.isGK){
@@ -1558,7 +1227,9 @@ function ensurePlayerCount(n){
   saveData();
 }
 
-function activeCount(){ return players.reduce((a,p)=>a+(p.active?1:0),0); }
+function activeCount(){
+  return players.reduce((a,p)=>a+(p.active?1:0),0);
+}
 
 function flashLimit(id){
   const el = document.getElementById("player"+id);
@@ -1567,7 +1238,9 @@ function flashLimit(id){
   setTimeout(()=>el.classList.remove("limit"),600);
 }
 
-function addTimelineEvent(ev){ timeline.push(ev); }
+function addTimelineEvent(ev){
+  timeline.push(ev);
+}
 
 function rebuildStatsFromTimeline(){
   scoreA = 0;
@@ -1727,10 +1400,12 @@ function computeGameTime(){
     return t>max?t:max;
   },0);
 }
+
 function computeIdealPerPlayer(gameTime){
   if(players.length===0) return 0;
   return gameTime * (maxOnField / players.length);
 }
+
 function computePlayerWorkload(p, gameTime, idealPerPlayer){
   if(gameTime <= 0) return 0;
   return (p.seconds || 0) - idealPerPlayer;
@@ -1779,6 +1454,12 @@ function toggleTheme(){
   saveData();
 }
 
+/* Fullscreen aqui fica só para desktop (mobile é tratado no script module acima). */
+function toggleFullscreenDesktopOnly(){
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+  else document.exitFullscreen().catch(()=>{});
+}
+
 /* Edit panel */
 const editPanel = document.getElementById("editPanel");
 const editList = document.getElementById("editList");
@@ -1797,7 +1478,9 @@ function openEditPanel(){
   });
   editPanel.classList.add("open");
 }
-function closeEditPanel(){ editPanel.classList.remove("open"); }
+function closeEditPanel(){
+  editPanel.classList.remove("open");
+}
 function saveNamesFromPanel(){
   players.forEach(p=>{
     const v = document.getElementById("nameEdit"+p.id).value.trim();
@@ -1913,21 +1596,22 @@ function renderEventsPanel(){
   timeline.forEach((ev, idx)=>{
     const info = describeEvent(ev);
     const row = document.createElement("div");
-    row.className = "event-row";
+    row.className = "load-row";
     row.innerHTML = `
-      <div class="event-main">
-        <div>
-          <div class="event-meta">${info.header}</div>
-          <div class="event-type">${info.main || "Evento"}</div>
-          ${info.extra ? `<div class="event-meta">${info.extra}</div>` : ""}
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+        <div style="text-align:left;">
+          <div style="font-size:11px;color:#bbb;">${info.header}</div>
+          <div style="font-weight:700;">${info.main || "Evento"}</div>
+          ${info.extra ? `<div style="font-size:11px;color:#bbb;margin-top:2px;">${info.extra}</div>` : ""}
         </div>
-        <button class="event-delete" data-idx="${idx}">Apagar</button>
+        <button style="border:none;border-radius:999px;padding:3px 10px;font-size:11px;cursor:pointer;background:#e74c3c;color:#fff;"
+          data-idx="${idx}">Apagar</button>
       </div>
     `;
     eventsList.appendChild(row);
   });
 
-  eventsList.querySelectorAll(".event-delete").forEach(btn=>{
+  eventsList.querySelectorAll("button[data-idx]").forEach(btn=>{
     btn.onclick = ()=>{
       const i = parseInt(btn.getAttribute("data-idx"),10);
       if(isNaN(i) || i<0 || i>=timeline.length) return;
@@ -1956,7 +1640,6 @@ function closeEventsPanel(){
 /* Presets */
 function getPresets(){ return JSON.parse(localStorage.getItem(PRESETS_KEY) || "{}"); }
 function setPresets(obj){ localStorage.setItem(PRESETS_KEY, JSON.stringify(obj)); }
-
 function renderPresetList(){
   const list = document.getElementById("presetList");
   const all = getPresets();
@@ -1986,24 +1669,16 @@ function renderPresetList(){
     renderPresetList();
   });
 }
-
 function savePreset(){
   const nm = (document.getElementById("presetName").value || "").trim();
-  if(!nm){
-    alert("Dá um nome ao preset.");
-    return;
-  }
-  const data = {
-    size: players.length,
-    roster: players.map(p=>({ name: p.name, isGK: !!p.isGK }))
-  };
+  if(!nm){ alert("Dá um nome ao preset."); return; }
+  const data = { size: players.length, roster: players.map(p=>({ name: p.name, isGK: !!p.isGK })) };
   const all = getPresets();
   all[nm] = data;
   setPresets(all);
   renderPresetList();
   alert("Preset guardado.");
 }
-
 function loadPreset(name){
   const all = getPresets();
   const p = all[name];
@@ -2045,10 +1720,10 @@ function loadData(){
     players = [];
     for(let i=1;i<=14;i++){
       players.push({
-        id:i, name:"Jogador "+i, active:false, isGK:(i===1),
-        seconds:0, secondsOut:0, part1:0, part2:0, rotations:0,
-        rotationSecondsCurrent:0, rotationSecondsOut:0, lastRotation:0,
-        fatigue:0, fouls:0, yc:false, rc:false, goals:0, assists:0
+        id:i,name:"Jogador "+i,active:false,isGK:(i===1),
+        seconds:0,secondsOut:0,part1:0,part2:0,rotations:0,
+        rotationSecondsCurrent:0,rotationSecondsOut:0,lastRotation:0,
+        fatigue:0,fouls:0,yc:false,rc:false,goals:0,assists:0
       });
     }
     buildPlayersDOM();
@@ -2096,10 +1771,10 @@ function loadData(){
     if(players.length===0){
       for(let i=1;i<=14;i++){
         players.push({
-          id:i, name:"Jogador "+i, active:false, isGK:(i===1),
-          seconds:0, secondsOut:0, part1:0, part2:0, rotations:0,
-          rotationSecondsCurrent:0, rotationSecondsOut:0, lastRotation:0,
-          fatigue:0, fouls:0, yc:false, rc:false, goals:0, assists:0
+          id:i,name:"Jogador "+i,active:false,isGK:(i===1),
+          seconds:0,secondsOut:0,part1:0,part2:0,rotations:0,
+          rotationSecondsCurrent:0,rotationSecondsOut:0,lastRotation:0,
+          fatigue:0,fouls:0,yc:false,rc:false,goals:0,assists:0
         });
       }
     }
@@ -2122,7 +1797,7 @@ function loadData(){
   }
 }
 
-/* Export PNG (igual ao teu original) */
+/* Export PNG (o teu original) */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
@@ -2317,7 +1992,7 @@ function exportPng(){
   a.click();
 }
 
-/* Timeline – equipa */
+/* Timeline */
 function handleTeamEvent(type){
   const half = firstHalf ? 1 : 2;
   const clock = formatTime(remaining);
@@ -2327,8 +2002,7 @@ function handleTeamEvent(type){
   if(type==="GA_A") scoreB++;
 
   const ev = { type, half, clock, activeIds, ts: Date.now() };
-
-  timeline.push(ev);
+  addTimelineEvent(ev);
   updateScoreUI();
   saveData();
 }
@@ -2340,12 +2014,8 @@ function setPendingEvent(type){
   updatePlayersUI();
 }
 
-/* Vassoura */
+/* Limpar */
 document.getElementById("tlClearBtn").onclick = ()=>{
-  if(document.body.classList.contains("gc-locked")){
-    alert("🔒 Está bloqueado. Desbloqueia para limpar.");
-    return;
-  }
   if(!confirm("Limpar marcador, faltas/cartões, golos/assistências e timeline?")) return;
 
   scoreA = 0;
@@ -2369,62 +2039,25 @@ document.getElementById("tlClearBtn").onclick = ()=>{
   saveData();
 };
 
-/* Ligações de botões base */
-document.getElementById("resetBtn").onclick = ()=>{
-  if(document.body.classList.contains("gc-locked")){
-    alert("🔒 Está bloqueado. Desbloqueia para fazer reset.");
-    return;
-  }
-  resetTimer();
-};
-document.getElementById("intervalBtn").onclick = ()=>{
-  if(document.body.classList.contains("gc-locked")){
-    alert("🔒 Está bloqueado. Desbloqueia para intervalo.");
-    return;
-  }
-  intervalTimer();
-};
-document.getElementById("addBtn").onclick = ()=>{
-  if(document.body.classList.contains("gc-locked")){
-    alert("🔒 Está bloqueado. Desbloqueia para adicionar jogador.");
-    return;
-  }
-  ensurePlayerCount(players.length+1);
-};
-document.getElementById("removeBtn").onclick = ()=>{
-  if(document.body.classList.contains("gc-locked")){
-    alert("🔒 Está bloqueado. Desbloqueia para remover jogador.");
-    return;
-  }
-  if(players.length>1) ensurePlayerCount(players.length-1);
-};
+/* Ligações */
+document.getElementById("resetBtn").onclick = resetTimer;
+document.getElementById("intervalBtn").onclick = intervalTimer;
+document.getElementById("addBtn").onclick = ()=>ensurePlayerCount(players.length+1);
+document.getElementById("removeBtn").onclick = ()=>{ if(players.length>1) ensurePlayerCount(players.length-1); };
 document.getElementById("themeToggle").onclick = toggleTheme;
-// fullscreen é tratado pelo módulo
-document.getElementById("printBtn").onclick = ()=>{
-  if(document.body.classList.contains("gc-locked")){
-    alert("🔒 Está bloqueado. Desbloqueia para exportar.");
-    return;
-  }
-  exportPng();
-};
 
-document.getElementById("editNamesBtn").onclick = ()=>{
-  if(document.body.classList.contains("gc-locked")){
-    alert("🔒 Está bloqueado. Desbloqueia para editar nomes.");
-    return;
-  }
-  openEditPanel();
-};
+/* ⚠️ fullscreen: no desktop este handler ainda funciona, em mobile o module trata do click */
+document.getElementById("fullscreenBtn").addEventListener("dblclick", toggleFullscreenDesktopOnly);
+
+document.getElementById("printBtn").onclick = exportPng;
+
+document.getElementById("editNamesBtn").onclick = openEditPanel;
 document.getElementById("closePanel").onclick = closeEditPanel;
 document.getElementById("saveNamesBtn").onclick = saveNamesFromPanel;
 
-/* Presets – painel */
+/* Presets */
 const presetsPanel = document.getElementById("presetsPanel");
 document.getElementById("presetsBtn").onclick = ()=>{
-  if(document.body.classList.contains("gc-locked")){
-    alert("🔒 Está bloqueado. Desbloqueia para presets.");
-    return;
-  }
   renderPresetList();
   presetsPanel.classList.add("open");
   if(floatingPlayBtn) floatingPlayBtn.style.display = "none";
@@ -2433,28 +2066,14 @@ document.getElementById("closePresets").onclick = ()=>{
   presetsPanel.classList.remove("open");
   if(floatingPlayBtn) floatingPlayBtn.style.display = "block";
 };
-document.getElementById("savePresetBtn").onclick = ()=>{
-  if(document.body.classList.contains("gc-locked")){
-    alert("🔒 Está bloqueado. Desbloqueia para guardar preset.");
-    return;
-  }
-  savePreset();
-};
+document.getElementById("savePresetBtn").onclick = savePreset;
 
-/* Gestão de cargas – painel */
-document.getElementById("loadPanelBtn").onclick = ()=>{
-  if(document.body.classList.contains("gc-locked")){
-    alert("🔒 Está bloqueado. Desbloqueia para Gestão de Cargas.");
-    return;
-  }
-  openLoadPanel();
-};
+/* Gestão de cargas */
+document.getElementById("loadPanelBtn").onclick = openLoadPanel;
 document.getElementById("closeLoad").onclick = closeLoadPanel;
 
-/* Eventos – painel */
-document.getElementById("eventsPanelBtn").onclick = ()=>{
-  openEventsPanel();
-};
+/* Eventos */
+document.getElementById("eventsPanelBtn").onclick = openEventsPanel;
 document.getElementById("closeEvents").onclick = closeEventsPanel;
 
 /* Timeline buttons */
@@ -2463,26 +2082,16 @@ document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   if(!type) return;
 
   if(btn.classList.contains("tl-player")){
-    btn.addEventListener("click", ()=>{
-      if(document.body.classList.contains("gc-locked")){
-        alert("🔒 Está bloqueado. Desbloqueia para registar eventos.");
-        return;
-      }
-      setPendingEvent(type);
-    });
+    btn.addEventListener("click", ()=> setPendingEvent(type));
   }else{
     btn.addEventListener("click", ()=>{
-      if(document.body.classList.contains("gc-locked")){
-        alert("🔒 Está bloqueado. Desbloqueia para registar eventos.");
-        return;
-      }
       if(type === "GF_A") startGoalFlow();
       else handleTeamEvent(type);
     });
   }
 });
 
-/* Botão flutuante */
+/* Play */
 if(floatingPlayBtn){
   floatingPlayBtn.onclick = ()=>{
     if(running) pauseTimer();
@@ -2500,6 +2109,5 @@ updateHalfBadge();
 updateScoreUI();
 updateFloatingPlayBtn();
 </script>
-
 </body>
 </html>
