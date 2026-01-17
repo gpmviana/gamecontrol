@@ -2,11 +2,13 @@
 <html lang="pt">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Game Control</title>
 
 <style>
-  :root { --timeline-h: 54px; }
+  :root {
+    --timeline-h: 54px;
+  }
 
   body{
     font-family:Arial, sans-serif;
@@ -15,21 +17,13 @@
     color:#f5f5f5;
     text-align:center;
     padding-bottom: calc(var(--timeline-h) + 10px);
-    -webkit-tap-highlight-color: transparent;
   }
-  body.light-mode{ background:#f5f5f5; color:#222; }
-
-  /* PSEUDO FULLSCREEN (fallback mobile/tablet) */
-  body.pseudo-fullscreen{ height:100vh; overflow:hidden; }
-  body.pseudo-fullscreen #appWrapper{
-    height:calc(100vh - var(--timeline-h));
-    overflow:auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 20px;
+  body.light-mode{
+    background:#f5f5f5;
+    color:#222;
   }
-  body.pseudo-fullscreen header{ position:sticky; top:0; z-index:1400; }
 
-  /* HEADER */
+  /* HEADER NOVO COM LOGO À ESQUERDA */
   header{
     display:flex;
     align-items:center;
@@ -38,33 +32,45 @@
     padding:8px 16px;
     box-sizing:border-box;
   }
-  body.light-mode header{ background:#ddd; color:#111; }
+  body.light-mode header{
+    background:#ddd;
+    color:#111;
+  }
 
-  .header-left{ display:flex; align-items:center; gap:8px; }
-  .header-logo{ height:38px; width:auto; display:block; }
-  .header-title{ font-size:18px; font-weight:700; letter-spacing:.06em; }
+  .header-left{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
 
-  .top-buttons{ display:flex; gap:8px; align-items:center; }
+  .header-logo{
+    height:38px;
+    width:auto;
+    display:block;
+  }
+
+  .header-title{
+    font-size:18px;
+    font-weight:700;
+    letter-spacing:.06em;
+  }
+
+  .top-buttons{
+    display:flex;
+    gap:8px;
+  }
   .top-buttons button{
     background:none;
     border:none;
     font-size:22px;
     color:#fff;
     cursor:pointer;
-    padding:6px;
-    border-radius:10px;
   }
-  .top-buttons button:active{ transform:scale(0.96); }
-  body.light-mode .top-buttons button{ color:#222; }
-
-  /* 🔒 LOCK MODE — SÓ BLOQUEIA BOTÕES DO HEADER (não mexe na timeline!) */
-  body.gc-locked header .top-buttons button:not(#lockBtn):not(#themeToggle):not(#fullscreenBtn){
-    opacity:.35;
-    pointer-events:none;
-    filter:grayscale(1);
+  body.light-mode .top-buttons button{
+    color:#222;
   }
 
-  /* BOTÃO FLUTUANTE PLAY */
+  /* BOTÃO FLUTUANTE INICIAR/PAUSAR */
   #floatingPlayBtn{
     position:fixed;
     top:64px;
@@ -81,7 +87,7 @@
     cursor:pointer;
     z-index:1200;
     box-shadow:0 4px 12px rgba(0,0,0,0.5);
-    transition:background 0.2s, box-shadow 0.2s, transform 0.1s, opacity .2s;
+    transition:background 0.2s, box-shadow 0.2s, transform 0.1s;
   }
   #floatingPlayBtn.running{
     background:#e74c3c;
@@ -93,24 +99,16 @@
     color:#000;
     box-shadow:0 0 14px rgba(46,204,113,0.8);
   }
-  #floatingPlayBtn:active{ transform:scale(0.95); }
-
-  /* Dica (mobile fullscreen) */
-  #fsHint{
-    display:none;
-    padding:6px 10px;
-    font-size:12px;
-    opacity:.85;
+  #floatingPlayBtn:active{
+    transform:scale(0.95);
   }
 
-  /* EQUIPAS */
   #teamInputs{
     display:flex;
     justify-content:center;
     align-items:center;
     gap:10px;
     margin:10px;
-    flex-wrap:wrap;
   }
   #teamInputs input{
     padding:6px 10px;
@@ -133,7 +131,10 @@
     font-weight:800;
     font-size:20px;
   }
-  body.light-mode .scoreBubble{ background:#e7e7e7; color:#111; }
+  body.light-mode .scoreBubble{
+    background:#e7e7e7;
+    color:#111;
+  }
 
   .timer-row{
     display:flex;
@@ -142,7 +143,9 @@
     gap:10px;
     margin:6px 0 0 0;
   }
-  #timer{ font-size:3em; }
+  #timer{
+    font-size:3em;
+  }
   .half-badge{
     display:inline-block;
     padding:4px 10px;
@@ -152,7 +155,10 @@
     font-size:12px;
     letter-spacing:.3px;
   }
-  body.light-mode .half-badge{ background:#ccc; color:#111; }
+  body.light-mode .half-badge{
+    background:#ccc;
+    color:#111;
+  }
 
   .controls{
     display:flex;
@@ -162,7 +168,9 @@
     background:#2e2e2e;
     padding:10px;
   }
-  body.light-mode .controls{ background:#e0e0e0; }
+  body.light-mode .controls{
+    background:#e0e0e0;
+  }
   .controls button{
     padding:6px 10px;
     border:none;
@@ -171,23 +179,34 @@
     color:#fff;
     cursor:pointer;
   }
-  #intervalBtn,#resetBtn{
+  #intervalBtn,
+  #resetBtn{
     padding:10px 18px;
     font-size:16px;
     font-weight:600;
     border-radius:10px;
   }
-  #intervalBtn{ background:#f1c40f; color:#000; }
-  #resetBtn{ background:#e74c3c; color:#fff; }
-  body.light-mode .controls button{ background:#555; color:#fff; }
+  #intervalBtn{
+    background:#f1c40f;
+    color:#000;
+  }
+  #resetBtn{
+    background:#e74c3c;
+    color:#fff;
+  }
+  body.light-mode .controls button{
+    background:#555;
+    color:#fff;
+  }
   .controls input{
     padding:6px 8px;
     border-radius:6px;
     border:none;
     text-align:center;
   }
-
-  /* Grelha jogadores */
+</style>
+  <style>
+  /* Grelha dos jogadores */
   #players{
     display:grid;
     grid-template-columns:repeat(5,minmax(0,1fr));
@@ -196,9 +215,15 @@
     margin:8px 0 16px 0;
     justify-items:center;
   }
-  @media (max-width:1200px){ #players{grid-template-columns:repeat(4,minmax(0,1fr));} }
-  @media (max-width:900px){ #players{grid-template-columns:repeat(3,minmax(0,1fr));} }
-  @media (max-width:600px){ #players{grid-template-columns:repeat(2,minmax(0,1fr));} }
+  @media (max-width:1200px){
+    #players{grid-template-columns:repeat(4,minmax(0,1fr));}
+  }
+  @media (max-width:900px){
+    #players{grid-template-columns:repeat(3,minmax(0,1fr));}
+  }
+  @media (max-width:600px){
+    #players{grid-template-columns:repeat(2,minmax(0,1fr));}
+  }
 
   .player{
     width:100%;
@@ -210,41 +235,70 @@
     justify-content:center;
     cursor:pointer;
     transition:0.2s;
-    background:#8b2c23;
+    background:#8b2c23; /* fora - vermelho escuro */
     color:#fff;
     position:relative;
     overflow:hidden;
     box-sizing:border-box;
   }
-  .player.active{ background:#1f6f3a; color:#fff; }
+  .player.active{
+    background:#1f6f3a; /* em campo - verde escuro */
+    color:#fff;
+  }
 
-  .player strong{ font-size:12px; margin-bottom:2px; padding:0 3px; }
-  .player .time{ font-size:20px; font-weight:bold; line-height:1; }
-  .player .last{ font-size:8px; opacity:.9; margin-top:1px; }
+  .player strong{
+    font-size:12px;
+    margin-bottom:2px;
+    padding:0 3px;
+  }
+  .player .time{
+    font-size:20px;
+    font-weight:bold;
+    line-height:1;
+  }
+  .player .last{
+    font-size:8px;
+    opacity:.9;
+    margin-top:1px;
+  }
 
   .gk-icon{
-    position:absolute; top:6px; left:6px;
-    width:20px; height:20px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    background:rgba(0,0,0,0.45); font-size:13px;
+    position:absolute;
+    top:6px;
+    left:6px;
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,0.45);
+    font-size:13px;
   }
 
   .fatigue-container{
-    position:absolute; left:6px; right:6px; bottom:5px;
-    height:5px; border-radius:6px;
-    background:rgba(255,255,255,0.3); overflow:hidden;
+    position:absolute;
+    left:6px;
+    right:6px;
+    bottom:5px;
+    height:5px;
+    border-radius:6px;
+    background:rgba(255,255,255,0.3);
+    overflow:hidden;
   }
   .fatigue-bar{
-    height:100%; width:0%;
-    border-radius:6px; background:#2ecc71;
+    height:100%;
+    width:0%;
+    border-radius:6px;
+    background:#2ecc71;
     transition:width 0.2s linear, background 0.2s linear;
   }
+
   .player.limit{
     outline:3px solid #ff4d4d;
     box-shadow:0 0 0 3px rgba(255,77,77,0.35);
   }
 
-  /* Resumo */
   .summary{
     width:90%;
     max-width:1100px;
@@ -255,31 +309,67 @@
     box-shadow:0 8px 24px rgba(0,0,0,.35);
     overflow:hidden;
   }
-  body.light-mode .summary{ background:#ffffff; box-shadow:0 4px 10px rgba(0,0,0,.1); }
+  body.light-mode .summary{
+    background:#ffffff;
+    box-shadow:0 4px 10px rgba(0,0,0,.1);
+  }
   .summary h3{
-    margin:0; padding:12px 16px;
+    margin:0;
+    padding:12px 16px;
     background:#2f2f2f;
     border-bottom:1px solid #3a3a3a;
     text-align:left;
   }
-  body.light-mode .summary h3{ background:#e0e0e0; border-bottom:1px solid #ccc; color:#111; }
-  .summary table{ width:100%; border-collapse:separate; border-spacing:0; }
+  body.light-mode .summary h3{
+    background:#e0e0e0;
+    border-bottom:1px solid #ccc;
+    color:#111;
+  }
+  .summary table{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+  }
   .summary thead th{
-    position:sticky; top:0;
-    background:#303030; z-index:1;
+    position:sticky;
+    top:0;
+    background:#303030;
+    z-index:1;
     text-transform:uppercase;
-    font-size:12px; letter-spacing:.4px;
-    color:#ddd; border-bottom:1px solid #3a3a3a;
+    font-size:12px;
+    letter-spacing:.4px;
+    color:#ddd;
+    border-bottom:1px solid #3a3a3a;
     padding:10px 12px;
   }
-  body.light-mode .summary thead th{ background:#f0f0f0; color:#222; border-bottom:1px solid #ddd; }
-  .summary tbody td{ padding:10px 12px; border-bottom:1px solid #333; }
-  body.light-mode .summary tbody td{ border-bottom:1px solid #e0e0e0; }
-  .summary tbody tr:nth-child(even){ background:rgba(255,255,255,0.03); }
-  body.light-mode .summary tbody tr:nth-child(even){ background:#fafafa; }
-  .summary tbody tr:hover{ background:rgba(255,255,255,0.06); }
-  body.light-mode .summary tbody tr:hover{ background:#f2f2f2; }
-  .summary td:nth-child(1){ text-align:left; font-weight:600; }
+  body.light-mode .summary thead th{
+    background:#f0f0f0;
+    color:#222;
+    border-bottom:1px solid #ddd;
+  }
+  .summary tbody td{
+    padding:10px 12px;
+    border-bottom:1px solid #333;
+  }
+  body.light-mode .summary tbody td{
+    border-bottom:1px solid #e0e0e0;
+  }
+  .summary tbody tr:nth-child(even){
+    background:rgba(255,255,255,0.03);
+  }
+  body.light-mode .summary tbody tr:nth-child(even){
+    background:#fafafa;
+  }
+  .summary tbody tr:hover{
+    background:rgba(255,255,255,0.06);
+  }
+  body.light-mode .summary tbody tr:hover{
+    background:#f2f2f2;
+  }
+  .summary td:nth-child(1){
+    text-align:left;
+    font-weight:600;
+  }
 
   .pill{
     display:inline-block;
@@ -300,28 +390,111 @@
   }
 
   .card-badges{
-    position:absolute; top:6px; right:6px;
-    display:flex; gap:4px; align-items:center;
+    position:absolute;
+    top:6px;
+    right:6px;
+    display:flex;
+    gap:4px;
+    align-items:center;
   }
   .badge-fouls{
-    min-width:16px; height:18px; border-radius:999px;
-    background:#444; color:#fff; font-size:10px;
-    display:flex; align-items:center; justify-content:center;
+    min-width:16px;
+    height:18px;
+    border-radius:999px;
+    background:#444;
+    color:#fff;
+    font-size:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
     padding:0 5px;
   }
-  .badge-yc,.badge-rc,.badge-goal,.badge-assist{
-    height:18px; border-radius:2px;
+  .badge-yc, .badge-rc, .badge-goal, .badge-assist{
+    height:18px;
+    border-radius:2px;
     border:1px solid rgba(0,0,0,.4);
-    display:flex; align-items:center; justify-content:center;
-    font-size:11px; padding:0 4px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    padding:0 4px;
   }
   .badge-yc{ background:#f1c40f; min-width:14px; }
   .badge-rc{ background:#e74c3c; min-width:14px; }
   .badge-goal{ background:#2ecc71; }
   .badge-assist{ background:#3498db; }
+</style>
+<style>
+  /* Painel editar nomes */
+  #editPanel{
+    position:fixed;
+    right:-420px;
+    top:20%;
+    width:380px;
+    height:60%;
+    background:rgba(0,0,0,0.96);
+    border-left:2px solid #555;
+    border-radius:10px 0 0 10px;
+    padding:15px;
+    box-shadow:-4px 0 8px rgba(0,0,0,.4);
+    transition:right .2s;
+    z-index:999;
+    overflow-y:auto;
+  }
+  #editPanel.open{ right:0; }
+  #editPanel .close-btn{
+    position:absolute;
+    top:6px;
+    right:8px;
+    background:transparent;
+    border:none;
+    color:#fff;
+    font-size:18px;
+    cursor:pointer;
+  }
+  #editPanel h3{
+    margin:0 0 10px 0;
+  }
+  #editPanel .row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  #editPanel .row span{
+    width:24px;
+    text-align:right;
+    color:#ccc;
+    font-size:13px;
+  }
+  #editPanel .row input[type="text"]{
+    flex:1;
+    padding:6px;
+    border-radius:6px;
+    border:1px solid #777;
+    background:#1f1f1f;
+    color:#fff;
+  }
+  #editPanel .row label{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    color:#ddd;
+    font-size:13px;
+  }
+  #editPanel .save-btn{
+    width:100%;
+    padding:8px;
+    border:none;
+    border-radius:6px;
+    background:#0078d7;
+    color:#fff;
+    cursor:pointer;
+    margin-top:8px;
+  }
 
-  /* Painéis */
-  #editPanel, #presetsPanel, #eventsPanel{
+  /* Painel Presets */
+  #presetsPanel{
     position:fixed;
     right:-420px;
     top:10%;
@@ -336,35 +509,18 @@
     z-index:999;
     overflow-y:auto;
   }
-  #editPanel{ top:20%; height:60%; }
-  #editPanel.open, #presetsPanel.open, #eventsPanel.open{ right:0; }
-  #editPanel .close-btn, #presetsPanel .close-btn, #eventsPanel .close-btn{
-    position:absolute; top:6px; right:8px;
-    background:transparent; border:none; color:#fff;
-    font-size:18px; cursor:pointer;
-  }
-  #editPanel .row{
-    display:flex; align-items:center; gap:8px;
-    margin-bottom:8px;
-  }
-  #editPanel .row span{
-    width:24px; text-align:right; color:#ccc; font-size:13px;
-  }
-  #editPanel .row input[type="text"]{
-    flex:1; padding:6px; border-radius:6px;
-    border:1px solid #777; background:#1f1f1f; color:#fff;
-  }
-  #editPanel .row label{
-    display:flex; align-items:center; gap:4px;
-    color:#ddd; font-size:13px;
-  }
-  #editPanel .save-btn{
-    width:100%; padding:8px; border:none;
-    border-radius:6px; background:#0078d7; color:#fff;
-    cursor:pointer; margin-top:8px;
+  #presetsPanel.open{ right:0; }
+  #presetsPanel .close-btn{
+    position:absolute;
+    top:6px;
+    right:8px;
+    background:transparent;
+    border:none;
+    color:#fff;
+    font-size:18px;
   }
 
-  /* Load panel (esquerda) */
+  /* Painel Gestão de Cargas */
   #loadPanel{
     position:fixed;
     left:-420px;
@@ -382,31 +538,135 @@
   }
   #loadPanel.open{ left:0; }
   #loadPanel .close-btn{
-    position:absolute; top:6px; right:8px;
-    background:transparent; border:none; color:#fff;
-    font-size:18px; cursor:pointer;
+    position:absolute;
+    top:6px;
+    right:8px;
+    background:transparent;
+    border:none;
+    color:#fff;
+    font-size:18px;
+  }
+  #loadPanel h3{
+    margin:0 0 10px 0;
   }
   .load-row{
-    display:flex; flex-direction:column;
-    padding:6px 8px; border-radius:8px;
-    margin-bottom:6px; background:#1f1f1f;
-    border:1px solid #444; text-align:left;
+    display:flex;
+    flex-direction:column;
+    padding:6px 8px;
+    border-radius:8px;
+    margin-bottom:6px;
+    background:#1f1f1f;
+    border:1px solid #444;
+    text-align:left;
     font-size:13px;
   }
-  .load-meta{ display:flex; justify-content:space-between; margin-top:2px; font-size:12px; }
-  .load-tag{
-    display:inline-block; padding:2px 8px;
-    border-radius:999px; font-size:11px; font-weight:600;
+  .load-row strong{
+    font-size:13px;
   }
-  .load-pos{ background:rgba(46,204,113,.15); color:#2ecc71; border:1px solid rgba(46,204,113,.5); }
-  .load-neg{ background:rgba(231,76,60,.15); color:#e74c3c; border:1px solid rgba(231,76,60,.5); }
-  .fat-low{ color:#2ecc71; }
-  .fat-mid{ color:#f1c40f; }
-  .fat-high{ color:#e74c3c; }
+  .load-meta{
+    display:flex;
+    justify-content:space-between;
+    margin-top:2px;
+    font-size:12px;
+  }
+  .load-tag{
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:600;
+  }
+  .load-pos{
+    background:rgba(46,204,113,.15);
+    color:#2ecc71;
+    border:1px solid rgba(46,204,113,.5);
+  }
+  .load-neg{
+    background:rgba(231,76,60,.15);
+    color:#e74c3c;
+    border:1px solid rgba(231,76,60,.5);
+  }
+  .fat-low{
+    color:#2ecc71;
+  }
+  .fat-mid{
+    color:#f1c40f;
+  }
+  .fat-high{
+    color:#e74c3c;
+  }
 
-  /* Timeline fixa */
+  /* Painel Eventos (timeline) */
+  #eventsPanel{
+    position:fixed;
+    right:-420px;
+    top:10%;
+    width:380px;
+    height:80%;
+    background:rgba(0,0,0,0.96);
+    border-left:2px solid #555;
+    border-radius:10px 0 0 10px;
+    padding:15px;
+    box-shadow:-4px 0 8px rgba(0,0,0,.4);
+    transition:right .2s;
+    z-index:999;
+    overflow-y:auto;
+  }
+  #eventsPanel.open{ right:0; }
+  #eventsPanel .close-btn{
+    position:absolute;
+    top:6px;
+    right:8px;
+    background:transparent;
+    border:none;
+    color:#fff;
+    font-size:18px;
+    cursor:pointer;
+  }
+  #eventsPanel h3{
+    margin:0 0 10px 0;
+  }
+  .event-row{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    padding:6px 8px;
+    border-radius:8px;
+    margin-bottom:6px;
+    background:#1f1f1f;
+    border:1px solid #444;
+    font-size:12px;
+    text-align:left;
+  }
+  .event-main{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:6px;
+  }
+  .event-meta{
+    font-size:11px;
+    color:#ccc;
+  }
+  .event-type{
+    font-weight:600;
+  }
+  .event-delete{
+    border:none;
+    border-radius:999px;
+    padding:3px 8px;
+    font-size:11px;
+    cursor:pointer;
+    background:#e74c3c;
+    color:#fff;
+  }
+
+  /* Timeline fixa em baixo */
   #timelineBar{
-    position:fixed; left:0; right:0; bottom:0;
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
     height:var(--timeline-h);
     background:#212121;
     border-top:1px solid #444;
@@ -416,8 +676,10 @@
     gap:8px;
     z-index:900;
   }
-  body.light-mode #timelineBar{ background:#f0f0f0; border-top:1px solid #ccc; }
-
+  body.light-mode #timelineBar{
+    background:#f0f0f0;
+    border-top:1px solid #ccc;
+  }
   .tl-btn{
     border:none;
     border-radius:999px;
@@ -430,7 +692,10 @@
     align-items:center;
     gap:5px;
   }
-  body.light-mode .tl-btn{ background:#666; color:#fff; }
+  body.light-mode .tl-btn{
+    background:#666;
+    color:#fff;
+  }
   .tl-btn span.icon{font-size:16px;}
   .tl-btn span.label{font-size:12px;}
 
@@ -444,10 +709,33 @@
     animation:selectBlink 1s infinite;
   }
 
-  /* LOGIN */
+  #brandSignature{
+    position:fixed;
+    bottom:-5px;
+    right:12px;
+    z-index:9999;
+    pointer-events:none;
+  }
+  #brandSignature img{
+    height:65px;
+    opacity:0.7;
+    display:none;
+    user-select:none;
+  }
+  body:not(.light-mode) #brandSignature .sig-on-dark{
+    display:block;
+  }
+  body.light-mode #brandSignature .sig-on-light{
+    display:block;
+  }
+
+  /* 🔐 LOGIN SCREEN BONITO */
   #loginScreen{
-    position:fixed; inset:0;
-    display:flex; align-items:center; justify-content:center;
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
     background:radial-gradient(circle at top, #333 0, #111 55%);
     z-index:1500;
   }
@@ -463,8 +751,16 @@
     gap:10px;
     text-align:left;
   }
-  #loginTitle{ font-size:20px; font-weight:700; margin:0; }
-  #loginSubtitle{ font-size:12px; color:#ccc; margin:0 0 4px 0; }
+  #loginTitle{
+    font-size:20px;
+    font-weight:700;
+    margin:0;
+  }
+  #loginSubtitle{
+    font-size:12px;
+    color:#ccc;
+    margin:0 0 4px 0;
+  }
   .login-label{
     font-size:11px;
     text-transform:uppercase;
@@ -481,7 +777,9 @@
     width:100%;
     box-sizing:border-box;
   }
-  #loginScreen input::placeholder{ color:#777; }
+  #loginScreen input::placeholder{
+    color:#777;
+  }
   #loginScreen button{
     margin-top:10px;
     padding:9px 14px;
@@ -493,22 +791,28 @@
     font-weight:600;
     width:100%;
   }
-  #loginError{ color:#ff5555; font-size:11px; min-height:16px; }
-
-  body.light-mode #loginCard{ background:#ffffff; color:#111; }
-  body.light-mode #loginScreen input{ background:#f3f3f3; color:#111; }
-  body.light-mode #loginScreen button{ background:#005ea6; }
-
-  /* Dispositivo / sessão */
-  #sessionInfo{
-    font-size:12px;
-    opacity:.85;
-    margin:6px auto 0 auto;
-    max-width:980px;
+  #loginScreen button:hover{
+    filter:brightness(1.1);
+  }
+  #loginError{
+    color:#ff5555;
+    font-size:11px;
+    min-height:16px;
+  }
+  body.light-mode #loginCard{
+    background:#ffffff;
+    color:#111;
+  }
+  body.light-mode #loginScreen input{
+    background:#f3f3f3;
+    color:#111;
+  }
+  body.light-mode #loginScreen button{
+    background:#005ea6;
   }
 </style>
 
-<!-- 🔐 Firebase Auth + Firestore (devices + lastSeen + "ativo há X") -->
+<!-- 🔐 Firebase Auth + Firestore (controlo de dispositivos) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
@@ -531,7 +835,7 @@
   const auth = getAuth(app);
   const db  = getFirestore(app);
 
-  // ===== Helpers =====
+  // ✅ deviceId único por browser
   function getDeviceId(){
     const k = "gc_device_id";
     let v = localStorage.getItem(k);
@@ -542,13 +846,12 @@
     return v;
   }
 
+  // ✅ tenta encontrar o documento em users/{uid} ou clubs/{uid}
   async function resolveProfile(uid){
-    // users/{uid} primeiro
     const uRef = doc(db, "users", uid);
     const uSnap = await getDoc(uRef);
     if(uSnap.exists()) return { kind:"user", baseRef:uRef, data:uSnap.data() };
 
-    // fallback clubs/{uid} (mantém compatibilidade)
     const cRef = doc(db, "clubs", uid);
     const cSnap = await getDoc(cRef);
     if(cSnap.exists()) return { kind:"club", baseRef:cRef, data:cSnap.data() };
@@ -571,11 +874,13 @@
   async function ensureDeviceAllowed(profile){
     const deviceId = getDeviceId();
 
-    // ⚠️ active (és tu que controlas)
+    // regras base
     const active = profile.data?.active;
-    if(active === false) throw new Error("Conta desativada.");
+    if(active === false){
+      throw new Error("Conta desativada.");
+    }
 
-    const limit = Number(profile.data?.deviceLimit ?? 3);
+    const limit = Number(profile.data?.deviceLimit ?? 3); // default 3
 
     const deviceRef = doc(profile.baseRef, "devices", deviceId);
     const deviceSnap = await getDoc(deviceRef);
@@ -583,13 +888,18 @@
     if(deviceSnap.exists()){
       const dv = deviceSnap.data() || {};
       if(dv.blocked === true) throw new Error("Este dispositivo está bloqueado.");
+      // ok: já existe e está permitido
       await updateDoc(deviceRef, { lastSeen: serverTimestamp() }).catch(()=>{});
       return { deviceId, deviceRef, limit };
     }
 
+    // device novo -> conta quantos já existem (não bloqueados)
     const used = await countAllowedDevices(profile);
-    if(used >= limit) throw new Error(`Limite de dispositivos atingido (${limit}).`);
+    if(used >= limit){
+      throw new Error(`Limite de dispositivos atingido (${limit}).`);
+    }
 
+    // cria device
     await setDoc(deviceRef, {
       createdAt: serverTimestamp(),
       lastSeen: serverTimestamp(),
@@ -605,111 +915,13 @@
   function startHeartbeat(deviceRef){
     if(heartbeatInterval) clearInterval(heartbeatInterval);
     heartbeatInterval = setInterval(async ()=>{
-      try{ await updateDoc(deviceRef, { lastSeen: serverTimestamp() }); }catch(e){}
-    }, 30000);
+      try{
+        await updateDoc(deviceRef, { lastSeen: serverTimestamp() });
+      }catch(e){}
+    }, 30000); // 30s
   }
 
-  // ===== Fullscreen =====
-  function supportsNativeFullscreen(){
-    return !!(document.documentElement.requestFullscreen);
-  }
-  function isIOS(){
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  }
-  function isMobileLike(){
-    return (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
-           /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  }
-  function enterPseudoFullscreen(){
-    document.body.classList.add("pseudo-fullscreen");
-    localStorage.setItem("gc_pseudo_fs","1");
-  }
-  function exitPseudoFullscreen(){
-    document.body.classList.remove("pseudo-fullscreen");
-    localStorage.setItem("gc_pseudo_fs","0");
-  }
-  function toggleFullscreen(){
-    // mobile/tablet: pseudo fullscreen
-    if(isMobileLike() && (isIOS() || !supportsNativeFullscreen())){
-      if(document.body.classList.contains("pseudo-fullscreen")) exitPseudoFullscreen();
-      else enterPseudoFullscreen();
-      return;
-    }
-    // desktop: Fullscreen API
-    if(!document.fullscreenElement){
-      document.documentElement.requestFullscreen().catch(()=> enterPseudoFullscreen());
-    }else{
-      document.exitFullscreen().catch(()=>{});
-    }
-  }
-
-  // ===== Lock (só header) =====
-  const LOCK_KEY = "gc_ui_locked_header_v1";
-  function setLocked(v){
-    const on = !!v;
-    document.body.classList.toggle("gc-locked", on);
-    localStorage.setItem(LOCK_KEY, on ? "1" : "0");
-    const lockBtn = document.getElementById("lockBtn");
-    if(lockBtn) lockBtn.textContent = on ? "🔒" : "🔓";
-    if(lockBtn) lockBtn.title = on ? "Desbloquear botões do topo" : "Bloquear botões do topo";
-  }
-  function toggleLock(){
-    const now = document.body.classList.contains("gc-locked");
-    setLocked(!now);
-  }
-
-  // ===== "Ativo há X" =====
-  function fmtAgo(ms){
-    ms = Math.max(0, ms);
-    const s = Math.floor(ms/1000);
-    if(s < 10) return "agora";
-    if(s < 60) return `há ${s}s`;
-    const m = Math.floor(s/60);
-    if(m < 60) return `há ${m}m`;
-    const h = Math.floor(m/60);
-    if(h < 24) return `há ${h}h`;
-    const d = Math.floor(h/24);
-    return `há ${d}d`;
-  }
-
-  let sessionTicker = null;
-  let lastSeenLocal = null;
-
-  function startSessionTicker(){
-    const box = document.getElementById("sessionInfo");
-    if(!box) return;
-    if(sessionTicker) clearInterval(sessionTicker);
-
-    sessionTicker = setInterval(()=>{
-      if(!lastSeenLocal) return;
-      const ms = Date.now() - lastSeenLocal;
-      box.textContent = `Sessão: ativo ${fmtAgo(ms)} · Device: ${getDeviceId().slice(0,8)}…`;
-    }, 1000);
-  }
-
-  // ===== DOM + Auth =====
   window.addEventListener("DOMContentLoaded", () => {
-    // restore lock
-    setLocked(localStorage.getItem(LOCK_KEY) === "1");
-
-    // restore pseudo fullscreen
-    if(localStorage.getItem("gc_pseudo_fs") === "1") document.body.classList.add("pseudo-fullscreen");
-
-    // fs hint
-    const fsHint = document.getElementById("fsHint");
-    if(fsHint && isMobileLike() && (isIOS() || !supportsNativeFullscreen())){
-      fsHint.style.display = "block";
-      fsHint.textContent = "ℹ️ No telemóvel/tablet, o fullscreen é modo 'ecrã inteiro' (pseudo).";
-    }
-
-    // bind buttons
-    const lockBtn = document.getElementById("lockBtn");
-    if(lockBtn) lockBtn.addEventListener("click", toggleLock);
-
-    const fsBtn = document.getElementById("fullscreenBtn");
-    if(fsBtn) fsBtn.addEventListener("click", toggleFullscreen);
-
-    // login refs
     const loginScreen   = document.getElementById("loginScreen");
     const appWrapper    = document.getElementById("appWrapper");
     const loginEmail    = document.getElementById("loginEmail");
@@ -717,7 +929,6 @@
     const loginBtn      = document.getElementById("loginBtn");
     const loginError    = document.getElementById("loginError");
     const logoutBtn     = document.getElementById("logoutBtn");
-    const sessionInfo   = document.getElementById("sessionInfo");
 
     if(loginBtn){
       loginBtn.addEventListener("click", async () => {
@@ -739,14 +950,8 @@
 
     if(logoutBtn){
       logoutBtn.addEventListener("click", async () => {
-        // se bloqueado, evita logout acidental
-        if(document.body.classList.contains("gc-locked")){
-          alert("🔒 Botões do topo bloqueados. Desbloqueia para terminar sessão.");
-          return;
-        }
         try{
           if(heartbeatInterval) clearInterval(heartbeatInterval);
-          if(sessionTicker) clearInterval(sessionTicker);
           await signOut(auth);
         }catch(err){
           console.error(err);
@@ -755,7 +960,10 @@
     }
 
     onAuthStateChanged(auth, async (user) => {
-      if(user){
+      const logged = !!user;
+
+      if(logged){
+        // antes de abrir a app: valida perfil + device
         try{
           const profile = await resolveProfile(user.uid);
           if(!profile){
@@ -765,21 +973,14 @@
           }
 
           const { deviceRef } = await ensureDeviceAllowed(profile);
+
+          // opcional: marca lastLogin no doc base
           await updateDoc(profile.baseRef, { lastLogin: serverTimestamp() }).catch(()=>{});
           startHeartbeat(deviceRef);
-
-          // “Ativo há X”: como lastSeen é serverTimestamp, vamos mostrar “agora” e ir contando localmente
-          lastSeenLocal = Date.now();
-          if(sessionInfo){
-            sessionInfo.style.display = "block";
-            sessionInfo.textContent = `Sessão: ativo agora · Device: ${getDeviceId().slice(0,8)}…`;
-          }
-          startSessionTicker();
 
           loginScreen.style.display = "none";
           appWrapper.style.display  = "block";
           if(logoutBtn) logoutBtn.style.display = "inline-flex";
-
         }catch(e){
           console.error(e);
           loginError.textContent = e?.message || "Acesso recusado.";
@@ -787,24 +988,20 @@
           loginScreen.style.display = "flex";
           appWrapper.style.display  = "none";
           if(logoutBtn) logoutBtn.style.display = "none";
-          if(sessionInfo) sessionInfo.style.display = "none";
         }
       }else{
         if(heartbeatInterval) clearInterval(heartbeatInterval);
-        if(sessionTicker) clearInterval(sessionTicker);
-        lastSeenLocal = null;
-
         loginScreen.style.display = "flex";
         appWrapper.style.display  = "none";
         if(logoutBtn) logoutBtn.style.display = "none";
-        if(sessionInfo) sessionInfo.style.display = "none";
       }
     });
   });
 </script>
-</head>
 
+</head>
 <body>
+
 <header>
   <div class="header-left">
     <img src="logo-gc.png" alt="Game Control" class="header-logo">
@@ -813,10 +1010,6 @@
 
   <div class="top-buttons">
     <button id="themeToggle" title="Tema">🌙</button>
-
-    <!-- 🔒 novo lock (só header) -->
-    <button id="lockBtn" title="Bloquear botões do topo">🔓</button>
-
     <button id="fullscreenBtn" title="Fullscreen">⛶</button>
     <button id="loadPanelBtn" title="Gestão de Cargas">⚡</button>
     <button id="editNamesBtn" title="Editar nomes">👥</button>
@@ -826,9 +1019,6 @@
   </div>
 </header>
 
-<div id="fsHint"></div>
-<div id="sessionInfo" style="display:none;"></div>
-
 <!-- LOGIN -->
 <div id="loginScreen">
   <div id="loginCard">
@@ -836,10 +1026,10 @@
     <p id="loginSubtitle">Acede ao teu painel de gestão de jogo.</p>
 
     <label class="login-label">Email</label>
-    <input id="loginEmail" type="email" placeholder="exemplo@club.pt" autocomplete="username">
+    <input id="loginEmail" type="email" placeholder="exemplo@club.pt">
 
     <label class="login-label">Password</label>
-    <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password">
+    <input id="loginPassword" type="password" placeholder="Password">
 
     <button id="loginBtn">Entrar</button>
     <div id="loginError"></div>
@@ -922,36 +1112,18 @@
     <div id="eventsList"></div>
   </div>
 
-  <!-- TIMELINE -->
   <div id="timelineBar">
-    <button class="tl-btn" data-type="GF_A">
-      <span class="icon">⚽</span><span class="label">Golo +</span>
-    </button>
-    <button class="tl-btn" data-type="GA_A">
-      <span class="icon">⚽</span><span class="label">Golo −</span>
-    </button>
-    <button class="tl-btn tl-player" data-type="FK_P">
-      <span class="icon">❌</span><span class="label">Falta</span>
-    </button>
-    <button class="tl-btn tl-player" data-type="YC_P">
-      <span class="icon">🟨</span><span class="label">Amarelo</span>
-    </button>
-    <button class="tl-btn tl-player" data-type="RC_P">
-      <span class="icon">🟥</span><span class="label">Vermelho</span>
-    </button>
-    <button class="tl-btn" id="eventsPanelBtn">
-      <span class="icon">🕒</span><span class="label">Eventos</span>
-    </button>
-    <button class="tl-btn" id="tlClearBtn">
-      <span class="icon">🧹</span><span class="label">Limpar</span>
-    </button>
+    <button class="tl-btn" data-type="GF_A">⚽ +</button>
+    <button class="tl-btn" data-type="GA_A">⚽ −</button>
+    <button class="tl-btn tl-player" data-type="FK_P">❌</button>
+    <button class="tl-btn tl-player" data-type="YC_P">🟨</button>
+    <button class="tl-btn tl-player" data-type="RC_P">🟥</button>
+    <button class="tl-btn" id="eventsPanelBtn">🕒</button>
+    <button class="tl-btn" id="tlClearBtn">🧹</button>
   </div>
-</div>
 
+</div>
 <script>
-/* =========================
-   CORE (o teu original)
-========================= */
 let duration = 20 * 60;
 let remaining = duration;
 let timerInterval = null;
@@ -1174,6 +1346,7 @@ function updatePlayersUI(){
     const displaySec = p.active ? p.rotationSecondsCurrent : p.rotationSecondsOut;
     timeEl.textContent = formatTime(displaySec);
 
+    // última rotação sempre visível
     lastEl.textContent = (p.lastRotation>0) ? ("Últ. rotação: " + formatTime(p.lastRotation)) : "";
 
     if(!p.isGK){
@@ -1453,11 +1626,9 @@ function toggleTheme(){
   document.getElementById("themeToggle").textContent = theme==="dark" ? "🌙" : "🌞";
   saveData();
 }
-
-/* Fullscreen aqui fica só para desktop (mobile é tratado no script module acima). */
-function toggleFullscreenDesktopOnly(){
-  if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
-  else document.exitFullscreen().catch(()=>{});
+function toggleFullscreen(){
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
 }
 
 /* Edit panel */
@@ -1596,22 +1767,21 @@ function renderEventsPanel(){
   timeline.forEach((ev, idx)=>{
     const info = describeEvent(ev);
     const row = document.createElement("div");
-    row.className = "load-row";
+    row.className = "event-row";
     row.innerHTML = `
-      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
-        <div style="text-align:left;">
-          <div style="font-size:11px;color:#bbb;">${info.header}</div>
-          <div style="font-weight:700;">${info.main || "Evento"}</div>
-          ${info.extra ? `<div style="font-size:11px;color:#bbb;margin-top:2px;">${info.extra}</div>` : ""}
+      <div class="event-main">
+        <div>
+          <div class="event-meta">${info.header}</div>
+          <div class="event-type">${info.main || "Evento"}</div>
+          ${info.extra ? `<div class="event-meta">${info.extra}</div>` : ""}
         </div>
-        <button style="border:none;border-radius:999px;padding:3px 10px;font-size:11px;cursor:pointer;background:#e74c3c;color:#fff;"
-          data-idx="${idx}">Apagar</button>
+        <button class="event-delete" data-idx="${idx}">Apagar</button>
       </div>
     `;
     eventsList.appendChild(row);
   });
 
-  eventsList.querySelectorAll("button[data-idx]").forEach(btn=>{
+  eventsList.querySelectorAll(".event-delete").forEach(btn=>{
     btn.onclick = ()=>{
       const i = parseInt(btn.getAttribute("data-idx"),10);
       if(isNaN(i) || i<0 || i>=timeline.length) return;
@@ -1638,8 +1808,12 @@ function closeEventsPanel(){
 }
 
 /* Presets */
-function getPresets(){ return JSON.parse(localStorage.getItem(PRESETS_KEY) || "{}"); }
-function setPresets(obj){ localStorage.setItem(PRESETS_KEY, JSON.stringify(obj)); }
+function getPresets(){
+  return JSON.parse(localStorage.getItem(PRESETS_KEY) || "{}");
+}
+function setPresets(obj){
+  localStorage.setItem(PRESETS_KEY, JSON.stringify(obj));
+}
 function renderPresetList(){
   const list = document.getElementById("presetList");
   const all = getPresets();
@@ -1671,8 +1845,14 @@ function renderPresetList(){
 }
 function savePreset(){
   const nm = (document.getElementById("presetName").value || "").trim();
-  if(!nm){ alert("Dá um nome ao preset."); return; }
-  const data = { size: players.length, roster: players.map(p=>({ name: p.name, isGK: !!p.isGK })) };
+  if(!nm){
+    alert("Dá um nome ao preset.");
+    return;
+  }
+  const data = {
+    size: players.length,
+    roster: players.map(p=>({ name: p.name, isGK: !!p.isGK }))
+  };
   const all = getPresets();
   all[nm] = data;
   setPresets(all);
@@ -1720,10 +1900,24 @@ function loadData(){
     players = [];
     for(let i=1;i<=14;i++){
       players.push({
-        id:i,name:"Jogador "+i,active:false,isGK:(i===1),
-        seconds:0,secondsOut:0,part1:0,part2:0,rotations:0,
-        rotationSecondsCurrent:0,rotationSecondsOut:0,lastRotation:0,
-        fatigue:0,fouls:0,yc:false,rc:false,goals:0,assists:0
+        id:i,
+        name:"Jogador "+i,
+        active:false,
+        isGK:(i===1),
+        seconds:0,
+        secondsOut:0,
+        part1:0,
+        part2:0,
+        rotations:0,
+        rotationSecondsCurrent:0,
+        rotationSecondsOut:0,
+        lastRotation:0,
+        fatigue:0,
+        fouls:0,
+        yc:false,
+        rc:false,
+        goals:0,
+        assists:0
       });
     }
     buildPlayersDOM();
@@ -1771,10 +1965,24 @@ function loadData(){
     if(players.length===0){
       for(let i=1;i<=14;i++){
         players.push({
-          id:i,name:"Jogador "+i,active:false,isGK:(i===1),
-          seconds:0,secondsOut:0,part1:0,part2:0,rotations:0,
-          rotationSecondsCurrent:0,rotationSecondsOut:0,lastRotation:0,
-          fatigue:0,fouls:0,yc:false,rc:false,goals:0,assists:0
+          id:i,
+          name:"Jogador "+i,
+          active:false,
+          isGK:(i===1),
+          seconds:0,
+          secondsOut:0,
+          part1:0,
+          part2:0,
+          rotations:0,
+          rotationSecondsCurrent:0,
+          rotationSecondsOut:0,
+          lastRotation:0,
+          fatigue:0,
+          fouls:0,
+          yc:false,
+          rc:false,
+          goals:0,
+          assists:0
         });
       }
     }
@@ -1795,9 +2003,7 @@ function loadData(){
     localStorage.removeItem(STORAGE_KEY);
     loadData();
   }
-}
-
-/* Export PNG (o teu original) */
+}/* Export PNG – igual ao original (já com golos/assistências e timeline) */
 function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
@@ -1839,12 +2045,17 @@ function exportPng(){
       const halfTxt = ev.half === 1 ? "1ª" : "2ª";
       const baseTime = ev.clock || formatTime(remaining);
       let desc = "";
-      if(ev.type === "GF_A") desc = "Golo a favor";
-      else if(ev.type === "GA_A") desc = "Golo sofrido";
-      else if(ev.type === "FK_P") desc = "Falta";
-      else if(ev.type === "YC_P") desc = "Cartão amarelo";
-      else if(ev.type === "RC_P") desc = "Cartão vermelho";
-
+      if(ev.type === "GF_A"){
+        desc = "Golo a favor";
+      } else if(ev.type === "GA_A"){
+        desc = "Golo sofrido";
+      } else if(ev.type === "FK_P"){
+        desc = "Falta";
+      } else if(ev.type === "YC_P"){
+        desc = "Cartão amarelo";
+      } else if(ev.type === "RC_P"){
+        desc = "Cartão vermelho";
+      }
       if(ev.playerId){
         const p = players.find(x=>x.id===ev.playerId);
         if(p) desc += ` – ${p.name}`;
@@ -1992,7 +2203,7 @@ function exportPng(){
   a.click();
 }
 
-/* Timeline */
+/* Timeline – equipa (para GA_A e outros de equipa) */
 function handleTeamEvent(type){
   const half = firstHalf ? 1 : 2;
   const clock = formatTime(remaining);
@@ -2002,6 +2213,7 @@ function handleTeamEvent(type){
   if(type==="GA_A") scoreB++;
 
   const ev = { type, half, clock, activeIds, ts: Date.now() };
+
   addTimelineEvent(ev);
   updateScoreUI();
   saveData();
@@ -2014,7 +2226,7 @@ function setPendingEvent(type){
   updatePlayersUI();
 }
 
-/* Limpar */
+/* Vassoura */
 document.getElementById("tlClearBtn").onclick = ()=>{
   if(!confirm("Limpar marcador, faltas/cartões, golos/assistências e timeline?")) return;
 
@@ -2039,23 +2251,20 @@ document.getElementById("tlClearBtn").onclick = ()=>{
   saveData();
 };
 
-/* Ligações */
+/* Ligações de botões base */
 document.getElementById("resetBtn").onclick = resetTimer;
 document.getElementById("intervalBtn").onclick = intervalTimer;
 document.getElementById("addBtn").onclick = ()=>ensurePlayerCount(players.length+1);
 document.getElementById("removeBtn").onclick = ()=>{ if(players.length>1) ensurePlayerCount(players.length-1); };
 document.getElementById("themeToggle").onclick = toggleTheme;
-
-/* ⚠️ fullscreen: no desktop este handler ainda funciona, em mobile o module trata do click */
-document.getElementById("fullscreenBtn").addEventListener("dblclick", toggleFullscreenDesktopOnly);
-
+document.getElementById("fullscreenBtn").onclick = toggleFullscreen;
 document.getElementById("printBtn").onclick = exportPng;
 
 document.getElementById("editNamesBtn").onclick = openEditPanel;
 document.getElementById("closePanel").onclick = closeEditPanel;
 document.getElementById("saveNamesBtn").onclick = saveNamesFromPanel;
 
-/* Presets */
+/* Presets – painel */
 const presetsPanel = document.getElementById("presetsPanel");
 document.getElementById("presetsBtn").onclick = ()=>{
   renderPresetList();
@@ -2068,11 +2277,11 @@ document.getElementById("closePresets").onclick = ()=>{
 };
 document.getElementById("savePresetBtn").onclick = savePreset;
 
-/* Gestão de cargas */
+/* Gestão de cargas – painel */
 document.getElementById("loadPanelBtn").onclick = openLoadPanel;
 document.getElementById("closeLoad").onclick = closeLoadPanel;
 
-/* Eventos */
+/* Eventos – painel */
 document.getElementById("eventsPanelBtn").onclick = openEventsPanel;
 document.getElementById("closeEvents").onclick = closeEventsPanel;
 
@@ -2091,7 +2300,7 @@ document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   }
 });
 
-/* Play */
+/* Botão flutuante */
 if(floatingPlayBtn){
   floatingPlayBtn.onclick = ()=>{
     if(running) pauseTimer();
