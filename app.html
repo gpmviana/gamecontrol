@@ -1469,16 +1469,75 @@ function addPlayerEvent(type, playerId){
   saveData();
 }
 
-function startGoalFlow(){
-  pendingPlayerEvent = null;
-  pendingAssistForGoal = null;
-  pendingGoalScorer = {
-    type: "GF_A",
+/* Categoria única para golos marcados e sofridos */
+const GOAL_CATEGORIES = [
+  "Organização ofensiva", "Organização defensiva",
+  "Transição ofensiva", "Transição defensiva",
+  "Lateral", "Canto", "Livre", "Penálti", "5×4", "Guarda-redes subido"
+];
+
+function chooseGoalCategory(type){
+  // Guardar o instante do golo antes da escolha da categoria.
+  const context = {
     half: firstHalf ? 1 : 2,
     clock: formatTime(remaining),
     activeIds: players.filter(p=>p.active).map(p=>p.id),
     ts: Date.now()
   };
+  const dialog = document.createElement("dialog");
+  dialog.setAttribute("aria-label", "Categoria do golo");
+  const light = document.body.classList.contains("light-mode");
+  Object.assign(dialog.style, {
+    background: light ? "#fff" : "#242424",
+    color: light ? "#222" : "#fff",
+    border: "1px solid #777", borderRadius: "12px",
+    padding: "20px", width: "360px", maxWidth: "calc(100% - 48px)"
+  });
+  const title = document.createElement("h3");
+  title.textContent = type === "GF_A" ? "Golo marcado — como foi?" : "Golo sofrido — como foi?";
+  title.style.margin = "0 0 14px";
+  dialog.appendChild(title);
+  const choices = document.createElement("div");
+  Object.assign(choices.style, {display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px"});
+  GOAL_CATEGORIES.forEach(category=>{
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = category;
+    Object.assign(button.style, {
+      padding:"12px 8px", border:"none", borderRadius:"6px",
+      background:"#444", color:"#fff", cursor:"pointer", fontSize:"14px"
+    });
+    button.onclick = ()=>{
+      dialog.close();
+      if(type === "GF_A") startGoalFlow(category, context);
+      else handleTeamEvent(type, category, context);
+    };
+    choices.appendChild(button);
+  });
+  dialog.appendChild(choices);
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.textContent = "Cancelar";
+  Object.assign(cancel.style, {marginTop:"14px", padding:"8px 14px", cursor:"pointer"});
+  cancel.onclick = ()=>dialog.close();
+  dialog.appendChild(cancel);
+  dialog.addEventListener("close", ()=>dialog.remove(), {once:true});
+  document.body.appendChild(dialog);
+  dialog.showModal();
+}
+
+function startGoalFlow(goalCategory, context){
+  pendingPlayerEvent = null;
+  pendingAssistForGoal = null;
+  pendingGoalScorer = {
+    type: "GF_A",
+    goalCategory,
+    half: firstHalf ? 1 : 2,
+    clock: formatTime(remaining),
+    activeIds: players.filter(p=>p.active).map(p=>p.id),
+    ts: Date.now()
+  };
+  Object.assign(pendingGoalScorer, context);
   updatePlayersUI();
 }
 
@@ -1753,7 +1812,7 @@ function describeEvent(ev){
 
   return {
     header: `${halfTxt} · ${baseTime}`,
-    main: [typeTxt, playerTxt].filter(Boolean).join(" – "),
+    main: [typeTxt, playerTxt, ev.goalCategory].filter(Boolean).join(" – "),
     extra: [assistTxt, onFieldText].filter(Boolean).join(" | ")
   };
 }
@@ -2064,6 +2123,7 @@ function exportPng(){
         const a = players.find(x=>x.id===ev.assistPlayerId);
         if(a) desc += ` (assistência: ${a.name})`;
       }
+      if(ev.goalCategory) desc += ` · ${ev.goalCategory}`;
       let onFieldText = "";
       if(ev.activeIds && Array.isArray(ev.activeIds) && ev.activeIds.length){
         const names = ev.activeIds.map(id=>{
@@ -2204,7 +2264,7 @@ function exportPng(){
 }
 
 /* Timeline – equipa (para GA_A e outros de equipa) */
-function handleTeamEvent(type){
+function handleTeamEvent(type, goalCategory, context){
   const half = firstHalf ? 1 : 2;
   const clock = formatTime(remaining);
   const activeIds = players.filter(p=>p.active).map(p=>p.id);
@@ -2212,7 +2272,8 @@ function handleTeamEvent(type){
   if(type==="GF_A") scoreA++;
   if(type==="GA_A") scoreB++;
 
-  const ev = { type, half, clock, activeIds, ts: Date.now() };
+  const ev = { type, half, clock, activeIds, ts: Date.now(), ...context };
+  if(goalCategory) ev.goalCategory = goalCategory;
 
   addTimelineEvent(ev);
   updateScoreUI();
@@ -2294,7 +2355,7 @@ document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
     btn.addEventListener("click", ()=> setPendingEvent(type));
   }else{
     btn.addEventListener("click", ()=>{
-      if(type === "GF_A") startGoalFlow();
+      if(type === "GF_A" || type === "GA_A") chooseGoalCategory(type);
       else handleTeamEvent(type);
     });
   }
