@@ -4,12 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Game Control</title>
-
 <style>
   :root {
     --timeline-h: 54px;
   }
-
   body{
     font-family:Arial, sans-serif;
     margin:0;
@@ -22,7 +20,6 @@
     background:#f5f5f5;
     color:#222;
   }
-
   /* HEADER NOVO COM LOGO À ESQUERDA */
   header{
     display:flex;
@@ -36,25 +33,21 @@
     background:#ddd;
     color:#111;
   }
-
   .header-left{
     display:flex;
     align-items:center;
     gap:8px;
   }
-
   .header-logo{
     height:38px;
     width:auto;
     display:block;
   }
-
   .header-title{
     font-size:18px;
     font-weight:700;
     letter-spacing:.06em;
   }
-
   .top-buttons{
     display:flex;
     gap:8px;
@@ -69,7 +62,6 @@
   body.light-mode .top-buttons button{
     color:#222;
   }
-
   /* BOTÃO FLUTUANTE INICIAR/PAUSAR */
   #floatingPlayBtn{
     position:fixed;
@@ -102,7 +94,6 @@
   #floatingPlayBtn:active{
     transform:scale(0.95);
   }
-
   #teamInputs{
     display:flex;
     justify-content:center;
@@ -135,7 +126,6 @@
     background:#e7e7e7;
     color:#111;
   }
-
   .timer-row{
     display:flex;
     align-items:center;
@@ -159,7 +149,6 @@
     background:#ccc;
     color:#111;
   }
-
   .controls{
     display:flex;
     justify-content:center;
@@ -224,7 +213,6 @@
   @media (max-width:600px){
     #players{grid-template-columns:repeat(2,minmax(0,1fr));}
   }
-
   .player{
     width:100%;
     height:100px;
@@ -245,7 +233,6 @@
     background:#1f6f3a; /* em campo - verde escuro */
     color:#fff;
   }
-
   .player strong{
     font-size:12px;
     margin-bottom:2px;
@@ -261,7 +248,6 @@
     opacity:.9;
     margin-top:1px;
   }
-
   .gk-icon{
     position:absolute;
     top:6px;
@@ -275,7 +261,6 @@
     background:rgba(0,0,0,0.45);
     font-size:13px;
   }
-
   .fatigue-container{
     position:absolute;
     left:6px;
@@ -293,12 +278,10 @@
     background:#2ecc71;
     transition:width 0.2s linear, background 0.2s linear;
   }
-
   .player.limit{
     outline:3px solid #ff4d4d;
     box-shadow:0 0 0 3px rgba(255,77,77,0.35);
   }
-
   .summary{
     width:90%;
     max-width:1100px;
@@ -370,7 +353,6 @@
     text-align:left;
     font-weight:600;
   }
-
   .pill{
     display:inline-block;
     padding:4px 10px;
@@ -388,7 +370,6 @@
     background:rgba(231,76,60,.12);
     border:1px solid rgba(231,76,60,.35);
   }
-
   .card-badges{
     position:absolute;
     top:6px;
@@ -492,7 +473,6 @@
     cursor:pointer;
     margin-top:8px;
   }
-
   /* Painel Presets */
   #presetsPanel{
     position:fixed;
@@ -519,7 +499,6 @@
     color:#fff;
     font-size:18px;
   }
-
   /* Painel Gestão de Cargas */
   #loadPanel{
     position:fixed;
@@ -595,7 +574,6 @@
   .fat-high{
     color:#e74c3c;
   }
-
   /* Painel Eventos (timeline) */
   #eventsPanel{
     position:fixed;
@@ -660,7 +638,6 @@
     background:#e74c3c;
     color:#fff;
   }
-
   /* Timeline fixa em baixo */
   #timelineBar{
     position:fixed;
@@ -698,7 +675,6 @@
   }
   .tl-btn span.icon{font-size:16px;}
   .tl-btn span.label{font-size:12px;}
-
   @keyframes selectBlink{
     0%,100%{ outline-color:#fff; opacity:1; }
     50%{ outline-color:transparent; opacity:0.6; }
@@ -708,7 +684,6 @@
     outline-offset:-3px;
     animation:selectBlink 1s infinite;
   }
-
   #brandSignature{
     position:fixed;
     bottom:-5px;
@@ -728,7 +703,6 @@
   body.light-mode #brandSignature .sig-on-light{
     display:block;
   }
-
   /* 🔐 LOGIN SCREEN BONITO */
   #loginScreen{
     position:fixed;
@@ -811,7 +785,6 @@
     background:#005ea6;
   }
 </style>
-
 <!-- 🔐 Firebase Auth + Firestore (controlo de dispositivos) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
@@ -820,7 +793,6 @@
     getFirestore, doc, getDoc, setDoc, updateDoc,
     collection, getDocs, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
-
   const firebaseConfig = {
     apiKey: "AIzaSyCPiS92A0ZUNaCl4clAkxBbYFQrgJDSiUY",
     authDomain: "gamecontrol-futsal.firebaseapp.com",
@@ -830,11 +802,9 @@
     appId: "1:717212104958:web:36fe7465fb405722c30daf",
     measurementId: "G-LQFHN83HQ0"
   };
-
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db  = getFirestore(app);
-
   // ✅ deviceId único por browser
   function getDeviceId(){
     const k = "gc_device_id";
@@ -845,20 +815,16 @@
     }
     return v;
   }
-
   // ✅ tenta encontrar o documento em users/{uid} ou clubs/{uid}
   async function resolveProfile(uid){
     const uRef = doc(db, "users", uid);
     const uSnap = await getDoc(uRef);
     if(uSnap.exists()) return { kind:"user", baseRef:uRef, data:uSnap.data() };
-
     const cRef = doc(db, "clubs", uid);
     const cSnap = await getDoc(cRef);
     if(cSnap.exists()) return { kind:"club", baseRef:cRef, data:cSnap.data() };
-
     return null;
   }
-
   async function countAllowedDevices(profile){
     const devicesCol = collection(profile.baseRef, "devices");
     const snap = await getDocs(devicesCol);
@@ -870,21 +836,16 @@
     });
     return count;
   }
-
   async function ensureDeviceAllowed(profile){
     const deviceId = getDeviceId();
-
     // regras base
     const active = profile.data?.active;
     if(active === false){
       throw new Error("Conta desativada.");
     }
-
     const limit = Number(profile.data?.deviceLimit ?? 3); // default 3
-
     const deviceRef = doc(profile.baseRef, "devices", deviceId);
     const deviceSnap = await getDoc(deviceRef);
-
     if(deviceSnap.exists()){
       const dv = deviceSnap.data() || {};
       if(dv.blocked === true) throw new Error("Este dispositivo está bloqueado.");
@@ -892,13 +853,11 @@
       await updateDoc(deviceRef, { lastSeen: serverTimestamp() }).catch(()=>{});
       return { deviceId, deviceRef, limit };
     }
-
     // device novo -> conta quantos já existem (não bloqueados)
     const used = await countAllowedDevices(profile);
     if(used >= limit){
       throw new Error(`Limite de dispositivos atingido (${limit}).`);
     }
-
     // cria device
     await setDoc(deviceRef, {
       createdAt: serverTimestamp(),
@@ -907,10 +866,8 @@
       userAgent: navigator.userAgent || "",
       platform: navigator.platform || ""
     }, { merge:true });
-
     return { deviceId, deviceRef, limit };
   }
-
   let heartbeatInterval = null;
   function startHeartbeat(deviceRef){
     if(heartbeatInterval) clearInterval(heartbeatInterval);
@@ -920,7 +877,6 @@
       }catch(e){}
     }, 30000); // 30s
   }
-
   window.addEventListener("DOMContentLoaded", () => {
     const loginScreen   = document.getElementById("loginScreen");
     const appWrapper    = document.getElementById("appWrapper");
@@ -929,7 +885,6 @@
     const loginBtn      = document.getElementById("loginBtn");
     const loginError    = document.getElementById("loginError");
     const logoutBtn     = document.getElementById("logoutBtn");
-
     if(loginBtn){
       loginBtn.addEventListener("click", async () => {
         loginError.textContent = "";
@@ -947,7 +902,6 @@
         }
       });
     }
-
     if(logoutBtn){
       logoutBtn.addEventListener("click", async () => {
         try{
@@ -958,10 +912,8 @@
         }
       });
     }
-
     onAuthStateChanged(auth, async (user) => {
       const logged = !!user;
-
       if(logged){
         // antes de abrir a app: valida perfil + device
         try{
@@ -971,13 +923,10 @@
             await signOut(auth);
             return;
           }
-
           const { deviceRef } = await ensureDeviceAllowed(profile);
-
           // opcional: marca lastLogin no doc base
           await updateDoc(profile.baseRef, { lastLogin: serverTimestamp() }).catch(()=>{});
           startHeartbeat(deviceRef);
-
           loginScreen.style.display = "none";
           appWrapper.style.display  = "block";
           if(logoutBtn) logoutBtn.style.display = "inline-flex";
@@ -998,7 +947,6 @@
     });
   });
 </script>
-
 <style>
 .gc-tabs,.gc-tools{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px auto}
 .gc-tabs button,.gc-tools button,.gc-tools select,.gc-tools input,.gc-history-row button,#selectionStatus button{padding:10px 12px;border:1px solid #666;border-radius:8px;background:#333;color:#fff;font-size:14px;cursor:pointer}
@@ -1017,7 +965,6 @@ body.light-mode .gc-lower{background:#fff;color:#222}body.light-mode .gc-tools s
 .gc-both-actions{display:grid;grid-template-columns:1fr 1fr;gap:14px}.gc-action-team{padding:14px;border:1px solid #4c7699;border-top:4px solid #45b3ff;border-radius:10px;min-width:0}.gc-action-team.away{border-color:#a66f3e;border-top-color:#ffa657}.gc-action-team h4{margin:0 0 12px;font-size:18px}.gc-action-team .gc-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.gc-action-team button{background:#254d6a;color:#fff;border:1px solid #5584a6;border-radius:8px;padding:10px 6px;cursor:pointer;font-size:14px;min-height:58px}.gc-action-team.away button{background:#694326;border-color:#a57b52}.gc-opponent-label{display:block;font-size:12px;margin-bottom:12px}.gc-opponent-label input{display:block;box-sizing:border-box;width:100%;margin-top:6px;border:1px solid #666;border-radius:6px;padding:8px;background:#333;color:#fff}
 .gc-match-stats{max-width:800px;margin:0 auto 24px;padding:20px;border:1px solid #555;border-radius:12px;background:rgba(0,0,0,.08)}.gc-match-heading{display:grid;grid-template-columns:1fr 1.5fr 1fr;text-align:center;align-items:center;gap:10px;margin-bottom:22px}.gc-match-heading>strong:first-child{color:#45b3ff}.gc-match-heading>strong:last-child{color:#ffa657}.gc-match-heading span{font-size:11px;letter-spacing:1px}.gc-match-heading b{display:block;font-size:36px;margin-top:6px}.gc-match-metric{margin:18px 0}.gc-metric-values{display:grid;grid-template-columns:50px 1fr 50px;align-items:center;text-align:center;margin-bottom:8px}.gc-metric-values b{font-size:24px}.gc-metric-values b:first-child{color:#45b3ff}.gc-metric-values b:last-child{color:#ffa657}.gc-metric-values span{font-size:14px}.gc-metric-track{display:flex;gap:3px;height:9px;background:rgba(127,127,127,.15);border-radius:5px;overflow:hidden}.gc-bar-home{background:#45b3ff}.gc-bar-away{background:#ffa657}
 @media(max-width:600px){.gc-both-actions{gap:6px}.gc-action-team{padding:8px}.gc-action-team .gc-action-grid{grid-template-columns:1fr}.gc-action-team button{font-size:13px}.gc-match-stats{padding:10px}.gc-match-heading{grid-template-columns:1fr 1fr 1fr;font-size:12px}.gc-match-heading b{font-size:28px}.gc-match-heading span{font-size:9px}}
-
 /* Painel de estatísticas: apresentação compacta de jogo. */
 .gc-match-stats{max-width:760px;padding:24px 28px;border:1px solid #354453;border-radius:20px;background:linear-gradient(145deg,#182530,#111a23);box-shadow:0 10px 30px #0003;color:#edf4fa}
 .gc-match-heading{padding:0 0 22px;margin-bottom:8px;border-bottom:1px solid #ffffff15;gap:14px}
@@ -1030,7 +977,6 @@ body.light-mode .gc-lower{background:#fff;color:#222}body.light-mode .gc-tools s
 .gc-zone-summary{background:#153c30;border:1px solid #4e8068;border-radius:10px;gap:0}.gc-zone-summary>div{border-right:1px solid #ffffff20;padding:15px 6px}.gc-zone-summary>div:last-child{border:0}.gc-zone-summary strong{font-size:23px}.gc-zone-summary span{font-size:11px;opacity:.8}
 body.light-mode .gc-match-stats{background:linear-gradient(145deg,#fff,#f2f6fa);color:#172e42;border-color:#dce5ec;box-shadow:0 8px 24px #18384d0d}body.light-mode .gc-match-heading{border-color:#dce5ec}body.light-mode .gc-match-heading b{color:#172e42}body.light-mode .gc-match-heading span{color:#6c7f8f}body.light-mode .gc-match-heading>strong:first-child,body.light-mode .gc-metric-values b:first-child{color:#087fba}body.light-mode .gc-match-heading>strong:last-child,body.light-mode .gc-metric-values b:last-child{color:#b15c15}body.light-mode .gc-metric-values span{color:#526779}body.light-mode .gc-match-metric{border-color:#172e4209}body.light-mode .gc-match-metric:nth-child(even){background:#172e4203}body.light-mode .gc-metric-track{background:#172e420c}body.light-mode .gc-team-stats{background:#f8fafc;border-color:#dce5ec}body.light-mode .gc-team-stats>h3{color:#176b9d;border-color:#dce5ec}body.light-mode .gc-stat-list>div{border-color:#dce5ec}body.light-mode .gc-stat-list strong{background:#eaf0f5}
 @media(max-width:600px){.gc-match-stats{padding:16px 10px;border-radius:14px}.gc-match-heading{gap:6px;padding-bottom:16px}.gc-match-heading>strong{font-size:12px}.gc-match-heading span{font-size:8px;letter-spacing:.7px}.gc-match-heading b{font-size:32px}.gc-match-metric{padding:12px 7px}.gc-team-stats{padding:16px 12px}}
-
 /* Paleta comum a toda a aplicação. */
 :root{--gc-accent:#ff510a;--gc-accent-soft:#ff6b28;--gc-bg:#171717;--gc-panel:#242424;--gc-raised:#303030;--gc-line:#414141;--gc-ink:#f7f4ee;--gc-muted:#bcb8b2}
 body.light-mode{--gc-bg:#f1efeb;--gc-panel:#fffdfa;--gc-raised:#e9e5df;--gc-line:#d9d3ca;--gc-ink:#252321;--gc-muted:#746d65}
@@ -1135,6 +1081,8 @@ body{font-weight:400;line-height:1.45}
 .gc-player-form{grid-template-columns:2fr 1.4fr auto}.gc-roster-row{grid-template-columns:105px 1fr 120px}
 .gc-dialog-closebar{position:sticky;top:0;z-index:10;display:flex;justify-content:flex-end;background:var(--gc-bg);padding:8px 0;border-bottom:1px solid var(--gc-line);margin-bottom:10px}
 .gc-dialog-closebar button{font:inherit;font-size:13px;padding:9px 14px!important;border:1px solid var(--gc-line)!important;border-radius:8px;background:var(--gc-raised)!important;color:var(--gc-ink)!important;cursor:pointer}
+.gc-player-grip{position:absolute;right:3px;bottom:12px;left:auto;top:auto;transform:none;width:24px;height:24px;line-height:22px;padding:0;border:0;border-radius:4px;background:rgba(0,0,0,.10);color:rgba(255,255,255,.55);font-size:18px;cursor:grab;touch-action:none;z-index:2;user-select:none}
+.gc-player-grip:hover,.gc-player-grip:focus-visible{background:rgba(0,0,0,.25);color:white}.player strong{margin-top:0}.gc-player-grip:active{cursor:grabbing}.player.gc-dragging{opacity:.55}.player.gc-drop-target{outline:3px dashed var(--gc-tint);outline-offset:-3px}
 .gc-updates-dialog>.gc-dialog-closebar{padding:10px 16px;margin:0}.gc-zone-dialog{max-height:88vh;overflow-y:auto;box-sizing:border-box}
 @media(max-width:600px){.gc-player-form{grid-template-columns:1fr 1fr}.gc-player-form>button{grid-column:1/-1}.gc-roster-row{grid-template-columns:1fr 110px}.gc-call-label{grid-column:1/-1}}
 .gc-player-form{grid-template-columns:130px minmax(0,1fr) auto}
@@ -1147,13 +1095,11 @@ body{font-weight:400;line-height:1.45}
 </style>
 </head>
 <body>
-
 <header>
   <div class="header-left">
     <img src="logo-gc.png" alt="Game Control" class="header-logo">
     <span class="header-title">GAME CONTROL</span>
   </div>
-
   <div class="top-buttons">
     <button id="themeToggle" title="Tema">🌙</button>
     <button id="fullscreenBtn" title="Fullscreen">⛶</button>
@@ -1164,29 +1110,22 @@ body{font-weight:400;line-height:1.45}
     <button id="logoutBtn" title="Sair" style="display:none;">🚪</button>
   </div>
 </header>
-
 <!-- LOGIN -->
 <div id="loginScreen">
   <div id="loginCard">
     <h2 id="loginTitle">Login Game Control</h2>
     <p id="loginSubtitle">Acede ao teu painel de gestão de jogo.</p>
-
     <label class="login-label">Email</label>
     <input id="loginEmail" type="email" placeholder="exemplo@club.pt">
-
     <label class="login-label">Password</label>
     <input id="loginPassword" type="password" placeholder="Password">
-
     <button id="loginBtn">Entrar</button>
     <div id="loginError"></div>
   </div>
 </div>
-
 <!-- APP -->
 <div id="appWrapper" style="display:none;">
-
   <button id="floatingPlayBtn" class="paused">⏵</button>
-
   <div id="teamInputs">
     <span class="scoreBubble" id="scoreA">0</span>
     <input id="teamA" placeholder="Equipa A">
@@ -1194,12 +1133,10 @@ body{font-weight:400;line-height:1.45}
     <input id="teamB" placeholder="Equipa B">
     <span class="scoreBubble" id="scoreB">0</span>
   </div>
-
   <div class="timer-row">
     <div id="timer">20:00</div>
     <span id="halfBadge" class="half-badge">1ª Parte</span>
   </div>
-
   <div class="controls">
     <input id="setMinutes" type="number" value="20" min="1" style="width:60px">
     <button id="intervalBtn">Intervalo</button>
@@ -1207,14 +1144,12 @@ body{font-weight:400;line-height:1.45}
     <button id="addBtn">+</button>
     <button id="removeBtn">−</button>
   </div>
-
   <div id="teamProfileBadge" style="color:var(--gc-tint);padding:8px;font-weight:600"></div><div id="accumulatedFouls"></div>
   <div id="selectionStatus" hidden role="status"><span></span><button id="withoutPlayer">Sem jogador</button> <button id="cancelSelection">Cancelar seleção</button></div>
   <div id="players"></div>
   <nav class="gc-tabs" aria-label="Painéis do jogo" role="tablist">
   <button type="button" role="tab" data-lower-tab="times" aria-selected="true" class="chosen">Tempos e cargas</button><button type="button" role="tab" data-lower-tab="actions" aria-selected="false" class="">Ações</button><button type="button" role="tab" data-lower-tab="stats" aria-selected="false" class="">Estatísticas</button><button type="button" role="tab" data-lower-tab="history" aria-selected="false" class="">Histórico</button><button type="button" role="tab" data-lower-tab="archive" aria-selected="false" class="">Jogos guardados</button><button type="button" role="tab" data-lower-tab="combinations" aria-selected="false" class="">Quartetos e duplas</button>
   </nav>
-
   <div class="summary" data-lower-panel="times">
     <h3>Resumo de Jogo</h3>
     <table>
@@ -1234,7 +1169,6 @@ body{font-weight:400;line-height:1.45}
       <tbody id="summaryBody"></tbody>
     </table>
   </div>
-
 <section class="gc-lower" data-lower-panel="archive" hidden><h3>Jogos guardados</h3>
 <div class="gc-tools"><label>Data do jogo <input id="matchDate" type="date"></label><button id="saveMatchBtn">Guardar jogo atual</button><button id="backupMatchesBtn">Exportar cópia dos jogos</button></div>
 <p class="gc-note">Arquivo neste navegador. Exporta uma cópia para preservar os jogos. A consulta dos jogos anteriores não altera o jogo atual.</p><div id="archiveList"></div><div id="archiveDetail" hidden></div></section>
@@ -1263,7 +1197,6 @@ body{font-weight:400;line-height:1.45}
     <div id="editList"></div>
     <button class="save-btn" id="saveNamesBtn">Guardar</button>
   </div>
-
   <div id="presetsPanel">
     <button class="close-btn" id="closePresets">❌</button>
     <h3>Presets</h3>
@@ -1271,19 +1204,16 @@ body{font-weight:400;line-height:1.45}
     <button id="savePresetBtn">Guardar</button>
     <div id="presetList"></div>
   </div>
-
   <div id="loadPanel">
     <button class="close-btn" id="closeLoad">❌</button>
     <h3>Gestão de Cargas</h3>
     <div id="loadList"></div>
   </div>
-
   <div id="eventsPanel">
     <button class="close-btn" id="closeEvents">❌</button>
     <h3>Eventos</h3>
     <div id="eventsList"></div>
   </div>
-
   <div id="timelineBar">
     <button class="tl-btn" data-type="GF_A">⚽ +</button>
     <button class="tl-btn" data-type="GA_A">⚽ −</button>
@@ -1293,7 +1223,6 @@ body{font-weight:400;line-height:1.45}
     <button class="tl-btn" id="eventsPanelBtn">🕒</button>
     <button class="tl-btn" id="tlClearBtn">🧹</button>
   </div>
-
 </div>
 <script>
 const TEAM_PROFILES=JSON.parse(localStorage.getItem('gc_team_profiles_v1')||'{"A":"A minha equipa"}');
@@ -1311,7 +1240,6 @@ let remaining = duration;
 let timerInterval = null;
 let running = false;
 let firstHalf = true;
-
 let players = [];
 let theme = "dark";
 const maxOnField = 5;
@@ -1320,14 +1248,10 @@ let scoreB = 0;
 let pendingPlayerEvent = null;
 let pendingAssistForGoal = null;
 let pendingGoalScorer = null;
-
 let timeline = [];
-
 let STORAGE_KEY = "gameControl_withWorkloadGestao_v2_"+activeTeam;
 let PRESETS_KEY = "gc_presets_v1_"+activeTeam;
-
 const floatingPlayBtn = document.getElementById("floatingPlayBtn");
-
 function pad(n){return String(n).padStart(2,"0");}
 function formatTime(sec){
   sec = Math.max(0, Math.floor(sec));
@@ -1335,7 +1259,6 @@ function formatTime(sec){
   const s = sec % 60;
   return `${pad(m)}:${pad(s)}`;
 }
-
 function updateTimerDisplay(){
   document.getElementById("timer").textContent = formatTime(remaining);
 }
@@ -1346,7 +1269,6 @@ function updateScoreUI(){
   document.getElementById("scoreA").textContent = scoreA;
   document.getElementById("scoreB").textContent = scoreB;
 }
-
 function updateFloatingPlayBtn(){
   if(!floatingPlayBtn) return;
   if(running){
@@ -1359,14 +1281,12 @@ function updateFloatingPlayBtn(){
     floatingPlayBtn.textContent = "⏵";
   }
 }
-
 function tick(){
   if(remaining <= 0){
     pauseTimer();
     return;
   }
   remaining--;
-
   players.forEach(p=>{
     if(p.active){
       p.seconds++;
@@ -1388,13 +1308,11 @@ function tick(){
       if(p.fatigue > 1) p.fatigue = 1;
     }
   });
-
   updateTimerDisplay();
   updatePlayersUI();
   updateSummary();
   saveData();
 }
-
 function startTimer(){
   if(running) return;
   running = true;
@@ -1402,28 +1320,24 @@ function startTimer(){
   timerInterval = setInterval(tick,1000);
   updateFloatingPlayBtn();
 }
-
 function pauseTimer(){
   running = false;
   clearInterval(timerInterval);
   updateFloatingPlayBtn();
   saveData();
 }
-
 function resetTimer(){
   pauseTimer();
   const mins = parseInt(document.getElementById("setMinutes").value)||20;
   duration = mins * 60;
   remaining = duration;
   firstHalf = true;
-
   scoreA = 0;
   scoreB = 0;
   timeline = [];
   pendingAssistForGoal = null;
   pendingGoalScorer = null;
   pendingPlayerEvent = null;
-
   players.forEach(p=>{
     p.seconds = 0;
     p.secondsOut = 0;
@@ -1441,7 +1355,6 @@ function resetTimer(){
     p.goals = 0;
     p.assists = 0;
   });
-
   updateTimerDisplay();
   updateHalfBadge();
   updatePlayersUI();
@@ -1450,19 +1363,15 @@ function resetTimer(){
   updateFloatingPlayBtn();
   saveData();
 }
-
 function intervalTimer(){
   pauseTimer();
   firstHalf = false;
-
   pendingAssistForGoal = null;
   pendingGoalScorer = null;
   pendingPlayerEvent = null;
-
   const mins = parseInt(document.getElementById("setMinutes").value)||20;
   duration = mins * 60;
   remaining = duration;
-
   players.forEach(p=>{
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
@@ -1470,20 +1379,17 @@ function intervalTimer(){
       p.fatigue *= 0.3;
     }
   });
-
   updateTimerDisplay();
   updateHalfBadge();
   updatePlayersUI();
   updateSummary();
   saveData();
 }
-
 function fatigueColor(f){
   if(f >= 0.7) return "#e74c3c";
   if(f >= 0.4) return "#f1c40f";
   return "#2ecc71";
 }
-
 function buildPlayersDOM(){
   const container = document.getElementById("players");
   container.innerHTML = "";
@@ -1491,13 +1397,11 @@ function buildPlayersDOM(){
     const div = document.createElement("div");
     div.id = "player"+p.id;
     div.className = "player " + (p.active ? "active" : "inactive");
-
     const foulsHTML = p.fouls>0 ? `<span class="badge-fouls" title="Faltas">${p.fouls}</span>` : "";
     const ycHTML = p.yc ? `<span class="badge-yc" title="Amarelo"></span>` : "";
     const rcHTML = p.rc ? `<span class="badge-rc" title="Vermelho"></span>` : "";
     const goalHTML = p.goals>0 ? `<span class="badge-goal" title="Golos">⚽${p.goals>1 ? "×"+p.goals : ""}</span>` : "";
     const assistHTML = p.assists>0 ? `<span class="badge-assist" title="Assistências">👣${p.assists>1 ? "×"+p.assists : ""}</span>` : "";
-
     div.innerHTML = `
       <div class="gk-icon" style="display:${p.isGK?"flex":"none"}">🧤</div>
       <div class="card-badges">${foulsHTML}${ycHTML}${rcHTML}${goalHTML}${assistHTML}</div>
@@ -1511,26 +1415,20 @@ function buildPlayersDOM(){
   });
   updatePlayersUI();
 }
-
 function updatePlayersUI(){
   players.forEach(p=>{
     const el = document.getElementById("player"+p.id);
     if(!el) return;
-
     const selecting = pendingPlayerEvent || pendingAssistForGoal || pendingGoalScorer;
     el.className = "player " + (p.active ? "active" : "inactive") + (selecting ? " selectEvent" : "");
-
     const timeEl = el.querySelector(".time");
     const lastEl = el.querySelector(".last");
     const nameEl = el.querySelector(".name");
     if(nameEl) nameEl.textContent = p.name;
-
     const displaySec = p.active ? p.rotationSecondsCurrent : p.rotationSecondsOut;
     timeEl.textContent = formatTime(displaySec);
-
     // última rotação sempre visível
     lastEl.textContent = (p.lastRotation>0) ? ("Últ. rotação: " + formatTime(p.lastRotation)) : "";
-
     if(!p.isGK){
       const fb = document.getElementById("fatigue"+p.id);
       if(fb){
@@ -1538,7 +1436,6 @@ function updatePlayersUI(){
         fb.style.background = fatigueColor(p.fatigue);
       }
     }
-
     const badges = el.querySelector(".card-badges");
     if(badges){
       badges.innerHTML =
@@ -1550,7 +1447,6 @@ function updatePlayersUI(){
     }
   });
 }
-
 function ensurePlayerCount(n){
   const old = players || [];
   players = [];
@@ -1582,22 +1478,18 @@ function ensurePlayerCount(n){
   updateSummary();
   saveData();
 }
-
 function activeCount(){
   return players.reduce((a,p)=>a+(p.active?1:0),0);
 }
-
 function flashLimit(id){
   const el = document.getElementById("player"+id);
   if(!el) return;
   el.classList.add("limit");
   setTimeout(()=>el.classList.remove("limit"),600);
 }
-
 function addTimelineEvent(ev){
   timeline.push(ev);
 }
-
 function rebuildStatsFromTimeline(){
   scoreA = 0;
   scoreB = 0;
@@ -1608,7 +1500,6 @@ function rebuildStatsFromTimeline(){
     p.goals = 0;
     p.assists = 0;
   });
-
   timeline.forEach(ev=>{
     if(ev.type === "GF_A"){
       scoreA++;
@@ -1634,24 +1525,19 @@ function rebuildStatsFromTimeline(){
     }
   });
 }
-
 function addPlayerEvent(type, playerId){
   const p = players.find(x=>x.id===playerId);
   if(!p) return;
-
   if(type==="FK_P") p.fouls = (p.fouls||0) + 1;
   if(type==="YC_P") p.yc = true;
   if(type==="RC_P") p.rc = true;
-
   const half = matchPeriod;
   const clock = formatTime(remaining);
   addTimelineEvent({ type, half, clock, playerId, ts: Date.now() });
-
   updatePlayersUI();
   updateSummary();
   saveData();
 }
-
 /* Categoria única para golos marcados e sofridos */
 const GOAL_CATEGORIES = [
   "Organização ofensiva", "Organização defensiva",
@@ -1659,7 +1545,6 @@ const GOAL_CATEGORIES = [
   "Lateral", "Canto", "Livre", "Penálti", "5×4", "Guarda-redes subido",
   "Roubo de bola", "Perda de bola"
 ];
-
 function chooseGoalCategory(type){
   // Guardar o instante do golo antes da escolha da categoria.
   const context = {
@@ -1709,7 +1594,6 @@ function chooseGoalCategory(type){
   document.body.appendChild(dialog);
   dialog.showModal();
 }
-
 function startGoalFlow(goalCategory, context){
   pendingPlayerEvent = null;
   pendingAssistForGoal = null;
@@ -1724,7 +1608,6 @@ function startGoalFlow(goalCategory, context){
   Object.assign(pendingGoalScorer, context);
   updatePlayersUI();
 }
-
 function togglePlayer(id){
   // marcador
   if(pendingGoalScorer){
@@ -1738,7 +1621,6 @@ function togglePlayer(id){
     scoreA++;
     addTimelineEvent(ev);
     pendingGoalScorer = null;
-
     pendingAssistForGoal = ev;
     updateScoreUI();
     updatePlayersUI();
@@ -1746,12 +1628,10 @@ function togglePlayer(id){
     saveData();
     return;
   }
-
   // assistência
   if(pendingAssistForGoal){
     const ev = pendingAssistForGoal;
     const scorerId = ev.playerId;
-
     if(id === scorerId){
       pendingAssistForGoal = null;
       updatePlayersUI();
@@ -1759,7 +1639,6 @@ function togglePlayer(id){
       saveData();
       return;
     }
-
     const pAssist = players.find(x=>x.id===id);
     if(pAssist){
       pAssist.assists = (pAssist.assists||0)+1;
@@ -1773,7 +1652,6 @@ function togglePlayer(id){
     saveData();
     return;
   }
-
   // falta/cartão
   if(pendingPlayerEvent){
     addPlayerEvent(pendingPlayerEvent, id);
@@ -1781,17 +1659,14 @@ function togglePlayer(id){
     updatePlayersUI();
     return;
   }
-
   // troca normal
   const p = players.find(x=>x.id===id);
   if(!p) return;
-
   const currently = activeCount();
   if(!p.active && currently >= maxOnField){
     flashLimit(id);
     return;
   }
-
   if(p.active){
     p.active = false;
     p.lastRotation = p.rotationSecondsCurrent;
@@ -1803,12 +1678,10 @@ function togglePlayer(id){
     p.rotationSecondsCurrent = 0;
     p.rotationSecondsOut = 0;
   }
-
   updatePlayersUI();
   updateSummary();
   saveData();
 }
-
 function computeGameTime(){
   if(players.length===0) return 0;
   return players.reduce((max,p)=>{
@@ -1816,24 +1689,19 @@ function computeGameTime(){
     return t>max?t:max;
   },0);
 }
-
 function computeIdealPerPlayer(gameTime){
   if(players.length===0) return 0;
   return gameTime * (maxOnField / players.length);
 }
-
 function computePlayerWorkload(p, gameTime, idealPerPlayer){
   if(gameTime <= 0) return 0;
   return (p.seconds || 0) - idealPerPlayer;
 }
-
 function updateSummary(){
   const tbody = document.getElementById("summaryBody");
   tbody.innerHTML = "";
-
   const gameTime = computeGameTime();
   const ideal = computeIdealPerPlayer(gameTime);
-
   players.forEach(p=>{
     const total = p.part1 + p.part2;
     const avg = p.rotations > 0 ? Math.floor(total / p.rotations) : 0;
@@ -1842,11 +1710,9 @@ function updateSummary(){
     const wlMin = wlSec / 60;
     const wClass = wlMin >= 0 ? "work-pos" : "work-neg";
     const wTxt = `${wlMin>=0?"+":""}${wlMin.toFixed(1)}m`;
-
     const extra = [];
     if(p.goals>0) extra.push(`⚽ ${p.goals}`);
     if(p.assists>0) extra.push(`👣 ${p.assists}`);
-
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${p.name}${p.isGK?' 🧤':''}${extra.length?(" · "+extra.join(" ")):''}</td>
@@ -1862,7 +1728,6 @@ function updateSummary(){
     tbody.appendChild(tr);
   });
 }
-
 function toggleTheme(){
   document.body.classList.toggle("light-mode");
   theme = document.body.classList.contains("light-mode") ? "light" : "dark";
@@ -1873,11 +1738,9 @@ function toggleFullscreen(){
   if(!document.fullscreenElement) document.documentElement.requestFullscreen();
   else document.exitFullscreen();
 }
-
 /* Edit panel */
 const editPanel = document.getElementById("editPanel");
 const editList = document.getElementById("editList");
-
 function openEditPanel(){
   editList.innerHTML = "";
   players.forEach(p=>{
@@ -1908,11 +1771,9 @@ function saveNamesFromPanel(){
   updateSummary();
   saveData();
 }
-
 /* Load panel */
 const loadPanel = document.getElementById("loadPanel");
 const loadList = document.getElementById("loadList");
-
 function openLoadPanel(){
   renderLoadPanel();
   loadPanel.classList.add("open");
@@ -1926,19 +1787,15 @@ function renderLoadPanel(){
   loadList.innerHTML = "";
   const gameTime = computeGameTime();
   const ideal = computeIdealPerPlayer(gameTime);
-
   const sorted = [...players].sort((a,b)=> (b.seconds||0)-(a.seconds||0));
-
   sorted.forEach(p=>{
     const wlSec = computePlayerWorkload(p, gameTime, ideal);
     const wlMin = wlSec/60;
     const totalSec = (p.seconds||0);
     const fad = p.fatigue || 0;
-
     let fadClass="fat-low", fadTxt="Fadiga baixa";
     if(fad>=0.7){ fadClass="fat-high"; fadTxt="Fadiga alta"; }
     else if(fad>=0.4){ fadClass="fat-mid"; fadTxt="Fadiga média"; }
-
     const div = document.createElement("div");
     div.className = "load-row";
     div.innerHTML = `
@@ -1959,11 +1816,9 @@ function renderLoadPanel(){
     loadList.appendChild(div);
   });
 }
-
 /* Events panel */
 const eventsPanel = document.getElementById("eventsPanel");
 const eventsList = document.getElementById("eventsList");
-
 function describeEvent(ev){
   const halfTxt = ev.half === 1 ? "1ª parte" : "2ª parte";
   const baseTime = ev.clock || formatTime(remaining);
@@ -1973,7 +1828,6 @@ function describeEvent(ev){
   else if(ev.type === "FK_P") typeTxt = "Falta";
   else if(ev.type === "YC_P") typeTxt = "Cartão amarelo";
   else if(ev.type === "RC_P") typeTxt = "Cartão vermelho";
-
   let playerTxt = "";
   if(ev.playerId){
     const p = players.find(x=>x.id===ev.playerId);
@@ -1984,7 +1838,6 @@ function describeEvent(ev){
     const a = players.find(x=>x.id===ev.assistPlayerId);
     if(a) assistTxt = "Assistência: " + a.name;
   }
-
   let onFieldText = "";
   if(ev.activeIds && Array.isArray(ev.activeIds) && ev.activeIds.length){
     const names = ev.activeIds.map(id=>{
@@ -1993,14 +1846,12 @@ function describeEvent(ev){
     });
     onFieldText = "Em campo: " + names.join(", ");
   }
-
   return {
     header: `${halfTxt} · ${baseTime}`,
     main: [typeTxt, playerTxt, ev.goalCategory].filter(Boolean).join(" – "),
     extra: [assistTxt, onFieldText].filter(Boolean).join(" | ")
   };
 }
-
 function renderEventsPanel(){
   eventsList.innerHTML = "";
   if(!timeline.length){
@@ -2023,7 +1874,6 @@ function renderEventsPanel(){
     `;
     eventsList.appendChild(row);
   });
-
   eventsList.querySelectorAll(".event-delete").forEach(btn=>{
     btn.onclick = ()=>{
       const i = parseInt(btn.getAttribute("data-idx"),10);
@@ -2039,7 +1889,6 @@ function renderEventsPanel(){
     };
   });
 }
-
 function openEventsPanel(){
   renderEventsPanel();
   eventsPanel.classList.add("open");
@@ -2049,7 +1898,6 @@ function closeEventsPanel(){
   eventsPanel.classList.remove("open");
   if(floatingPlayBtn) floatingPlayBtn.style.display = "block";
 }
-
 /* Presets */
 function getPresets(){
   return JSON.parse(localStorage.getItem(PRESETS_KEY) || "{}");
@@ -2119,7 +1967,6 @@ function loadPreset(name){
   saveData();
   alert("Preset carregado.");
 }
-
 /* Persistência */
 function saveData(){
   const data = {
@@ -2137,7 +1984,6 @@ function saveData(){
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
-
 function loadData(){
   const raw = localStorage.getItem(STORAGE_KEY);
   if(!raw){
@@ -2172,7 +2018,6 @@ function loadData(){
     updateFloatingPlayBtn();
     return;
   }
-
   try{
     const d = JSON.parse(raw);
     document.getElementById("teamA").value = d.teamA || "";
@@ -2184,7 +2029,6 @@ function loadData(){
     scoreA = typeof d.scoreA==="number" ? d.scoreA : 0;
     scoreB = typeof d.scoreB==="number" ? d.scoreB : 0;
     timeline = Array.isArray(d.timeline) ? d.timeline : [];
-
     players = (Array.isArray(d.players)?d.players:[]).map((p,i)=>({
       id: p.id ?? (i+1),
       name: p.name || ("Jogador "+(p.id ?? (i+1))),
@@ -2206,7 +2050,6 @@ function loadData(){
       goals: p.goals || 0,
       assists: p.assists || 0
     }));
-
     if(players.length===0){
       for(let i=1;i<=14;i++){
         players.push({
@@ -2231,13 +2074,11 @@ function loadData(){
         });
       }
     }
-
     buildPlayersDOM();
     updateTimerDisplay();
     updateHalfBadge();
     updateSummary();
     updateScoreUI();
-
     if(theme==="light"){
       document.body.classList.add("light-mode");
       document.getElementById("themeToggle").textContent = "🌞";
@@ -2253,12 +2094,10 @@ function exportPng(){
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
   const title = `${teamA} ${scoreA}–${scoreB} ${teamB}`;
-
   const headers = ["Jogador","1ª Parte","2ª Parte","Total em Campo","Tempo Fora","Rotações","Média","% Jogo","Workload"];
   const rows = [];
   const gameTime = computeGameTime();
   const ideal = computeIdealPerPlayer(gameTime);
-
   players.forEach(p=>{
     const total = p.part1 + p.part2;
     const avg = p.rotations>0 ? Math.floor(total/p.rotations) : 0;
@@ -2266,11 +2105,9 @@ function exportPng(){
     const wlSec = computePlayerWorkload(p, gameTime, ideal);
     const wlMin = wlSec/60;
     const wTxt = `${wlMin>=0?"+":""}${wlMin.toFixed(1)}m`;
-
     const extra = [];
     if(p.goals>0) extra.push(`⚽ ${p.goals}`);
     if(p.assists>0) extra.push(`👣 ${p.assists}`);
-
     rows.push([
       p.name+(p.isGK?' 🧤':'')+(extra.length?(" · "+extra.join(" ")): ""),
       formatTime(p.part1),
@@ -2283,7 +2120,6 @@ function exportPng(){
       wTxt
     ]);
   });
-
   const timelineLines = timeline
     .sort((a,b)=>a.ts-b.ts)
     .map(ev=>{
@@ -2321,7 +2157,6 @@ function exportPng(){
       }
       return `${halfTxt} parte · ${baseTime} – ${desc}${onFieldText}`;
     });
-
   const colWidths = [260,100,100,140,140,90,100,90,120];
   const tableWidth = colWidths.reduce((a,b)=>a+b,0);
   const margin = 20;
@@ -2334,24 +2169,19 @@ function exportPng(){
   const cardHeight = tableHeight + (timelineBlockH ? (timelineBlockH + 16) : 0);
   const canvasW = Math.max(900, contentWidth + margin*2);
   const canvasH = margin + titleH + 10 + cardHeight + margin;
-
   const canvas = document.createElement("canvas");
   canvas.width = canvasW;
   canvas.height = canvasH;
   const ctx = canvas.getContext("2d");
-
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0,0,canvasW,canvasH);
-
   ctx.fillStyle = "#000";
   ctx.font = "bold 22px Arial";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(title, canvasW/2, margin + titleH/2);
-
   const cardX = (canvasW - contentWidth)/2;
   const cardY = margin + titleH + 10;
-
   ctx.fillStyle = "#ffffff";
   ctx.strokeStyle = "#cccccc";
   ctx.lineWidth = 1;
@@ -2369,27 +2199,22 @@ function exportPng(){
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
-
   let x = cardX+padding;
   let y = cardY+padding;
-
   ctx.fillStyle = "#eeeeee";
   ctx.fillRect(x-1,y,tableWidth+2,headerH);
   ctx.fillStyle = "#000";
   ctx.font = "bold 14px Arial";
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-
   let cx = x;
   headers.forEach((h,i)=>{
     ctx.fillText(h, cx+6, y+headerH/2);
     cx += colWidths[i];
   });
-
   ctx.strokeStyle = "#cccccc";
   ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+tableWidth,y); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(x,y+headerH); ctx.lineTo(x+tableWidth,y+headerH); ctx.stroke();
-
   ctx.font = "13px Arial";
   let rowY = y+headerH;
   rows.forEach(row=>{
@@ -2398,7 +2223,6 @@ function exportPng(){
     ctx.moveTo(x,rowY+rowH);
     ctx.lineTo(x+tableWidth,rowY+rowH);
     ctx.stroke();
-
     let cxx = x;
     row.forEach((cell,i)=>{
       const text = String(cell);
@@ -2412,24 +2236,19 @@ function exportPng(){
       }
       if(t!==text) t = t.slice(0,-1)+"…";
       ctx.fillText(t, cxx+5, rowY+rowH/2);
-
       ctx.strokeStyle="#ececec";
       ctx.beginPath();
       ctx.moveTo(cxx,rowY);
       ctx.lineTo(cxx,rowY+rowH);
       ctx.stroke();
-
       cxx += colWidths[i];
     });
-
     ctx.beginPath();
     ctx.moveTo(x+tableWidth,rowY);
     ctx.lineTo(x+tableWidth,rowY+rowH);
     ctx.stroke();
-
     rowY += rowH;
   });
-
   if(timelineLines.length){
     const tlStartY = rowY + 16;
     ctx.font = "bold 14px Arial";
@@ -2442,49 +2261,40 @@ function exportPng(){
       ly += 16;
     });
   }
-
   const a = document.createElement("a");
   const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
   a.download = `Resumo_${teamA.replace(/\s+/g,"_")}_vs_${teamB.replace(/\s+/g,"_")}_${ts}.png`;
   a.href = canvas.toDataURL("image/png");
   a.click();
 }
-
 /* Timeline – equipa (para GA_A e outros de equipa) */
 function handleTeamEvent(type, goalCategory, context){
   const half = matchPeriod;
   const clock = formatTime(remaining);
   const activeIds = players.filter(p=>p.active).map(p=>p.id);
-
   if(type==="GF_A") scoreA++;
   if(type==="GA_A") scoreB++;
-
   const ev = { type, half, clock, activeIds, ts: Date.now(), ...context };
   if(goalCategory) ev.goalCategory = goalCategory;
-
   addTimelineEvent(ev);
   updateScoreUI();
   saveData();
 }
-
 function setPendingEvent(type){
   pendingPlayerEvent = type;
   pendingGoalScorer = null;
   pendingAssistForGoal = null;
   updatePlayersUI();
 }
-
 /* Vassoura */
 document.getElementById("tlClearBtn").onclick = ()=>{
   if(!confirm("Limpar marcador, faltas/cartões, golos/assistências e timeline?")) return;
-
   scoreA = 0;
   scoreB = 0;
   timeline = [];
   pendingAssistForGoal = null;
   pendingGoalScorer = null;
   pendingPlayerEvent = null;
-
   players.forEach(p=>{
     p.fouls = 0;
     p.yc = false;
@@ -2492,13 +2302,11 @@ document.getElementById("tlClearBtn").onclick = ()=>{
     p.goals = 0;
     p.assists = 0;
   });
-
   updateScoreUI();
   updatePlayersUI();
   updateSummary();
   saveData();
 };
-
 /* Ligações de botões base */
 document.getElementById("resetBtn").onclick = resetTimer;
 document.getElementById("intervalBtn").onclick = intervalTimer;
@@ -2507,11 +2315,9 @@ document.getElementById("removeBtn").onclick = ()=>{ if(players.length>1) ensure
 document.getElementById("themeToggle").onclick = toggleTheme;
 document.getElementById("fullscreenBtn").onclick = toggleFullscreen;
 document.getElementById("printBtn").onclick = exportPng;
-
 document.getElementById("editNamesBtn").onclick = openEditPanel;
 document.getElementById("closePanel").onclick = closeEditPanel;
 document.getElementById("saveNamesBtn").onclick = saveNamesFromPanel;
-
 /* Presets – painel */
 const presetsPanel = document.getElementById("presetsPanel");
 document.getElementById("presetsBtn").onclick = ()=>{
@@ -2524,20 +2330,16 @@ document.getElementById("closePresets").onclick = ()=>{
   if(floatingPlayBtn) floatingPlayBtn.style.display = "block";
 };
 document.getElementById("savePresetBtn").onclick = savePreset;
-
 /* Gestão de cargas – painel */
 document.getElementById("loadPanelBtn").onclick = openLoadPanel;
 document.getElementById("closeLoad").onclick = closeLoadPanel;
-
 /* Eventos – painel */
 document.getElementById("eventsPanelBtn").onclick = openEventsPanel;
 document.getElementById("closeEvents").onclick = closeEventsPanel;
-
 /* Timeline buttons */
 document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
   const type = btn.dataset.type;
   if(!type) return;
-
   if(btn.classList.contains("tl-player")){
     btn.addEventListener("click", ()=> setPendingEvent(type));
   }else{
@@ -2547,7 +2349,6 @@ document.querySelectorAll("#timelineBar .tl-btn").forEach(btn=>{
     });
   }
 });
-
 /* Botão flutuante */
 if(floatingPlayBtn){
   floatingPlayBtn.onclick = ()=>{
@@ -2555,10 +2356,8 @@ if(floatingPlayBtn){
     else startTimer();
   };
 }
-
 window.addEventListener("beforeunload", saveData);
 setInterval(saveData, 5000);
-
 /* Separadores e ações: extensão ao Game Control existente. */
 let selectedAction = null;
 let lowerTab = 'times';
@@ -2755,7 +2554,6 @@ const originalInterval=intervalTimer;
 intervalTimer=function(){selectedAction=null;originalInterval();renderLower();};
 document.getElementById('intervalBtn').onclick=intervalTimer;
 document.getElementById('tlClearBtn').addEventListener('click',()=>{selectedAction=null;renderLower();});
-
 /* Arquivo local e combinações de jogadores. */
 let ARCHIVE_KEY='gc_match_archive_v1_'+activeTeam;
 let MATCH_ID_KEY='gc_current_match_id_v1_'+activeTeam;
@@ -2890,7 +2688,6 @@ document.getElementById('combinationScope').onchange=renderCombinations;
 const switchWithArchive=switchLowerTab;
 switchLowerTab=function(tab){switchWithArchive(tab);if(tab==='archive')renderArchive();if(tab==='combinations')renderCombinations();};
 renderArchive();
-
 function teamStorageKey(base){return base+'_'+activeTeam;}
 function activateTeam(id){
   activeTeam=id;localStorage.setItem('gc_active_team_v1',id);
@@ -3028,7 +2825,6 @@ document.getElementById('resetBtn').onclick=()=>chooseNewMatchTeam(false);
 const manageTeamsButton=document.getElementById('editNamesBtn');manageTeamsButton.title='Gerir equipas e jogadores';manageTeamsButton.setAttribute('aria-label','Gerir equipas e jogadores');manageTeamsButton.onclick=()=>chooseNewMatchTeam(true);
 document.getElementById('matchDate').onchange=()=>localStorage.setItem(teamStorageKey('gc_match_date_v1'),document.getElementById('matchDate').value);
 updateTeamBadge();
-
 /* Incrementar a versão quando existir uma nova atualização a apresentar. */
 const UPDATES_VERSION='2026-10-28.2';
 const UPDATES_SEEN_KEY='gc_updates_seen_v1';
@@ -3103,7 +2899,6 @@ window.addEventListener('DOMContentLoaded',()=>{
   const login=document.getElementById('loginScreen');
   if(login)new MutationObserver(maybeShowGameControlUpdates).observe(login,{attributes:true,attributeFilter:['style']});
 });
-
 function periodLabel(period){return ({1:'1ª parte',2:'2ª parte',3:'Prolongamento · 1ª parte',4:'Prolongamento · 2ª parte'})[period]||'1ª parte';}
 updateHalfBadge=function(){document.getElementById('halfBadge').textContent=periodLabel(matchPeriod);};
 function changeMatchPeriod(period,minutes){
@@ -3155,7 +2950,6 @@ loadData=function(){
 };
 const resetWithPeriods=resetTimer;
 resetTimer=function(){matchPeriod=1;document.getElementById('setMinutes').value=regulationMinutes;resetWithPeriods();updateHalfBadge();};
-
 /* Fecho consistente de todas as janelas, incluindo conteúdo com scroll. */
 function attachDialogClose(dialog){
   if(dialog.querySelector('.gc-dialog-closebar'))return;
@@ -3172,7 +2966,66 @@ const dialogCloseObserver=new MutationObserver(records=>{
   }));
 });
 dialogCloseObserver.observe(document.body,{childList:true,subtree:true});
-
+/* Ordenação dos cartões por pega, com suporte para rato e toque. */
+function persistPlayerOrder(){
+  const rosterKey='gc_roster_v1_'+activeTeam;
+  const raw=localStorage.getItem(rosterKey);
+  if(raw){
+    const roster=JSON.parse(raw),order=new Map(players.map((p,i)=>[String(p.id),i]));
+    roster.sort((a,b)=>(order.get(String(a.id))??Infinity)-(order.get(String(b.id))??Infinity));
+    localStorage.setItem(rosterKey,JSON.stringify(roster));
+  }
+  saveData();
+}
+function movePlayerCard(fromId,toId){
+  const from=players.findIndex(p=>String(p.id)===String(fromId));
+  const to=players.findIndex(p=>String(p.id)===String(toId));
+  if(from<0||to<0||from===to)return;
+  const [player]=players.splice(from,1);players.splice(to,0,player);
+  persistPlayerOrder();buildPlayersDOM();updateSummary();
+}
+const buildBeforePlayerOrder=buildPlayersDOM;
+buildPlayersDOM=function(){
+  buildBeforePlayerOrder();
+  players.forEach(p=>{
+    const card=document.getElementById('player'+p.id);if(!card)return;
+    const handle=document.createElement('button');handle.type='button';handle.className='gc-player-grip';handle.textContent='⠿';
+    handle.setAttribute('aria-label','Mover '+p.name);handle.title='Arrasta para mudar a ordem · setas para mover';
+    handle.onclick=event=>{event.preventDefault();event.stopPropagation();};
+    handle.onkeydown=event=>{
+      if(!['ArrowLeft','ArrowRight'].includes(event.key))return;
+      event.preventDefault();event.stopPropagation();const index=players.findIndex(other=>other.id===p.id),next=index+(event.key==='ArrowLeft'?-1:1);
+      if(players[next]){movePlayerCard(p.id,players[next].id);document.getElementById('player'+p.id)?.querySelector('.gc-player-grip')?.focus();}
+    };
+    card.appendChild(handle);
+  });
+};
+let playerDrag=null;
+const playerGrid=document.getElementById('players');
+playerGrid.addEventListener('pointerdown',event=>{
+  const handle=event.target.closest('.gc-player-grip');if(!handle)return;
+  if(event.button!==0)return;
+  event.preventDefault();event.stopPropagation();
+  const card=handle.closest('.player');playerDrag={from:card.id.slice(6),to:card.id.slice(6),handle,pointerId:event.pointerId};
+  handle.setPointerCapture(event.pointerId);card.classList.add('gc-dragging');
+});
+playerGrid.addEventListener('pointermove',event=>{
+  if(!playerDrag||event.pointerId!==playerDrag.pointerId)return;
+  event.preventDefault();
+  const card=document.elementFromPoint(event.clientX,event.clientY)?.closest('.player');
+  if(!card||!playerGrid.contains(card))return;
+  playerDrag.to=card.id.slice(6);
+  playerGrid.querySelectorAll('.gc-drop-target').forEach(el=>el.classList.remove('gc-drop-target'));card.classList.add('gc-drop-target');
+});
+function finishPlayerDrag(event,cancelled){
+  if(!playerDrag||event.pointerId!==playerDrag.pointerId)return;
+  const drag=playerDrag;playerDrag=null;
+  if(drag.handle.hasPointerCapture(event.pointerId))drag.handle.releasePointerCapture(event.pointerId);
+  playerGrid.querySelectorAll('.gc-dragging,.gc-drop-target').forEach(el=>el.classList.remove('gc-dragging','gc-drop-target'));
+  if(!cancelled)movePlayerCard(drag.from,drag.to);
+}
+playerGrid.addEventListener('pointerup',event=>finishPlayerDrag(event,false));
+playerGrid.addEventListener('pointercancel',event=>finishPlayerDrag(event,true));
 /* Boot */
 loadData();
 if(!document.getElementById("teamA").value)document.getElementById("teamA").value=TEAM_PROFILES[activeTeam];
