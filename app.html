@@ -2827,56 +2827,25 @@ document.getElementById('matchDate').onchange=()=>localStorage.setItem(teamStora
 updateTeamBadge();
 /* Incrementar a versão quando existir uma nova atualização a apresentar. */
 const UPDATES_VERSION='2026-10-28.2';
+const UPDATES_VERSION='2026-10-28.3';
 const UPDATES_SEEN_KEY='gc_updates_seen_v1';
 const GAMECONTROL_UPDATES=[
-  ['Cronómetro e gestão de equipas',['Escolhe 20, 30 ou outro tempo por parte em Configurar cronómetro.','Prolongamento com duas partes de 5 minutos por defeito e duração ajustável.','O botão de jogadores no topo passa a gerir equipas e plantéis. Os jogadores usam apenas nome e posição, sem número.']],
-  ['Equipas e convocados',[
-    'Cria equipas com o nome que quiseres e mantém os dados separados.',
-    'Cria e edita o plantel, identifica os guarda-redes e escolhe os convocados antes de cada jogo.',
-    'Só os convocados aparecem no painel de jogadores.'
+  ['Equipas e convocados',['Cria equipas e plantéis. Antes de cada jogo, escolhe os convocados.']],
+  ['Primeiro o plantel. Depois os convocados.',[
+    '1. No botão 👥, cria a equipa e adiciona TODOS os jogadores do plantel. Guarda o plantel uma vez.',
+    '2. Antes de cada jogo, carrega em «Guardar e novo jogo», escolhe a equipa e marca apenas os convocados.',
+    '3. Carrega em «Começar jogo». Só os convocados aparecem nos cartões; os restantes continuam guardados no plantel para os próximos jogos.'
   ]],
-  ['Guardar e consultar jogos',[
-    'Guarda o jogo antes de começar outro, mantendo o plantel da equipa.',
-    'Consulta resultados, estatísticas, tempos e eventos no separador Jogos guardados.',
-    'Voltar a guardar o mesmo jogo atualiza o registo, sem criar uma cópia.',
-    'Exporta uma cópia dos jogos em formato JSON. O arquivo está guardado neste navegador; ainda não existe sincronização entre dispositivos.'
-  ]],
-  ['Quartetos e duplas',[
-    'Consulta golos a favor, golos contra e saldo das combinações presentes em campo no momento dos golos.',
-    'Analisa o jogo atual, os guardados ou ambos. Os guarda-redes são excluídos.',
-    'Os quartetos exigem quatro jogadores de campo. A análise não é ajustada ao tempo jogado.'
-  ]],
-  ['Novas ações das duas equipas',[
-    'Regista remates à baliza, remates fora, defesas, recuperações e perdas de bola.',
-    'As ações da nossa equipa e do adversário estão sempre visíveis, sem trocar seletores.',
-    'Escolhe a zona da recuperação ou perda num campo dividido em zona defensiva, meio-campo e zona ofensiva.',
-    'Regista faltas e cartões do adversário no painel de ações; os da nossa equipa continuam na timeline.',
-    'Associa as ações da nossa equipa a um jogador ou regista sem jogador.'
-  ]],
-  ['Origem dos golos',[
-    'Classifica golos marcados e sofridos com uma única categoria.',
-    'Organização ofensiva ou defensiva, transição ofensiva ou defensiva, lateral, canto, livre, penálti, 5×4, guarda-redes subido, roubo de bola ou perda de bola.',
-    'A categoria fica guardada no evento, no resumo estatístico e na exportação PNG.'
-  ]],
-  ['Estatísticas e histórico',[
-    'Consulta o resumo da partida com números grandes e comparação dos indicadores das duas equipas.',
-    'Vê estatísticas por jogador, golos por origem e recuperações/perdas por zona.',
-    'Consulta eventos e entradas/saídas. Apaga ações incorretas ou desfaz a última ação.',
-    'Exporta o histórico em CSV.'
-  ]],
-  ['Organização e aspeto',[
-    'Marcador, cronómetro e jogadores mantêm-se acima dos separadores.',
-    'Alterna entre Tempos e cargas, Ações, Estatísticas, Histórico, Jogos guardados e Quartetos e duplas.',
-    'Paleta azul translúcida e tipografia uniformizada, com suporte para tema claro e escuro.',
-    'Mantidos os controlos de tempo, rotações, cargas, presets e exportação PNG.'
-  ]]
+  ['Jogo e estatísticas',['Regista ações das duas equipas e a origem dos golos. Consulta estatísticas, quartetos e duplas.']],
+  ['Arquivo e organização',['Guarda os jogos, exporta uma cópia e arrasta os jogadores para organizar os cartões.']],
+  ['Cronómetro',['Escolhe a duração de cada parte e do prolongamento.']]
 ];
 function showGameControlUpdates(){
   if(document.getElementById('gcUpdatesDialog'))return;
   const dialog=document.createElement('dialog');dialog.id='gcUpdatesDialog';dialog.className='gc-zone-dialog gc-updates-dialog';
   dialog.setAttribute('aria-labelledby','gcUpdatesTitle');
   const heading=document.createElement('h2');heading.id='gcUpdatesTitle';heading.textContent='Novidades do Game Control';dialog.appendChild(heading);
-  const version=document.createElement('p');version.className='gc-note';version.textContent='Atualização de 28 de outubro de 2026';dialog.appendChild(version);
+  const version=document.createElement('p');version.className='gc-note';version.textContent='Uma atualização para organizar melhor o teu jogo.';dialog.appendChild(version);
   const body=document.createElement('div');body.className='gc-updates-body';
   GAMECONTROL_UPDATES.forEach(([title,items])=>{
     const section=document.createElement('section');const h=document.createElement('h3');h.textContent=title;section.appendChild(h);
