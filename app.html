@@ -1242,7 +1242,8 @@ header{position:relative;z-index:1300}
   <div class="controls">
     <input id="setMinutes" type="number" value="20" min="1" style="width:60px">
     <button id="intervalBtn">Intervalo</button>
-    <button id="resetBtn">Reset</button>
+    <button id="saveCurrentGameBtn" type="button">Guardar jogo</button>
+    <button id="resetBtn" type="button">Novo jogo</button>
     <button id="addBtn">+</button>
     <button id="removeBtn">−</button>
   </div>
@@ -2782,9 +2783,11 @@ function exportMatchBackup(){
 }
 document.getElementById('matchDate').value=window.gcAccountStorage.getItem('gc_match_date_v1_'+activeTeam)||localMatchDate();
 document.getElementById('matchDate').onchange=()=>window.gcAccountStorage.setItem('gc_match_date_v1',document.getElementById('matchDate').value);
-document.getElementById('resetBtn').textContent='Guardar e novo jogo';
+document.getElementById('resetBtn').textContent='Novo jogo';
 document.getElementById('resetBtn').onclick=saveAndNewMatch;
-document.getElementById('saveMatchBtn').onclick=()=>{if(saveMatch())alert('Jogo guardado. Se voltares a guardar este jogo, o registo é atualizado.');};
+function saveCurrentGame(){if(!saveMatch())return;alert('Jogo guardado. O resultado, os tempos e os registos mantêm-se. Antes de fechar, confirma a indicação Sincronizado.');}
+document.getElementById('saveCurrentGameBtn').onclick=saveCurrentGame;
+document.getElementById('saveMatchBtn').onclick=saveCurrentGame;
 document.getElementById('backupMatchesBtn').onclick=exportMatchBackup;
 document.getElementById('combinationScope').onchange=renderCombinations;
 const switchWithArchive=switchLowerTab;
@@ -2928,13 +2931,13 @@ const manageTeamsButton=document.getElementById('editNamesBtn');manageTeamsButto
 document.getElementById('matchDate').onchange=()=>window.gcAccountStorage.setItem(teamStorageKey('gc_match_date_v1'),document.getElementById('matchDate').value);
 updateTeamBadge();
 /* Incrementar a versão quando existir uma nova atualização a apresentar. */
-const UPDATES_VERSION='2026-10-29.5';
+const UPDATES_VERSION='2026-10-29.6';
 const UPDATES_SEEN_KEY='gc_updates_seen_v1';
 const GAMECONTROL_UPDATES=[
- ['Plantel completo, convocados por jogo',['Cria a equipa em 👥 e adiciona todos os jogadores uma vez. Em cada novo jogo, escolhe apenas os convocados. Os restantes ficam no plantel.']],
- ['Dados na tua conta',['Equipas, plantéis e jogos sincronizam com internet. Consulta os jogos anteriores e exporta os relatórios.']],
- ['Preparado para o pavilhão',['Instala a aplicação e valida a conta com internet antes de usar offline. Confirma a disponibilidade neste dispositivo.']],
- ['Ajuda sempre à mão',['Encontra os passos detalhados em ☰ → Ajuda e perguntas frequentes.']]
+ ['Uma conta, uma pessoa',['Cada conta deve ser usada por uma única pessoa. Não partilhes os dados de acesso: contas separadas evitam misturar equipas, jogos e registos.']],
+ ['Guardar ou começar outro jogo',['Guardar jogo guarda a partida sem limpar o resultado nem os tempos. Novo jogo permite preparar a partida seguinte.']],
+ ['Plantel completo, convocados por jogo',['Cria a equipa e adiciona todos os jogadores uma vez em Gerir equipas. Em cada novo jogo, escolhe apenas os convocados.']],
+ ['Módulos por autorização',['O Wellness e as Estatísticas dos atletas ficam disponíveis quando a administração os autoriza na tua conta. A ajuda continua no menu.']]
 ];
 function showGameControlUpdates(){
   if(document.getElementById('gcUpdatesDialog'))return;
@@ -3260,12 +3263,14 @@ function exportArchivedReport(game){
 }
 
 const GAMECONTROL_FAQ=[
+ ['Posso partilhar a minha conta?',['Cada conta deve pertencer a uma única pessoa. Cada treinador deve usar a sua conta para manter equipas, jogos e registos separados.','Podes usar a tua conta nos teus dispositivos autorizados. Para registar um jogo em direto, usa apenas um dispositivo de cada vez e confirma a sincronização antes de mudar.']],
+ ['Como guardo o jogo sem começar outro?',['Carrega em Guardar jogo. O cronómetro fica pausado e a partida é guardada em Jogos guardados, mantendo o resultado, os tempos e os eventos no ecrã.','Se voltares a guardar a mesma partida, o registo é atualizado sem criar uma cópia duplicada. Antes de fechar, confirma a indicação Sincronizado.','Usa Novo jogo apenas quando quiseres escolher a equipa e os convocados para outra partida. A partida atual também é guardada antes de ser iniciada a seguinte.']],
  ['Como crio a equipa e o plantel?',[
   'No botão 👥 do topo, abre Gerir equipas. Cria a equipa e adiciona TODOS os jogadores do plantel, indicando se são jogadores de campo ou guarda-redes. Carrega em Guardar plantel.',
   'Só precisas de criar o plantel uma vez. Nos jogos seguintes, escolhes a equipa e os convocados. Podes voltar a 👥 para acrescentar jogadores ou corrigir nomes e posições.'
  ]],
  ['Como escolho os convocados para um jogo?',[
-  'Carrega em Guardar e novo jogo, escolhe a equipa e marca apenas os jogadores convocados. Depois carrega em Começar jogo.',
+  'Carrega em Novo jogo, escolhe a equipa e marca apenas os jogadores convocados. Depois carrega em Começar jogo.',
   'Só os convocados aparecem nos cartões do jogo. Os restantes continuam no plantel para jogos futuros. O jogo anterior é guardado antes de começar outro.'
  ]],
  ['Como troco de equipa sem começar outro jogo?',[
@@ -3489,6 +3494,7 @@ updateTeamBadge=function(){updateBadgeWithWellness();wellnessModuleLink.href='we
 <script>(function(){const link=document.createElement('a');link.id='athletesModuleLink';link.hidden=true;link.dataset.moduleLink='athleteStats';link.title='Estatísticas dos atletas';link.setAttribute('aria-label','Abrir estatísticas dos atletas');link.href='atletas.html?equipa='+encodeURIComponent(activeTeam);link.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16M6 16v-5M12 16V4M18 16V8"/></svg>';link.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--gc-line,#40505e);border-radius:8px;background:var(--gc-raised,#202d39);color:var(--gc-ink,#dce9f3)';document.getElementById('wellnessModuleLink').insertAdjacentElement('afterend',link);link.onclick=event=>{if(pendingPlayerEvent||pendingGoalScorer||pendingAssistForGoal||selectedAction){event.preventDefault();alert('Conclui a ação antes de abrir as estatísticas.');return;}if(running&&!confirm('Pausar o jogo e abrir as estatísticas?')){event.preventDefault();return;}pauseTimer();saveData();link.href='atletas.html?equipa='+encodeURIComponent(activeTeam);};})();</script>
 <script>window.addEventListener("gc:permissions",()=>document.querySelectorAll("[data-module-link]").forEach(link=>link.hidden=window.gcModuleAccess?.[link.dataset.moduleLink]!==true));</script><script>(function(){let handled=false;function restoreModuleTeam(){if(handled||!window.gcModuleAccess?.gameControl||!window.gcSyncAPI?.initialised())return;const params=new URLSearchParams(location.search),id=params.get('equipa');if(id&&!TEAM_PROFILES[id])return;handled=true;if(id&&id!==activeTeam)switchExistingTeam(id);if(params.get('gerir')==='1')chooseSquad(id||activeTeam,true);}window.addEventListener('gc:ready',restoreModuleTeam);const refresh=window.gcSyncAPI.refresh;window.gcSyncAPI.refresh=function(){refresh.call(this);restoreModuleTeam();};})();</script></body>
 </html>
+
 
 
 

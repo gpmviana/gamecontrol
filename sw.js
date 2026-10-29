@@ -1,4 +1,4 @@
-const VERSION='gc-pwa-modules-2026-10-29-1';
+const VERSION='gc-pwa-modules-2026-10-29-2';
 const ROOT=new URL('./',self.location.href);
 const SHELL=['app.html','sincronizacao.js','modules.css','permissoes.js','wellness.html','wellness-app.js','atletas.html','athletes.js','athletes.css','module-session.js','firebase-config.js','style.css','logo-wellness.png','manifest.webmanifest','icon-192.png','icon-512.png'];
 const FIREBASE=['firebase-app.js','firebase-auth.js','firebase-firestore.js'].map(file=>'https://www.gstatic.com/firebasejs/12.6.0/'+file);
