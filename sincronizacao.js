@@ -13,13 +13,13 @@ export function syncDecision(local,remote,ack,running){
  if((ack?.revision??0)===(remote.revision??0))return 'upload';
  return 'conflict';
 }
-export async function startAccountSync(user,db){
+export async function startAccountSync(user,db,options={}){
  const api=window.gcSyncAPI,store=window.gcAccountStorage;
  if(!api)throw Error('Interface de sincronização indisponível.');
  if(window.gcSyncSession?.uid===user.uid)return;
  window.gcSyncSession?.stop();
  let active=true,busy=false,queued=false,ready=false,lastError='',unsubscribers=[],teamsWatched=new Set(),matchesReady=new Set();
- const gameWrapper=document.getElementById('appWrapper');if(gameWrapper)gameWrapper.inert=true;
+ const gameWrapper=document.getElementById('appWrapper');if(gameWrapper)gameWrapper.inert=!options.offline;
  const remote=new Map(),conflicts=new Map();let pendingTeams=0;
  const meta=JSON.parse(store.getItem('gc_sync_meta_v1')||'{"docs":{}}');meta.docs ||= {};
  const bar=document.createElement('div');bar.id='gcSyncBar';bar.style.cssText='padding:10px 14px;font-size:12px;background:var(--gc-panel);color:var(--gc-muted);border-bottom:1px solid var(--gc-line);display:flex;gap:10px;align-items:center;flex-wrap:wrap';
