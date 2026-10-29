@@ -1,4 +1,4 @@
-const VERSION='gc-pwa-sync-2026-10-29-clean-2';
+const VERSION='gc-pwa-sync-2026-10-29-faq-3';
 const ROOT=new URL('./',self.location.href);
 const SHELL=['app.html','sincronizacao.js','manifest.webmanifest','icon-192.png','icon-512.png'];
 const FIREBASE=['firebase-app.js','firebase-auth.js','firebase-firestore.js'].map(file=>'https://www.gstatic.com/firebasejs/12.6.0/'+file);
@@ -40,4 +40,5 @@ self.addEventListener('fetch',event=>{
     const response=await fetch(request);if(response.ok)await cache.put(key,response.clone());return response;
   })());
 });
+
 
