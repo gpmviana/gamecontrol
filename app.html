@@ -2662,22 +2662,23 @@ let ARCHIVE_KEY='gc_match_archive_v1_'+activeTeam;
 let MATCH_ID_KEY='gc_current_match_id_v1_'+activeTeam;
 let currentMatchId=window.gcAccountStorage.getItem(MATCH_ID_KEY)||crypto.randomUUID();
 window.gcAccountStorage.setItem(MATCH_ID_KEY,currentMatchId);
-function readArchive(){
+function readArchive(includeDeleted=false){
   const raw=window.gcAccountStorage.getItem(ARCHIVE_KEY);
   if(!raw)return [];
-  const data=JSON.parse(raw);if(!Array.isArray(data))throw Error('Arquivo inválido');return data;
+  const data=JSON.parse(raw);if(!Array.isArray(data))throw Error('Arquivo inválido');return includeDeleted?data:data.filter(g=>!g.deleted);
 }
 function archiveSnapshot(){
   return {id:currentMatchId,teamProfile:activeTeam,date:document.getElementById('matchDate').value,
     savedAt:new Date().toISOString(),teamA:document.getElementById('teamA').value||'Nossa equipa',teamB:document.getElementById('teamB').value||'Adversário',
     scoreA,scoreB,duration,remaining,firstHalf,players:JSON.parse(JSON.stringify(players)),timeline:JSON.parse(JSON.stringify(timeline))};
 }
-function saveMatch(){
+function saveMatch({restore=false}={}){
   if(pendingGoalScorer||pendingAssistForGoal||selectedAction||pendingPlayerEvent){alert('Conclui ou cancela a ação selecionada antes de guardar o jogo.');return false;}
   pauseTimer();
   try{
-    const games=readArchive(),snapshot=archiveSnapshot();
+    const games=readArchive(true),snapshot=archiveSnapshot();
     const index=games.findIndex(g=>g.id===snapshot.id);
+    if(index>=0&&games[index].deleted){if(!restore)return true;if(!confirm('Este jogo foi apagado. Queres recuperá-lo e atualizar o registo?'))return false;}
     if(index>=0)games[index]=snapshot;else games.push(snapshot);
     window.gcAccountStorage.setItem(ARCHIVE_KEY,JSON.stringify(games));
     renderArchive();renderCombinations();return true;
@@ -2750,14 +2751,29 @@ function renderArchive(){
   const host=document.getElementById('archiveList');if(!host)return;
   host.innerHTML='';
   let games;try{games=readArchive();}catch(e){host.textContent='Erro ao ler o arquivo. Os dados não foram apagados.';return;}
-  if(!games.length){host.textContent='Ainda não há jogos guardados.';return;}
+  if(!games.length){const note=document.createElement('p');note.textContent='Ainda não há jogos guardados.';host.appendChild(note);}
   games.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.savedAt.localeCompare(a.savedAt)).forEach(game=>{
     const row=document.createElement('div');row.className='gc-history-row';
     const title=document.createElement('span');title.textContent=game.date+' · '+game.teamA+' '+game.scoreA+' — '+game.scoreB+' '+game.teamB;
     const button=document.createElement('button');button.textContent='Consultar';button.onclick=()=>viewArchivedMatch(game);
-    row.appendChild(title);const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;flex-wrap:wrap';controls.appendChild(button);const exportButton=document.createElement('button');exportButton.textContent='Exportar relatório PNG';exportButton.onclick=()=>exportArchivedReport(game);controls.appendChild(exportButton);const wellnessLink=document.createElement('a');wellnessLink.textContent='PSE no Wellness →';wellnessLink.dataset.moduleLink='wellness';wellnessLink.hidden=window.gcModuleAccess?.wellness!==true;wellnessLink.href='wellness.html?equipa='+encodeURIComponent(activeTeam)+'&jogo='+encodeURIComponent(game.id);wellnessLink.style.cssText='padding:9px;align-self:center';controls.appendChild(wellnessLink);row.appendChild(controls);host.appendChild(row);
+    row.appendChild(title);const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;flex-wrap:wrap';controls.appendChild(button);const exportButton=document.createElement('button');exportButton.textContent='Exportar relatório PNG';exportButton.onclick=()=>exportArchivedReport(game);controls.appendChild(exportButton);const wellnessLink=document.createElement('a');wellnessLink.textContent='PSE no Wellness →';wellnessLink.dataset.moduleLink='wellness';wellnessLink.hidden=window.gcModuleAccess?.wellness!==true;wellnessLink.href='wellness.html?equipa='+encodeURIComponent(activeTeam)+'&jogo='+encodeURIComponent(game.id);wellnessLink.style.cssText='padding:9px;align-self:center';controls.appendChild(wellnessLink);const remove=document.createElement('button');remove.textContent='Apagar';remove.onclick=()=>deleteArchivedGame(game.id);controls.appendChild(remove);row.appendChild(controls);host.appendChild(row);
   });
+  const trash=document.createElement('button');trash.textContent='Jogos apagados ('+readArchive(true).filter(g=>g.deleted).length+')';trash.onclick=showDeletedGames;trash.style.marginTop='14px';host.appendChild(trash);
 }
+function deleteArchivedGame(id){
+ const games=readArchive(true),game=games.find(g=>g.id===id&&!g.deleted);if(!game)return;
+ if(!confirm('Apagar o jogo '+game.teamA+' × '+game.teamB+' ('+game.date+')? Sai do arquivo e das estatísticas, mas podes recuperá-lo em Jogos apagados. As sessões do Wellness são geridas separadamente.'))return;
+ game.deleted=true;game.deletedAt=new Date().toISOString();game.savedAt=game.deletedAt;
+ try{window.gcAccountStorage.setItem(ARCHIVE_KEY,JSON.stringify(games));}catch(error){alert('Não foi possível guardar a alteração. O jogo foi mantido.');return;}
+ document.getElementById('archiveDetail').hidden=true;renderArchive();renderCombinations();
+}
+function showDeletedGames(){
+ const dialog=document.createElement('dialog');dialog.className='gc-zone-dialog gc-setup-dialog';const title=document.createElement('h2');title.textContent='Jogos apagados';dialog.appendChild(title);
+ const games=readArchive(true).filter(g=>g.deleted);if(!games.length){const empty=document.createElement('p');empty.textContent='Não há jogos apagados nesta equipa.';dialog.appendChild(empty);}
+ for(const game of games){const row=document.createElement('div');row.className='gc-history-row';const label=document.createElement('span');label.textContent=game.date+' · '+game.teamA+' × '+game.teamB;const restore=document.createElement('button');restore.textContent='Recuperar';restore.onclick=()=>{const all=readArchive(true),item=all.find(g=>g.id===game.id);if(!item)return;item.deleted=false;delete item.deletedAt;item.savedAt=new Date().toISOString();try{window.gcAccountStorage.setItem(ARCHIVE_KEY,JSON.stringify(all));}catch(error){alert('Não foi possível recuperar o jogo.');return;}dialog.close();renderArchive();renderCombinations();};row.append(label,restore);dialog.appendChild(row);}
+ const close=document.createElement('button');close.textContent='Fechar';close.onclick=()=>dialog.close();dialog.appendChild(close);dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.appendChild(dialog);dialog.showModal();
+}
+
 function viewArchivedMatch(game){
   const host=document.getElementById('archiveDetail');host.hidden=false;
   let content='<h3>'+escapeHtml(game.teamA)+' '+game.scoreA+' — '+game.scoreB+' '+escapeHtml(game.teamB)+'</h3><p class="gc-note">'+escapeHtml(game.date)+' · Consulta do jogo guardado</p>';
@@ -2785,7 +2801,7 @@ document.getElementById('matchDate').value=window.gcAccountStorage.getItem('gc_m
 document.getElementById('matchDate').onchange=()=>window.gcAccountStorage.setItem('gc_match_date_v1',document.getElementById('matchDate').value);
 document.getElementById('resetBtn').textContent='Novo jogo';
 document.getElementById('resetBtn').onclick=saveAndNewMatch;
-function saveCurrentGame(){if(!saveMatch())return;alert('Jogo guardado. O resultado, os tempos e os registos mantêm-se. Antes de fechar, confirma a indicação Sincronizado.');}
+function saveCurrentGame(){if(!saveMatch({restore:true}))return;alert('Jogo guardado. O resultado, os tempos e os registos mantêm-se. Antes de fechar, confirma a indicação Sincronizado.');}
 document.getElementById('saveCurrentGameBtn').onclick=saveCurrentGame;
 document.getElementById('saveMatchBtn').onclick=saveCurrentGame;
 document.getElementById('backupMatchesBtn').onclick=exportMatchBackup;
@@ -3263,6 +3279,7 @@ function exportArchivedReport(game){
 }
 
 const GAMECONTROL_FAQ=[
+ ['Como apago ou recupero jogos?',['Em Jogos guardados, usa Apagar junto à partida. O jogo deixa de entrar no arquivo normal e nas Estatísticas. Podes recuperá-lo em Jogos apagados.','As sessões do Wellness são independentes: apaga-as no Calendário do Wellness, se também as quiseres retirar. Confirma a sincronização antes de fechar.']],
  ['Posso partilhar a minha conta?',['Cada conta deve pertencer a uma única pessoa. Cada treinador deve usar a sua conta para manter equipas, jogos e registos separados.','Podes usar a tua conta nos teus dispositivos autorizados. Para registar um jogo em direto, usa apenas um dispositivo de cada vez e confirma a sincronização antes de mudar.']],
  ['Como guardo o jogo sem começar outro?',['Carrega em Guardar jogo. O cronómetro fica pausado e a partida é guardada em Jogos guardados, mantendo o resultado, os tempos e os eventos no ecrã.','Se voltares a guardar a mesma partida, o registo é atualizado sem criar uma cópia duplicada. Antes de fechar, confirma a indicação Sincronizado.','Usa Novo jogo apenas quando quiseres escolher a equipa e os convocados para outra partida. A partida atual também é guardada antes de ser iniciada a seguinte.']],
  ['Como crio a equipa e o plantel?',[
