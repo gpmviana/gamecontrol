@@ -1180,6 +1180,7 @@ header{position:relative;z-index:1300}
 @media(max-width:600px){header{flex-wrap:nowrap!important}.header-title{font-size:12px}.header-logo{height:30px}.top-buttons{gap:4px}.gc-menu-body{position:fixed;top:62px;right:12px;max-height:75vh}#gcCompactStatus{font-size:10px}}
 
 </style>
+<style>.gc-faq-dialog details{border-top:1px solid var(--gc-line);padding:14px 0}.gc-faq-dialog summary{font-size:14px;font-weight:600;color:var(--gc-tint);cursor:pointer;line-height:1.5}.gc-faq-dialog details p{font-size:13px;line-height:1.7;margin:12px 0;color:var(--gc-ink)}.gc-updates-footer button+button{margin-top:8px}.gc-faq-dialog{width:720px}</style>
 </head>
 <body>
 <header>
@@ -2917,18 +2918,13 @@ const manageTeamsButton=document.getElementById('editNamesBtn');manageTeamsButto
 document.getElementById('matchDate').onchange=()=>window.gcAccountStorage.setItem(teamStorageKey('gc_match_date_v1'),document.getElementById('matchDate').value);
 updateTeamBadge();
 /* Incrementar a versão quando existir uma nova atualização a apresentar. */
-const UPDATES_VERSION='2026-10-28.3';
+const UPDATES_VERSION='2026-10-29.4';
 const UPDATES_SEEN_KEY='gc_updates_seen_v1';
 const GAMECONTROL_UPDATES=[
-  ['Equipas e convocados',['Cria equipas e plantéis. Antes de cada jogo, escolhe os convocados.']],
-  ['Primeiro o plantel. Depois os convocados.',[
-    '1. No botão 👥, cria a equipa e adiciona TODOS os jogadores do plantel. Guarda o plantel uma vez.',
-    '2. Antes de cada jogo, carrega em «Guardar e novo jogo», escolhe a equipa e marca apenas os convocados.',
-    '3. Carrega em «Começar jogo». Só os convocados aparecem nos cartões; os restantes continuam guardados no plantel para os próximos jogos.'
-  ]],
-  ['Jogo e estatísticas',['Regista ações das duas equipas e a origem dos golos. Consulta estatísticas, quartetos e duplas.']],
-  ['Arquivo e organização',['Guarda os jogos, exporta uma cópia e arrasta os jogadores para organizar os cartões.']],
-  ['Cronómetro',['Escolhe a duração de cada parte e do prolongamento.']]
+ ['Plantel completo, convocados por jogo',['Cria a equipa em 👥 e adiciona todos os jogadores uma vez. Em cada novo jogo, escolhe apenas os convocados. Os restantes ficam no plantel.']],
+ ['Dados na tua conta',['Equipas, plantéis e jogos sincronizam com internet. Consulta os jogos anteriores e exporta os relatórios.']],
+ ['Preparado para o pavilhão',['Instala a aplicação e valida a conta com internet antes de usar offline. Confirma a disponibilidade neste dispositivo.']],
+ ['Ajuda sempre à mão',['Encontra os passos detalhados em ☰ → Ajuda e perguntas frequentes.']]
 ];
 function showGameControlUpdates(){
   if(document.getElementById('gcUpdatesDialog'))return;
@@ -2942,7 +2938,7 @@ function showGameControlUpdates(){
     const list=document.createElement('ul');items.forEach(text=>{const item=document.createElement('li');item.textContent=text;list.appendChild(item);});section.appendChild(list);body.appendChild(section);
   });dialog.appendChild(body);
   const footer=document.createElement('div');footer.className='gc-updates-footer';
-  const button=document.createElement('button');button.type='button';button.textContent='Entendido · continuar';button.onclick=()=>dialog.close();footer.appendChild(button);dialog.appendChild(footer);
+  const button=document.createElement('button');button.type='button';button.textContent='Entendido · continuar';button.onclick=()=>dialog.close();const help=document.createElement('button');help.type='button';help.textContent='Como funciona? · Abrir ajuda';help.onclick=()=>{dialog.close();showGameControlFAQ();};footer.appendChild(help);footer.appendChild(button);dialog.appendChild(footer);
   dialog.addEventListener('close',()=>{window.gcAccountStorage.setItem(UPDATES_SEEN_KEY,UPDATES_VERSION);dialog.remove();},{once:true});
   document.body.appendChild(dialog);dialog.showModal();button.focus();
 }
@@ -3253,6 +3249,75 @@ function exportArchivedReport(game){
   dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.appendChild(dialog);dialog.showModal();
 }
 
+const GAMECONTROL_FAQ=[
+ ['Como crio a equipa e o plantel?',[
+  'No botão 👥 do topo, abre Gerir equipas. Cria a equipa e adiciona TODOS os jogadores do plantel, indicando se são jogadores de campo ou guarda-redes. Carrega em Guardar plantel.',
+  'Só precisas de criar o plantel uma vez. Nos jogos seguintes, escolhes a equipa e os convocados. Podes voltar a 👥 para acrescentar jogadores ou corrigir nomes e posições.'
+ ]],
+ ['Como escolho os convocados para um jogo?',[
+  'Carrega em Guardar e novo jogo, escolhe a equipa e marca apenas os jogadores convocados. Depois carrega em Começar jogo.',
+  'Só os convocados aparecem nos cartões do jogo. Os restantes continuam no plantel para jogos futuros. O jogo anterior é guardado antes de começar outro.'
+ ]],
+ ['Como troco de equipa sem começar outro jogo?',[
+  'Usa o seletor Equipa atual. A troca mantém os dados do jogo de cada equipa e permite consultar o respetivo arquivo.',
+  'Se o cronómetro estiver a correr, a aplicação pede para o pausar. Conclui ou cancela qualquer ação selecionada antes de trocar.'
+ ]],
+ ['Como registo ações e organizo os jogadores?',[
+  'Um toque no cartão faz o jogador entrar ou sair. Para mudar a ordem dos cartões, arrasta apenas a pequena pega ⠿ no canto.',
+  'Em Ações, escolhe a ação da nossa equipa e depois toca no jogador. As ações do adversário têm botões próprios. Nas recuperações e perdas, escolhe a zona do campo.',
+  'Usa a timeline inferior para golos, faltas e cartões da nossa equipa. Nos golos, escolhe uma única origem; num golo marcado, seleciona também o marcador e a assistência. Toca novamente no marcador para ficar sem assistência.'
+ ]],
+ ['A sincronização é automática?',[
+  'Sim, com a aplicação aberta e internet, as alterações são verificadas e enviadas aproximadamente a cada 15 segundos. Na mesma conta, podes recuperar os dados noutro dispositivo.',
+  'Confirma a indicação Sincronizado depois da última alteração antes de fechar. O menu inclui Sincronizar agora para pedir uma verificação imediata.',
+  'Cada treinador só vê as suas equipas e jogos. A administração do Game Control pode consultar os dados sincronizados para gerir o serviço.'
+ ]],
+ ['Como uso a aplicação sem internet?',[
+  'Faz a primeira entrada com internet neste dispositivo e espera que os ficheiros fiquem preparados. Em ☰ → Estado da ligação e ajuda offline, confirma Disponível offline.',
+  'Depois da validação online, a conta pode entrar offline nesse dispositivo durante até 7 dias. Uma nova validação online renova esse período. Registar uma conta, confirmar o email ou receber aprovação precisa de internet.',
+  'Sem rede, os dados ficam guardados neste dispositivo. Quando a ligação regressar, abre ou mantém a aplicação aberta e espera pela sincronização. Não é prometido envio com a aplicação fechada.',
+  'Antes do primeiro jogo real, testa o modo de avião no dispositivo que vais usar. Ainda não validámos todos os modelos de iPad e tablet Android. Terminar sessão ou limpar o navegador pode impedir a entrada offline.'
+ ]],
+ ['Como instalo no iPad, iPhone ou Android?',[
+  'iPad/iPhone: abre no Safari e usa Partilhar → Adicionar ao ecrã principal → Abrir como aplicação web.',
+  'Android: abre no Chrome e usa o menu ⋮ → Instalar aplicação ou Adicionar ao ecrã principal. Também podes usar ☰ → Instalar aplicação, quando a opção estiver disponível.',
+  'Depois de instalar, abre pelo ícone COM INTERNET, inicia sessão e confirma os dados e a disponibilidade offline. A aplicação instalada pode usar um espaço de armazenamento diferente do separador do navegador.'
+ ]],
+ ['E se dois dispositivos alterarem os mesmos dados?',[
+  'Usa apenas um dispositivo para controlar um jogo em direto. Para receber alterações noutro dispositivo, pausa o cronómetro e fecha as ações ou janelas abertas.',
+  'Se houver versões incompatíveis, aparece um aviso de conflito. Em Resolver conflito, podes escolher a versão deste dispositivo ou a do Firebase. A aplicação guarda uma cópia local das duas antes de substituir. Exporta uma cópia de segurança antes de resolver dados importantes.'
+ ]],
+ ['Para que serve a cópia de segurança?',[
+  'Em ☰ → Exportar cópia de segurança, descarregas um ficheiro com os dados locais da conta, incluindo alterações que ainda possam estar por enviar. É uma proteção adicional à sincronização.',
+  'Exporta antes de importar dados, trocar de dispositivo ou limpar o navegador. Em Importar cópia de segurança, escolhe uma cópia completa exportada pela aplicação.',
+  'Importar substitui os dados locais com os mesmos identificadores e pode originar conflitos com versões mais recentes no Firebase. Não inclui palavras-passe nem autorização para entrar offline. As antigas exportações apenas de jogos não são aceites como cópia completa.'
+ ]],
+ ['Onde consulto e exporto jogos anteriores?',[
+  'Escolhe a equipa em Equipa atual e abre Jogos guardados. Usa Consultar para ver o jogo e Exportar relatório PNG para descarregar o relatório dessa partida.',
+  'Em Quartetos e duplas, escolhe se queres analisar o jogo atual, os guardados ou ambos. As contagens usam os jogadores de campo presentes nos golos; excluem guarda-redes e não são ajustadas ao tempo jogado.'
+ ]],
+ ['Como altero a duração ou coloco prolongamento?',[
+  'Em ☰ → Cronómetro e prolongamento, escolhe a duração por parte e o período. Tens atalhos de 20 e 30 minutos; o prolongamento tem duas partes de 5 minutos por defeito, ajustáveis.',
+  'Alterar o relógio não apaga os eventos nem os tempos já registados. A aplicação pede confirmação quando já há tempo jogado. Na tabela, o prolongamento soma à 2ª parte.'
+ ]],
+ ['Como recebo uma atualização?',[
+  'Quando surgir a indicação de atualização pronta, termina o jogo, confirma a sincronização e fecha TODAS as janelas do Game Control, incluindo a aplicação instalada. Depois volta a abrir.',
+  'As atualizações não forçam um recarregamento a meio do jogo. Novidades aparece uma vez por versão em cada navegador; podes reabrir o resumo em ☰ → Novidades.'
+ ]]
+];
+function showGameControlFAQ(){
+ if(document.getElementById('gcFAQDialog'))return;
+ const dialog=document.createElement('dialog');dialog.id='gcFAQDialog';dialog.className='gc-zone-dialog gc-updates-dialog gc-faq-dialog';dialog.setAttribute('aria-labelledby','gcFAQTitle');
+ const heading=document.createElement('h2');heading.id='gcFAQTitle';heading.textContent='Ajuda e perguntas frequentes';dialog.appendChild(heading);
+ const intro=document.createElement('p');intro.textContent='Abre uma pergunta para veres os passos.';intro.className='gc-note';dialog.appendChild(intro);
+ const body=document.createElement('div');body.className='gc-updates-body';
+ for(const [question,answers]of GAMECONTROL_FAQ){
+  const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent=question;details.appendChild(summary);
+  answers.forEach(answer=>{const paragraph=document.createElement('p');paragraph.textContent=answer;details.appendChild(paragraph);});body.appendChild(details);
+ }
+ dialog.appendChild(body);dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.appendChild(dialog);dialog.showModal();
+}
+
 /* Boot */
 loadData();
 if(!document.getElementById("teamA").value)document.getElementById("teamA").value=TEAM_PROFILES[activeTeam];
@@ -3367,6 +3432,7 @@ function organiseAppMenu(){
  }
  updateCompactStatus();
 }
+const faqMenuButton=document.createElement('button');faqMenuButton.textContent='Ajuda e perguntas frequentes';faqMenuButton.onclick=showGameControlFAQ;groups.app.appendChild(faqMenuButton);
 const stateButton=document.createElement('button');stateButton.textContent='Estado da ligação e ajuda offline';stateButton.onclick=()=>{
  const dialog=document.createElement('dialog');dialog.className='gc-zone-dialog';
  const title=document.createElement('h3');title.textContent='Ligação e utilização offline';dialog.appendChild(title);
@@ -3388,6 +3454,7 @@ organiseAppMenu();
 </script>
 </body>
 </html>
+
 
 
 
