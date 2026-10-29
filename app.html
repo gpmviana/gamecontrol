@@ -835,6 +835,10 @@
   const auth = getAuth(app);
   auth.languageCode="pt";
   const db  = getFirestore(app);
+  const OFFLINE_GRANT_KEY='gc_offline_grant_v2';
+  function grantOffline(user){localStorage.setItem(OFFLINE_GRANT_KEY,JSON.stringify({uid:user.uid,device:getDeviceId(),expires:Date.now()+7*86400000}));}
+  function canEnterOffline(user){try{const grant=JSON.parse(localStorage.getItem(OFFLINE_GRANT_KEY)||'null');return !!user&&grant?.uid===user.uid&&grant.device===getDeviceId()&&grant.expires>Date.now()&&localStorage.getItem('gc_sync_storage_owner_v1')===user.uid;}catch(error){return false;}}
+
   // ✅ deviceId único por browser
   function getDeviceId(){
     const k = "gc_device_id";
@@ -944,15 +948,26 @@
         try{
           if(heartbeatInterval) clearInterval(heartbeatInterval);
           window.gcSyncSession?.stop();
+          localStorage.removeItem(OFFLINE_GRANT_KEY);
           await signOut(auth);
         }catch(err){
           console.error(err);
         }
       });
     }
-    onAuthStateChanged(auth, async (user) => {
+    async function showOfflineSession(user){
+      loginScreen.style.display='none';appWrapper.style.display='block';appWrapper.inert=false;
+      if(logoutBtn)logoutBtn.style.display='inline-flex';
+      try{const {startAccountSync}=await import('./sincronizacao.js');await startAccountSync(user,db,{offline:true});}catch(error){console.warn('Sincronização por iniciar quando houver internet',error);}
+    }
+    async function handleAuthState(user){
       const logged = !!user;
       if(logged){
+        if(!navigator.onLine){
+          if(canEnterOffline(user))await showOfflineSession(user);
+          else{loginScreen.style.display='flex';appWrapper.style.display='none';loginError.textContent='Liga a internet para validar esta conta neste dispositivo. O acesso offline dura até 7 dias após a última validação.';}
+          return;
+        }
         // antes de abrir a app: valida perfil + device
         try{
           const profile = await resolveProfile(user.uid);
@@ -970,12 +985,15 @@
           // opcional: marca lastLogin no doc base
           await updateDoc(profile.baseRef, { lastLogin: serverTimestamp() }).catch(()=>{});
           startHeartbeat(deviceRef);
+          grantOffline(user);
           loginScreen.style.display = "none";
           appWrapper.style.display  = "block";
           try{const {startAccountSync}=await import('./sincronizacao.js');await startAccountSync(user,db);}catch(error){console.error(error);alert('A aplicação abriu em modo local. Não foi possível iniciar a sincronização. Confirma que publicaste o ficheiro sincronizacao.js.');}
           if(logoutBtn) logoutBtn.style.display = "inline-flex";
         }catch(e){
           console.error(e);
+          if(canEnterOffline(user)&&['unavailable','deadline-exceeded','auth/network-request-failed'].includes(e?.code)){await showOfflineSession(user);return;}
+          localStorage.removeItem(OFFLINE_GRANT_KEY);
           loginError.textContent = e?.message || "Acesso recusado.";
           try{ await signOut(auth); }catch(_){}
           loginScreen.style.display = "flex";
@@ -983,13 +1001,16 @@
           if(logoutBtn) logoutBtn.style.display = "none";
         }
       }else{
+        localStorage.removeItem(OFFLINE_GRANT_KEY);
         window.gcSyncSession?.stop();
         if(heartbeatInterval) clearInterval(heartbeatInterval);
         loginScreen.style.display = "flex";
         appWrapper.style.display  = "none";
         if(logoutBtn) logoutBtn.style.display = "none";
       }
-    });
+    }
+    onAuthStateChanged(auth,handleAuthState);
+    window.addEventListener('online',()=>{if(auth.currentUser)handleAuthState(auth.currentUser);});
   });
 </script>
 <style>
@@ -1138,6 +1159,7 @@ body{font-weight:400;line-height:1.45}
 @media(max-width:600px){.gc-player-form{grid-template-columns:110px minmax(0,1fr)}.gc-roster-row,.gc-roster-manage .gc-roster-row{grid-template-columns:105px minmax(0,1fr)}.gc-call-label{grid-column:1/-1}.gc-player-form>button{grid-column:1/-1}}
 @media(max-width:600px){header{flex-wrap:wrap;gap:8px}.top-buttons{flex-wrap:wrap}.gc-updates-dialog h2{padding:18px 16px 0;font-size:18px}.gc-updates-dialog>p,.gc-updates-body{padding-left:16px;padding-right:16px}}
 </style>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#171c22"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Game Control"><link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
 <header>
@@ -1193,7 +1215,7 @@ body{font-weight:400;line-height:1.45}
     <button id="addBtn">+</button>
     <button id="removeBtn">−</button>
   </div>
-  <div id="teamProfileBadge" style="color:var(--gc-tint);padding:8px;font-weight:600"></div><div id="accumulatedFouls"></div>
+  <div id="teamProfileBadge" hidden style="color:var(--gc-tint);padding:8px;font-weight:600"></div><div id="accumulatedFouls"></div>
   <div id="selectionStatus" hidden role="status"><span></span><button id="withoutPlayer">Sem jogador</button> <button id="cancelSelection">Cancelar seleção</button></div>
   <div id="players"></div>
   <nav class="gc-tabs" aria-label="Painéis do jogo" role="tablist">
@@ -3221,8 +3243,62 @@ updateHalfBadge();
 updateScoreUI();
 updateFloatingPlayBtn();
 </script>
+<script>
+/* Instalação e cópias da conta; não usa os dados locais de outras contas. */
+const offlineBar=document.createElement('div');offlineBar.style.cssText='padding:8px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--gc-muted);border-bottom:1px solid var(--gc-line)';
+const offlineText=document.createElement('span');offlineText.textContent='A preparar ficheiros para utilização offline…';offlineBar.appendChild(offlineText);document.querySelector('header').after(offlineBar);
+function offlineControl(label,handler){const button=document.createElement('button');button.textContent=label;button.style.cssText='font:inherit;padding:6px 9px;border-radius:6px;border:1px solid var(--gc-line);background:var(--gc-raised);color:var(--gc-ink);cursor:pointer';button.onclick=handler;offlineBar.appendChild(button);return button;}
+let deferredInstall,offlineReady=false;
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstall=event;});
+offlineControl('Instalar aplicação',async()=>{
+ if(deferredInstall){await deferredInstall.prompt();deferredInstall=null;return;}
+ alert('iPad/iPhone: Safari → Partilhar → Adicionar ao ecrã principal → Abrir como aplicação web.\n\nAndroid: Chrome → menu ⋮ → Instalar aplicação / Adicionar ao ecrã principal.\n\nFaz a primeira abertura pelo ícone com internet e espera pela indicação de disponibilidade offline.');
+});
+offlineControl('Exportar cópia completa',()=>window.gcSyncAPI.backup());
+const importFile=document.createElement('input');importFile.type='file';importFile.accept='.json,application/json';importFile.hidden=true;document.body.appendChild(importFile);
+offlineControl('Importar cópia',()=>importFile.click());
+function validateAccountImport(text){
+ if(text.length>15000000)throw Error('A cópia excede o tamanho permitido.');
+ const backup=JSON.parse(text);
+ if(!['gamecontrol-account-copy','gamecontrol-full'].includes(backup.format)||backup.version!==1||!backup.data||Array.isArray(backup.data)||typeof backup.data!=='object')throw Error('Escolhe uma cópia completa de conta.');
+ const allowed=key=>/^(gameControl_withWorkloadGestao_v2|gc_(team_profiles_v1|active_team_v1|roster_v1|match_archive_v1|current_match_id_v1|match_date_v1|presets_v1))($|_)/.test(key);
+ const entries=Object.entries(backup.data).filter(([key])=>allowed(key));
+ if(!entries.length)throw Error('A cópia não contém equipas ou jogos compatíveis.');
+ if(entries.some(([,value])=>typeof value!=='string'||/[<>]/.test(value)))throw Error('A cópia contém dados inválidos.');
+ for(const [key,value]of entries)if(/(profiles|roster|archive|presets|gameControl_)/.test(key))JSON.parse(value);
+ return entries;
+}
+importFile.onchange=async()=>{
+ const file=importFile.files[0];if(!file)return;
+ try{
+  if(window.gcSyncAPI.running()){alert('Pausa o cronómetro e conclui a ação/janela aberta antes de importar.');return;}
+  const entries=validateAccountImport(await file.text());
+  if(!confirm('Importar os dados desta cópia para a conta atual? Se já existirem versões diferentes no Firebase, será necessário resolver os conflitos. Exporta primeiro os dados atuais.'))return;
+  const storage=window.gcAccountStorage,previous=new Map(entries.map(([key])=>[key,storage.getItem(key)]));
+  try{for(const [key,value]of entries)storage.setItem(key,value);storage.setItem('gc_sync_initialised_v1','true');}
+  catch(error){for(const [key,value]of previous){if(value===null)storage.removeItem(key);else storage.setItem(key,value);}throw error;}
+  alert('Cópia importada neste dispositivo. A aplicação vai voltar a abrir e verificar as versões do Firebase.');location.reload();
+ }catch(error){alert('Não foi possível importar: '+error.message);}finally{importFile.value='';}
+};
+function updateOfflineState(){
+ let valid=false;try{const grant=JSON.parse(localStorage.getItem('gc_offline_grant_v2')||'null');valid=grant?.expires>Date.now()&&grant.uid===localStorage.getItem('gc_sync_storage_owner_v1');}catch(error){}
+ offlineText.textContent=!offlineReady?'Preparação offline ainda incompleta':!valid?'Ficheiros preparados · entra com internet para ativar o acesso offline':navigator.onLine?'Disponível offline neste dispositivo (até 7 dias após validação)':'Sem rede · dados locais mantidos; envio quando regressar a ligação';
+}
+if('serviceWorker'in navigator&&location.protocol!=='file:'){
+ navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'}).then(async registration=>{
+  await navigator.serviceWorker.ready;offlineReady=true;updateOfflineState();
+  function announceUpdate(){offlineText.textContent='Atualização pronta. No fim do jogo, fecha todas as janelas do Game Control e volta a abrir.';}
+  if(registration.waiting)announceUpdate();
+  registration.addEventListener('updatefound',()=>registration.installing?.addEventListener('statechange',()=>{if(registration.waiting&&navigator.serviceWorker.controller)announceUpdate();}));
+ }).catch(()=>{offlineText.textContent='Não foi possível preparar os ficheiros offline. Mantém a ligação e tenta voltar a abrir.';});
+}else offlineText.textContent='O modo instalável/offline exige o endereço HTTPS publicado.';
+window.addEventListener('online',updateOfflineState);window.addEventListener('offline',updateOfflineState);
+new MutationObserver(updateOfflineState).observe(document.getElementById('loginScreen'),{attributes:true,attributeFilter:['style']});
+
+</script>
 </body>
 </html>
+
 
 
 
