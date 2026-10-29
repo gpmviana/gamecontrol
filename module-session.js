@@ -1,0 +1,66 @@
+import {initializeApp,getApps} from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js';
+import {getFirestore,doc,getDocFromServer,getDocsFromServer,collection,setDoc,updateDoc,onSnapshot,runTransaction,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
+import {firebaseConfig} from './firebase-config.js';
+import {modulePermissions,moduleAllowed,canonical,wellnessMerge} from './permissoes.js';
+const moduleName=document.body.dataset.gcModule,app=getApps()[0]||initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),labels={wellness:'Wellness',athleteStats:'Estatísticas dos atletas'};
+let currentUser=null,currentProfile=null,started=false,stops=[],locked=true,flushTimer,busy=false,queued=false,blockedSync=false,remoteSessions=new Map(),meta={docs:{}};
+const gate=document.getElementById('moduleGate'),content=document.getElementById('moduleContent'),status=document.getElementById('moduleStatus'),sync=document.getElementById('moduleSyncStatus');
+const raw=localStorage,prefix=uid=>'gc_account_'+uid+'__',key=k=>prefix(currentUser.uid)+k;
+function message(text){status.textContent=text;}
+function lock(text){locked=true;content.hidden=true;content.inert=true;gate.hidden=false;message(text);clearTimeout(flushTimer);}
+function stop(){for(const fn of stops)fn();stops=[];clearTimeout(flushTimer);}
+function canUse(){return !locked&&navigator.onLine&&currentUser?.uid===auth.currentUser?.uid&&moduleAllowed(currentProfile,auth.currentUser,moduleName);}
+function cacheGet(k){return raw.getItem(key(k));}function cacheSet(k,v){raw.setItem(key(k),String(v));}
+function report(text){sync.textContent=text;}
+function showConflict(id,local,remote){blockedSync=true;const backupKey='gc_wellness_conflict_'+id+'_'+Date.now();cacheSet(backupKey,JSON.stringify({local,remote}));const dialog=document.createElement('dialog');dialog.className='module-conflict';const heading=document.createElement('h2');heading.textContent='Duas versões da sessão';dialog.appendChild(heading);const text=document.createElement('p');text.textContent='A sessão foi alterada neste dispositivo e noutro. Guardámos uma cópia das duas versões neste dispositivo. Escolhe a versão a usar; nenhuma escolha altera outras sessões.';dialog.appendChild(text);for(const [choice,label] of [['cloud','Usar versão sincronizada'],['local','Usar versão deste dispositivo']]){const b=document.createElement('button');b.textContent=label;b.onclick=()=>{const state=JSON.parse(cacheGet('gc_wellness_v1')||'{"sessions":[]}');const index=state.sessions.findIndex(s=>s.id===id);const chosen=choice==='cloud'?remote.payload:local;if(index>=0)state.sessions[index]=chosen;else state.sessions.push(chosen);cacheSet('gc_wellness_v1',JSON.stringify(state));meta.docs[id]={revision:remote.revision,digest:canonical(remote.payload)};cacheSet('gc_wellness_meta_v1',JSON.stringify(meta));dialog.close();dialog.remove();location.reload();};dialog.appendChild(b);}document.body.appendChild(dialog);dialog.showModal();report('Conflito por resolver · as duas versões foram guardadas localmente.');}
+function assertOwner(user){if(auth.currentUser?.uid!==user.uid||currentUser?.uid!==user.uid)throw Error('A sessão mudou. Volta a abrir o módulo.');}
+async function readCloud(user){
+ const teams=await getDocsFromServer(collection(db,'users',user.uid,'teams')),profiles={},archives={},rosters={};
+ for(const item of teams.docs){const data=item.data().payload||{},id=item.id;profiles[id]=data.name||'Equipa';rosters[id]=data.roster||[];const matches=await getDocsFromServer(collection(db,'users',user.uid,'teams',id,'matches'));archives[id]=matches.docs.map(d=>d.data().payload).filter(Boolean);}
+ assertOwner(user);
+ window.GCSharedRoster={readTeams:()=>Object.entries(profiles).map(([id,name])=>({id,name,players:structuredClone(rosters[id])})),storage:{getItem:k=>{if(k==='gc_team_profiles_v1')return JSON.stringify(profiles);if(k.startsWith('gc_roster_v1_'))return JSON.stringify(rosters[k.slice(13)]||[]);if(k.startsWith('gc_match_archive_v1_'))return JSON.stringify(archives[k.slice(20)]||[]);if(k==='gc_active_team_v1')return cacheGet(k);return cacheGet(k);}},backup:()=>({})};
+ // O Wellness fica numa coleção própria, sem herdar a leitura dos jogos da aplicação mãe.
+ const sessions=await getDocsFromServer(collection(db,'users',user.uid,'wellness'));assertOwner(user);
+ remoteSessions=new Map(sessions.docs.map(d=>[d.id,d.data()]));
+ const remoteState={version:1,teams:window.GCSharedRoster.readTeams(),sessions:[...remoteSessions.values()].map(v=>v.payload),currentId:null};
+ if(moduleName==='athleteStats'){cacheSet('gc_wellness_view_v1',JSON.stringify(remoteState));return;}
+ meta=JSON.parse(cacheGet('gc_wellness_meta_v1')||'{"docs":{}}');meta.docs||={};
+ const localState=JSON.parse(cacheGet('gc_wellness_v1')||'null')||{version:1,sessions:[],teams:[],currentId:null};
+ const localMap=new Map(localState.sessions.map(s=>[s.id,s]));
+ for(const [id,remote]of remoteSessions){const local=localMap.get(id),decision=wellnessMerge(local,remote,meta.docs[id]);if(decision==='conflict'){showConflict(id,local,remote);return;}if(decision==='download'||decision==='ack'){localMap.set(id,remote.payload);meta.docs[id]={revision:remote.revision,digest:canonical(remote.payload)};}}
+ localState.sessions=[...localMap.values()];localState.teams=remoteState.teams;cacheSet('gc_wellness_v1',JSON.stringify(localState));cacheSet('gc_wellness_meta_v1',JSON.stringify(meta));
+}
+async function flush(){
+ if(busy||blockedSync||!canUse()||moduleName!=='wellness')return;busy=true;queued=false;const flushUid=currentUser.uid;report('A sincronizar sessões…');
+ try{const state=JSON.parse(cacheGet('gc_wellness_v1')||'{"sessions":[]}');for(const payload of state.sessions){if(!canUse())throw Error('Acesso por validar.');if(meta.docs[payload.id]?.digest===canonical(payload))continue;if(new TextEncoder().encode(JSON.stringify(payload)).length>700000)throw Error('Sessão demasiado grande. Exporta os dados e contacta a administração.');
+ const result=await runTransaction(db,async tx=>{const reference=doc(db,'users',currentUser.uid,'wellness',payload.id),snapshot=await tx.get(reference),remote=snapshot.exists()?snapshot.data():null;const decision=wellnessMerge(payload,remote,meta.docs[payload.id]);if(decision==='conflict'){const error=Error('gc-conflict');error.remote=remote;error.payload=payload;throw error;}if(decision==='download'){const error=Error('gc-conflict');error.remote=remote;error.payload=payload;throw error;}if(decision==='ack')return remote;const revision=(remote?.revision||0)+1;tx.set(reference,{payload,revision,updatedAt:serverTimestamp()});return {revision,payload};});
+ if(auth.currentUser?.uid!==flushUid||currentUser?.uid!==flushUid)throw Error('Sessão alterada.');
+ meta.docs[payload.id]={revision:result.revision,digest:canonical(result.payload)};cacheSet('gc_wellness_meta_v1',JSON.stringify(meta));}
+ report('Sincronizado · '+new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}));
+ }catch(error){if(currentUser?.uid!==flushUid||auth.currentUser?.uid!==flushUid)return;if(error.remote&&error.payload)showConflict(error.payload.id,error.payload,error.remote);else report('Alterações guardadas neste dispositivo · envio pendente. '+(error.code==='permission-denied'?'Sem permissão para enviar.':error.message));}
+ finally{busy=false;if(queued&&canUse())flushTimer=setTimeout(flush,100);}
+}
+window.gcWellnessPersist=()=>{queued=true;if(!canUse())return;report('Alterações guardadas neste dispositivo · a enviar…');clearTimeout(flushTimer);flushTimer=setTimeout(flush,800);};
+async function ensureDevice(user){const profile=currentProfile,deviceId=raw.getItem('gc_device_id')||crypto.randomUUID();raw.setItem('gc_device_id',deviceId);const ref=doc(db,'users',user.uid,'devices',deviceId),snapshot=await getDocFromServer(ref);if(snapshot.exists()){if(snapshot.data().blocked===true)throw Error('Este dispositivo está bloqueado.');await updateDoc(ref,{lastSeen:serverTimestamp()});}else{const devices=await getDocsFromServer(collection(db,'users',user.uid,'devices'));if(devices.docs.filter(d=>!d.data().blocked).length>=Number(profile.deviceLimit??3))throw Error('Limite de dispositivos atingido.');await setDoc(ref,{createdAt:serverTimestamp(),lastSeen:serverTimestamp(),blocked:false,userAgent:navigator.userAgent||'',platform:navigator.platform||''});}return ref;}
+async function boot(user){
+ stop();currentUser=user;document.getElementById('moduleChangeAccount').hidden=!user;if(!user){lock('Entra com a tua conta do Game Control.');document.getElementById('moduleLogin').hidden=false;return;}
+ document.getElementById('moduleLogin').hidden=true;lock('A validar a conta e as permissões…');if(!navigator.onLine){lock('Este módulo precisa de ligação para validar o acesso. A aplicação mãe mantém o seu modo offline.');return;}
+ try{const snapshot=await getDocFromServer(doc(db,'users',user.uid));assertOwner(user);currentProfile=snapshot.exists()?snapshot.data():{};if(!moduleAllowed(currentProfile,user,moduleName)){lock('A tua conta não tem acesso a '+labels[moduleName]+'. Pede a ativação à administração do Game Control.');return;}
+ const deviceRef=await ensureDevice(user);assertOwner(user);window.gcWellnessStorage={getItem:k=>cacheGet(k),setItem:(k,v)=>cacheSet(k,v),removeItem:k=>raw.removeItem(key(k))};window.gcModuleAccess=modulePermissions(currentProfile);
+ const signout=document.getElementById('moduleSignOut');signout.hidden=false;signout.onclick=async()=>{if(busy||queued){report('Espera pela sincronização antes de terminar sessão.');return;}stop();lock('Sessão terminada.');raw.removeItem('gc_offline_grant_v2');await signOut(auth);location.reload();};
+ await readCloud(user);assertOwner(user);if(blockedSync)return;const fresh=await getDocFromServer(doc(db,'users',user.uid));assertOwner(user);currentProfile=fresh.exists()?fresh.data():{};if(!moduleAllowed(currentProfile,user,moduleName)){lock('O acesso ao módulo foi retirado.');return;}
+ const teams=window.GCSharedRoster.readTeams();if(!teams.length){lock('Ainda não existem equipas sincronizadas. Cria o plantel na aplicação mãe e confirma a sincronização antes de voltar aqui.');return;}
+ if(started){location.reload();return;}started=true;locked=false;content.hidden=false;content.inert=false;gate.hidden=true;
+ document.querySelectorAll('[data-module-link]').forEach(link=>link.hidden=!window.gcModuleAccess[link.dataset.moduleLink]);
+ const script=document.createElement('script');script.src=moduleName==='wellness'?'wellness-app.js':'athletes.js';script.onload=()=>{report('Dados sincronizados · '+(currentProfile.displayName||currentProfile.name||user.email||''));if(moduleName==='wellness')window.gcWellnessPersist();};script.onerror=()=>lock('Não foi possível carregar o módulo. Atualiza a página.');document.body.appendChild(script);
+ stops.push(onSnapshot(doc(db,'users',user.uid),s=>{if(s.metadata.fromCache)return;currentProfile=s.exists()?s.data():{};window.gcModuleAccess=modulePermissions(currentProfile);document.querySelectorAll('[data-module-link]').forEach(link=>link.hidden=!window.gcModuleAccess[link.dataset.moduleLink]);if(!moduleAllowed(currentProfile,auth.currentUser,moduleName)){stop();lock('O acesso a este módulo foi retirado. Contacta a administração.');}},()=>{stop();lock('Não foi possível confirmar as permissões. Volta a entrar com ligação.');}));
+ stops.push(onSnapshot(deviceRef,s=>{if(!s.metadata.fromCache&&(!s.exists()||s.data().blocked)){stop();lock('Este dispositivo foi bloqueado.');}},()=>{stop();lock('Não foi possível confirmar este dispositivo.');}));
+ }catch(error){if(auth.currentUser?.uid!==user?.uid)return;lock('Não foi possível abrir '+labels[moduleName]+'. '+(error.code==='permission-denied'?'Acesso recusado pelas regras do Firebase.':error.message));}
+}
+document.getElementById('moduleReload').onclick=()=>location.reload();
+document.getElementById('moduleChangeAccount').onclick=async()=>{stop();await signOut(auth);location.reload();};
+document.getElementById('moduleLogin').onsubmit=async event=>{event.preventDefault();message('A entrar…');try{await signInWithEmailAndPassword(auth,document.getElementById('moduleEmail').value.trim(),document.getElementById('modulePassword').value);document.getElementById('modulePassword').value='';}catch(error){message('Não foi possível entrar. Verifica o email e a palavra-passe.');}};
+window.addEventListener('offline',()=>{stop();lock('Sem ligação. As alterações já guardadas ficam neste dispositivo. Volta a ligar para validar a permissão e sincronizar.');});window.addEventListener('online',()=>{if(auth.currentUser)boot(auth.currentUser);});window.addEventListener('pagehide',()=>{stop();lock('A validar a conta…');});window.addEventListener('pageshow',event=>{if(event.persisted)location.reload();});
+window.addEventListener('beforeunload',event=>{if(moduleName==='wellness'&&/pendente|a enviar|sincronizar/.test(sync.textContent)){event.preventDefault();event.returnValue='';}});
+auth.languageCode='pt';onAuthStateChanged(auth,boot);

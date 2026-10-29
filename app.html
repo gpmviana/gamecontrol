@@ -816,11 +816,12 @@
 </style>
 <!-- 🔐 Firebase Auth + Firestore (controlo de dispositivos) -->
 <script type="module">
+  import {modulePermissions,moduleAllowed} from "./permissoes.js";
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
   import {
     getFirestore, doc, getDoc, setDoc, updateDoc,
-    collection, getDocs, serverTimestamp
+    collection, getDocs, serverTimestamp, onSnapshot
   } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
   const firebaseConfig = {
     apiKey: "AIzaSyCPiS92A0ZUNaCl4clAkxBbYFQrgJDSiUY",
@@ -836,8 +837,8 @@
   auth.languageCode="pt";
   const db  = getFirestore(app);
   const OFFLINE_GRANT_KEY='gc_offline_grant_v2';
-  function grantOffline(user){localStorage.setItem(OFFLINE_GRANT_KEY,JSON.stringify({uid:user.uid,device:getDeviceId(),expires:Date.now()+7*86400000}));}
-  function canEnterOffline(user){try{const grant=JSON.parse(localStorage.getItem(OFFLINE_GRANT_KEY)||'null');return !!user&&grant?.uid===user.uid&&grant.device===getDeviceId()&&grant.expires>Date.now()&&localStorage.getItem('gc_sync_storage_owner_v1')===user.uid;}catch(error){return false;}}
+  function grantOffline(user){localStorage.setItem(OFFLINE_GRANT_KEY,JSON.stringify({uid:user.uid,modules:window.gcModuleAccess||{gameControl:true,wellness:false,athleteStats:false},device:getDeviceId(),expires:Date.now()+7*86400000}));}
+  function canEnterOffline(user){try{const grant=JSON.parse(localStorage.getItem(OFFLINE_GRANT_KEY)||'null');return !!user&&grant?.uid===user.uid&&grant.modules?.gameControl!==false&&grant.device===getDeviceId()&&grant.expires>Date.now()&&localStorage.getItem('gc_sync_storage_owner_v1')===user.uid;}catch(error){return false;}}
 
   // ✅ deviceId único por browser
   function getDeviceId(){
@@ -909,7 +910,10 @@
     }, { merge:true });
     return { deviceId, deviceRef, limit };
   }
-  let heartbeatInterval = null;
+  let heartbeatInterval = null,permissionWatch=null;
+  function clearModuleAccess(){window.gcModuleAccess={gameControl:false,wellness:false,athleteStats:false};window.dispatchEvent(new Event('gc:permissions'));}
+  function watchPermissions(user,profile){permissionWatch?.();permissionWatch=onSnapshot(profile.baseRef,snapshot=>{if(snapshot.metadata.fromCache)return;const data=snapshot.exists()?snapshot.data():{};window.gcModuleAccess=modulePermissions(data);window.dispatchEvent(new Event('gc:permissions'));if(!snapshot.exists()||!moduleAllowed(data,user,'gameControl')){window.gcSyncSession?.stop();if(typeof pauseTimer==='function')pauseTimer();localStorage.removeItem(OFFLINE_GRANT_KEY);document.getElementById('appWrapper').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginError').textContent='Acesso retirado ou conta suspensa. Contacta a administração.';clearModuleAccess();}else grantOffline(user);},()=>{window.gcSyncSession?.stop();localStorage.removeItem(OFFLINE_GRANT_KEY);clearModuleAccess();document.getElementById('appWrapper').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginError').textContent='Não foi possível confirmar as permissões. Atualiza com ligação.';});}
+
   function startHeartbeat(deviceRef){
     if(heartbeatInterval) clearInterval(heartbeatInterval);
     heartbeatInterval = setInterval(async ()=>{
@@ -956,12 +960,14 @@
       });
     }
     async function showOfflineSession(user){
+      const grant=JSON.parse(localStorage.getItem(OFFLINE_GRANT_KEY)||'{}');window.gcModuleAccess={gameControl:true,wellness:false,athleteStats:false};window.dispatchEvent(new Event('gc:permissions'));
       loginScreen.style.display='none';appWrapper.style.display='block';appWrapper.inert=false;
       if(logoutBtn)logoutBtn.style.display='inline-flex';
       try{const {startAccountSync}=await import('./sincronizacao.js');await startAccountSync(user,db,{offline:true});}catch(error){console.warn('Sincronização por iniciar quando houver internet',error);}
     }
     async function handleAuthState(user){
       const logged = !!user;
+      permissionWatch?.();permissionWatch=null;clearModuleAccess();
       if(logged){
         if(!navigator.onLine){
           if(canEnterOffline(user))await showOfflineSession(user);
@@ -976,6 +982,8 @@
             await signOut(auth);
             return;
           }
+          if(!moduleAllowed(profile.data,user,'gameControl'))throw Error('A tua conta não tem acesso ao Game Control. Contacta a administração.');
+          window.gcModuleAccess=modulePermissions(profile.data);window.dispatchEvent(new Event('gc:permissions'));
           const { deviceRef } = await ensureDeviceAllowed(profile);
           if(window.gcSyncSession?.uid!==user.uid)window.gcSyncSession?.stop();
           if(await window.gcPrepareAccountStorage(user.uid)){location.reload();return;}
@@ -985,11 +993,13 @@
           // opcional: marca lastLogin no doc base
           await updateDoc(profile.baseRef, { lastLogin: serverTimestamp() }).catch(()=>{});
           startHeartbeat(deviceRef);
+          watchPermissions(user,profile);
           grantOffline(user);
           loginScreen.style.display = "none";
           appWrapper.style.display  = "block";
           try{const {startAccountSync}=await import('./sincronizacao.js');await startAccountSync(user,db);}catch(error){console.error(error);alert('A aplicação abriu em modo local. Não foi possível iniciar a sincronização. Confirma que publicaste o ficheiro sincronizacao.js.');}
           if(logoutBtn) logoutBtn.style.display = "inline-flex";
+          window.dispatchEvent(new Event('gc:ready'));
         }catch(e){
           console.error(e);
           if(canEnterOffline(user)&&['unavailable','deadline-exceeded','auth/network-request-failed'].includes(e?.code)){await showOfflineSession(user);return;}
@@ -1181,7 +1191,7 @@ header{position:relative;z-index:1300}
 
 </style>
 <style>.gc-faq-dialog details{border-top:1px solid var(--gc-line);padding:14px 0}.gc-faq-dialog summary{font-size:14px;font-weight:600;color:var(--gc-tint);cursor:pointer;line-height:1.5}.gc-faq-dialog details p{font-size:13px;line-height:1.7;margin:12px 0;color:var(--gc-ink)}.gc-updates-footer button+button{margin-top:8px}.gc-faq-dialog{width:720px}</style>
-</head>
+<link rel="stylesheet" href="modules.css"></head>
 <body>
 <header>
   <div class="header-left">
@@ -1495,7 +1505,7 @@ function buildPlayersDOM(){
     const goalHTML = p.goals>0 ? `<span class="badge-goal" title="Golos">⚽${p.goals>1 ? "×"+p.goals : ""}</span>` : "";
     const assistHTML = p.assists>0 ? `<span class="badge-assist" title="Assistências">👣${p.assists>1 ? "×"+p.assists : ""}</span>` : "";
     div.innerHTML = `
-      <div class="gk-icon" style="display:${p.isGK?"flex":"none"}">🧤</div>
+      <div class="gk-icon" style="display:${p.isGK?"flex":"none"}"><svg class="gc-glove-icon" width="19" height="21" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Guarda-redes"><path d="M6 20c-1.8-1.7-3-4-3-6V9a1.5 1.5 0 0 1 3 0v3-7a1.5 1.5 0 0 1 3 0v6-8a1.5 1.5 0 0 1 3 0v8-7a1.5 1.5 0 0 1 3 0v8-5a1.5 1.5 0 0 1 3 0v8c0 2-1 4-2 5"/><path d="M6 20h10v4H6zM7 16h7"/></svg></div>
       <div class="card-badges">${foulsHTML}${ycHTML}${rcHTML}${goalHTML}${assistHTML}</div>
       <strong class="name">${p.name}</strong>
       <div class="time">00:00</div>
@@ -1807,7 +1817,7 @@ function updateSummary(){
     if(p.assists>0) extra.push(`👣 ${p.assists}`);
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${p.name}${p.isGK?' 🧤':''}${extra.length?(" · "+extra.join(" ")):''}</td>
+      <td>${p.name}${p.isGK?' <svg class="gc-glove-icon" width="19" height="21" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Guarda-redes"><path d="M6 20c-1.8-1.7-3-4-3-6V9a1.5 1.5 0 0 1 3 0v3-7a1.5 1.5 0 0 1 3 0v6-8a1.5 1.5 0 0 1 3 0v8-7a1.5 1.5 0 0 1 3 0v8-5a1.5 1.5 0 0 1 3 0v8c0 2-1 4-2 5"/><path d="M6 20h10v4H6zM7 16h7"/></svg>':''}${extra.length?(" · "+extra.join(" ")):''}</td>
       <td>${formatTime(p.part1)}</td>
       <td>${formatTime(p.part2)}</td>
       <td>${formatTime(total)}</td>
@@ -1891,7 +1901,7 @@ function renderLoadPanel(){
     const div = document.createElement("div");
     div.className = "load-row";
     div.innerHTML = `
-      <strong>${p.name}${p.isGK?' 🧤':''}</strong>
+      <strong>${p.name}${p.isGK?' <svg class="gc-glove-icon" width="19" height="21" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Guarda-redes"><path d="M6 20c-1.8-1.7-3-4-3-6V9a1.5 1.5 0 0 1 3 0v3-7a1.5 1.5 0 0 1 3 0v6-8a1.5 1.5 0 0 1 3 0v8-7a1.5 1.5 0 0 1 3 0v8-5a1.5 1.5 0 0 1 3 0v8c0 2-1 4-2 5"/><path d="M6 20h10v4H6zM7 16h7"/></svg>':''}</strong>
       <div class="load-meta">
         <span>Em campo: <strong>${formatTime(totalSec)}</strong></span>
         <span class="${fadClass}">${fadTxt}</span>
@@ -2201,7 +2211,7 @@ function exportPng(){
     if(p.goals>0) extra.push(`⚽ ${p.goals}`);
     if(p.assists>0) extra.push(`👣 ${p.assists}`);
     rows.push([
-      p.name+(p.isGK?' 🧤':'')+(extra.length?(" · "+extra.join(" ")): ""),
+      p.name+(p.isGK?' (GR)':'')+(extra.length?(" · "+extra.join(" ")): ""),
       formatTime(p.part1),
       formatTime(p.part2),
       formatTime(total),
@@ -2744,7 +2754,7 @@ function renderArchive(){
     const row=document.createElement('div');row.className='gc-history-row';
     const title=document.createElement('span');title.textContent=game.date+' · '+game.teamA+' '+game.scoreA+' — '+game.scoreB+' '+game.teamB;
     const button=document.createElement('button');button.textContent='Consultar';button.onclick=()=>viewArchivedMatch(game);
-    row.appendChild(title);const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;flex-wrap:wrap';controls.appendChild(button);const exportButton=document.createElement('button');exportButton.textContent='Exportar relatório PNG';exportButton.onclick=()=>exportArchivedReport(game);controls.appendChild(exportButton);row.appendChild(controls);host.appendChild(row);
+    row.appendChild(title);const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;flex-wrap:wrap';controls.appendChild(button);const exportButton=document.createElement('button');exportButton.textContent='Exportar relatório PNG';exportButton.onclick=()=>exportArchivedReport(game);controls.appendChild(exportButton);const wellnessLink=document.createElement('a');wellnessLink.textContent='PSE no Wellness →';wellnessLink.dataset.moduleLink='wellness';wellnessLink.hidden=window.gcModuleAccess?.wellness!==true;wellnessLink.href='wellness.html?equipa='+encodeURIComponent(activeTeam)+'&jogo='+encodeURIComponent(game.id);wellnessLink.style.cssText='padding:9px;align-self:center';controls.appendChild(wellnessLink);row.appendChild(controls);host.appendChild(row);
   });
 }
 function viewArchivedMatch(game){
@@ -2918,7 +2928,7 @@ const manageTeamsButton=document.getElementById('editNamesBtn');manageTeamsButto
 document.getElementById('matchDate').onchange=()=>window.gcAccountStorage.setItem(teamStorageKey('gc_match_date_v1'),document.getElementById('matchDate').value);
 updateTeamBadge();
 /* Incrementar a versão quando existir uma nova atualização a apresentar. */
-const UPDATES_VERSION='2026-10-29.4';
+const UPDATES_VERSION='2026-10-29.5';
 const UPDATES_SEEN_KEY='gc_updates_seen_v1';
 const GAMECONTROL_UPDATES=[
  ['Plantel completo, convocados por jogo',['Cria a equipa em 👥 e adiciona todos os jogadores uma vez. Em cada novo jogo, escolhe apenas os convocados. Os restantes ficam no plantel.']],
@@ -3452,8 +3462,34 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&appMenu.ope
 organiseAppMenu();
 
 </script>
-</body>
+<script>
+/* Passagem entre módulos no mesmo endereço e com o mesmo plantel local. */
+const wellnessModuleLink=document.createElement('a');wellnessModuleLink.id='wellnessModuleLink';wellnessModuleLink.hidden=true;wellnessModuleLink.dataset.moduleLink='wellness';wellnessModuleLink.title='Bem-estar e carga';wellnessModuleLink.setAttribute('aria-label','Abrir Wellness · Bem-estar e carga');wellnessModuleLink.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/><path d="M3 12h4l2-4 4 8 2-4h6"/></svg>';
+wellnessModuleLink.href='wellness.html?equipa='+encodeURIComponent(activeTeam);document.getElementById('loadPanelBtn').insertAdjacentElement('afterend',wellnessModuleLink);
+wellnessModuleLink.onclick=event=>{
+ if(pendingPlayerEvent||pendingGoalScorer||pendingAssistForGoal||selectedAction){event.preventDefault();alert('Conclui ou cancela a ação antes de abrir o Wellness.');return;}
+ if(running&&!confirm('Pausar o jogo e abrir Bem-estar e carga? O jogo fica guardado.')){event.preventDefault();return;}
+ pauseTimer();saveData();wellnessModuleLink.href='wellness.html?equipa='+encodeURIComponent(activeTeam);
+};
+const updateBadgeWithWellness=updateTeamBadge;
+updateTeamBadge=function(){updateBadgeWithWellness();wellnessModuleLink.href='wellness.html?equipa='+encodeURIComponent(activeTeam);};
+
+
+
+</script>
+<script>
+/* Mesma família de ícones no cabeçalho. */
+(function(){
+ const svg=paths=>'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+paths+'</svg>';
+ const load=document.getElementById('loadPanelBtn');load.innerHTML=svg('<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/>');load.setAttribute('aria-label','Gestão de cargas');
+ const teams=document.getElementById('editNamesBtn');teams.innerHTML=svg('<circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6M21 21v-2a6 6 0 0 0-4-5.65"/>');
+ const menu=document.querySelector('#gcAppMenu>summary');menu.innerHTML=svg('<path d="M4 6h16M4 12h16M4 18h16"/>');
+})();
+</script>
+<script>(function(){const link=document.createElement('a');link.id='athletesModuleLink';link.hidden=true;link.dataset.moduleLink='athleteStats';link.title='Estatísticas dos atletas';link.setAttribute('aria-label','Abrir estatísticas dos atletas');link.href='atletas.html?equipa='+encodeURIComponent(activeTeam);link.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16M6 16v-5M12 16V4M18 16V8"/></svg>';link.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--gc-line,#40505e);border-radius:8px;background:var(--gc-raised,#202d39);color:var(--gc-ink,#dce9f3)';document.getElementById('wellnessModuleLink').insertAdjacentElement('afterend',link);link.onclick=event=>{if(pendingPlayerEvent||pendingGoalScorer||pendingAssistForGoal||selectedAction){event.preventDefault();alert('Conclui a ação antes de abrir as estatísticas.');return;}if(running&&!confirm('Pausar o jogo e abrir as estatísticas?')){event.preventDefault();return;}pauseTimer();saveData();link.href='atletas.html?equipa='+encodeURIComponent(activeTeam);};})();</script>
+<script>window.addEventListener("gc:permissions",()=>document.querySelectorAll("[data-module-link]").forEach(link=>link.hidden=window.gcModuleAccess?.[link.dataset.moduleLink]!==true));</script><script>(function(){let handled=false;function restoreModuleTeam(){if(handled||!window.gcModuleAccess?.gameControl||!window.gcSyncAPI?.initialised())return;const params=new URLSearchParams(location.search),id=params.get('equipa');if(id&&!TEAM_PROFILES[id])return;handled=true;if(id&&id!==activeTeam)switchExistingTeam(id);if(params.get('gerir')==='1')chooseSquad(id||activeTeam,true);}window.addEventListener('gc:ready',restoreModuleTeam);const refresh=window.gcSyncAPI.refresh;window.gcSyncAPI.refresh=function(){refresh.call(this);restoreModuleTeam();};})();</script></body>
 </html>
+
 
 
 
