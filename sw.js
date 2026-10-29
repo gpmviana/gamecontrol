@@ -1,4 +1,4 @@
-const VERSION='gc-pwa-modules-2026-10-29-7';
+const VERSION='gc-pwa-modules-2026-10-29-8';
 const ROOT=new URL('./',self.location.href);
 const SHELL=['app.html','sincronizacao.js','modules.css','permissoes.js','wellness.html','wellness-app.js','atletas.html','athletes.js','athletes.css','module-session.js','firebase-config.js','style.css','logo-wellness.png','logo-gc.png','favicon.png','manifest.webmanifest','icon-192.png','icon-512.png'];
 const FIREBASE=['firebase-app.js','firebase-auth.js','firebase-firestore.js'].map(file=>'https://www.gstatic.com/firebasejs/12.6.0/'+file);
@@ -40,6 +40,7 @@ self.addEventListener('fetch',event=>{
     const response=await fetch(request);if(response.ok)await cache.put(key,response.clone());return response;
   })());
 });
+
 
 
 

@@ -222,6 +222,27 @@
     border:none;
     text-align:center;
   }
+
+/* Seletor comum de origem: golos e remates. */
+dialog.gc-origin-dialog{--origin-bg:#171f26;--origin-card:rgba(150,181,205,.055);--origin-border:rgba(166,192,211,.17);--origin-text:#edf3f7;--origin-muted:#9eafbd;background:var(--origin-bg)!important;color:var(--origin-text)!important;border:1px solid var(--origin-border)!important;border-radius:22px!important;padding:26px!important;width:520px!important;max-width:calc(100vw - 36px)!important;max-height:calc(100dvh - 36px);box-sizing:border-box;overflow:auto;box-shadow:0 24px 90px #0007;text-align:left;font-family:inherit;}
+dialog.gc-origin-dialog::backdrop{background:rgba(4,10,15,.74);backdrop-filter:blur(5px);}
+.gc-origin-dialog .gc-origin-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;background:transparent;padding:0;margin:0;border:0;}
+.gc-origin-eyebrow{font-size:10px;font-weight:700;letter-spacing:1.7px;color:#97bace;margin-bottom:8px;}
+.gc-origin-dialog h2{font-size:24px;line-height:1.2;letter-spacing:-.5px;margin:0;font-weight:700;color:var(--origin-text);text-align:left;}
+.gc-origin-dialog .gc-origin-subtitle{color:var(--origin-muted);font-size:13px;line-height:1.5;margin:12px 0 22px;text-align:left;}
+.gc-origin-dialog button{font:inherit;cursor:pointer;box-sizing:border-box;transition:background .16s,border-color .16s,transform .16s;}
+.gc-origin-dialog .gc-origin-close{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;padding:0;margin:0;border:1px solid var(--origin-border);border-radius:10px;background:var(--origin-card);color:var(--origin-muted);font-size:24px;line-height:1;}
+.gc-origin-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.gc-origin-dialog .gc-origin-option{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:54px;width:100%;padding:13px 15px;margin:0;background:var(--origin-card);border:1px solid var(--origin-border);border-radius:12px;color:var(--origin-text);font-size:13px;font-weight:600;line-height:1.35;text-align:left;box-shadow:none;}
+.gc-origin-arrow{color:#91afc2;font-size:20px;font-weight:400;opacity:.7;}
+.gc-origin-dialog .gc-origin-option:hover{background:rgba(133,180,210,.14);border-color:#799db4;transform:translateY(-1px);}
+.gc-origin-dialog button:focus-visible{outline:2px solid #a5cee6;outline-offset:3px;}
+.gc-origin-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:22px;padding-top:18px;border-top:1px solid var(--origin-border);}
+.gc-origin-footer>span{font-size:11px;color:var(--origin-muted);}
+.gc-origin-dialog .gc-origin-cancel{padding:10px 16px;margin:0;background:transparent;color:var(--origin-text);border:1px solid var(--origin-border);border-radius:10px;font-size:12px;}
+body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(80,115,140,.055);--origin-border:rgba(62,91,112,.2);--origin-text:#20313f;--origin-muted:#617787;box-shadow:0 24px 90px #0003;}
+@media(max-width:400px){dialog.gc-origin-dialog{padding:20px!important;}.gc-origin-grid{gap:8px;}.gc-origin-dialog .gc-origin-option{padding:12px 10px;font-size:12px;}.gc-origin-dialog h2{font-size:22px;}}
+
 </style>
   <style>
   /* Grelha dos jogadores */
@@ -1648,54 +1669,21 @@ const GOAL_CATEGORIES = [
   "Lateral", "Canto", "Livre", "Penálti", "5×4", "Guarda-redes subido",
   "Roubo de bola", "Perda de bola"
 ];
+function chooseOriginDialog({title,team,onSelect}){
+ const dialog=document.createElement('dialog');dialog.className='gc-origin-dialog';dialog.setAttribute('aria-label',title);
+ const header=document.createElement('header');header.className='gc-origin-header';
+ const identity=document.createElement('div');const eyebrow=document.createElement('div');eyebrow.className='gc-origin-eyebrow';eyebrow.textContent='ORIGEM DA JOGADA';
+ const heading=document.createElement('h2');heading.textContent=title;identity.append(eyebrow,heading);
+ const close=document.createElement('button');close.type='button';close.className='gc-origin-close';close.textContent='×';close.setAttribute('aria-label','Fechar janela');close.onclick=()=>dialog.close();header.append(identity,close);
+ const subtitle=document.createElement('p');subtitle.className='gc-origin-subtitle';subtitle.textContent=team+' · Escolhe uma origem.';
+ const grid=document.createElement('div');grid.className='gc-origin-grid';
+ for(const category of GOAL_CATEGORIES){const button=document.createElement('button');button.type='button';button.className='gc-origin-option';const label=document.createElement('span');label.textContent=category;const arrow=document.createElement('span');arrow.className='gc-origin-arrow';arrow.textContent='›';arrow.setAttribute('aria-hidden','true');button.append(label,arrow);button.onclick=()=>{dialog.close();onSelect(category);};grid.appendChild(button);}
+ const footer=document.createElement('div');footer.className='gc-origin-footer';const hint=document.createElement('span');hint.textContent='Uma escolha por jogada';const cancel=document.createElement('button');cancel.type='button';cancel.className='gc-origin-cancel';cancel.textContent='Cancelar';cancel.onclick=()=>dialog.close();footer.append(hint,cancel);
+ dialog.append(header,subtitle,grid,footer);dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.appendChild(dialog);dialog.showModal();
+}
 function chooseGoalCategory(type){
-  // Guardar o instante do golo antes da escolha da categoria.
-  const context = {
-    half: matchPeriod,
-    clock: formatTime(remaining),
-    activeIds: players.filter(p=>p.active).map(p=>p.id),
-    ts: Date.now()
-  };
-  const dialog = document.createElement("dialog");
-  dialog.setAttribute("aria-label", "Categoria do golo");
-  const light = document.body.classList.contains("light-mode");
-  Object.assign(dialog.style, {
-    background: light ? "#fff" : "#242424",
-    color: light ? "#222" : "#fff",
-    border: "1px solid #777", borderRadius: "12px",
-    padding: "20px", width: "360px", maxWidth: "calc(100% - 48px)"
-  });
-  const title = document.createElement("h3");
-  title.textContent = type === "GF_A" ? "Golo marcado — como foi?" : "Golo sofrido — como foi?";
-  title.style.margin = "0 0 14px";
-  dialog.appendChild(title);
-  const choices = document.createElement("div");
-  Object.assign(choices.style, {display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px"});
-  GOAL_CATEGORIES.forEach(category=>{
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = category;
-    Object.assign(button.style, {
-      padding:"12px 8px", border:"none", borderRadius:"6px",
-      background:"#444", color:"#fff", cursor:"pointer", fontSize:"14px"
-    });
-    button.onclick = ()=>{
-      dialog.close();
-      if(type === "GF_A") startGoalFlow(category, context);
-      else handleTeamEvent(type, category, context);
-    };
-    choices.appendChild(button);
-  });
-  dialog.appendChild(choices);
-  const cancel = document.createElement("button");
-  cancel.type = "button";
-  cancel.textContent = "Cancelar";
-  Object.assign(cancel.style, {marginTop:"14px", padding:"8px 14px", cursor:"pointer"});
-  cancel.onclick = ()=>dialog.close();
-  dialog.appendChild(cancel);
-  dialog.addEventListener("close", ()=>dialog.remove(), {once:true});
-  document.body.appendChild(dialog);
-  dialog.showModal();
+ const context={half:matchPeriod,clock:formatTime(remaining),activeIds:players.filter(p=>p.active).map(p=>p.id),ts:Date.now()};
+ chooseOriginDialog({title:type==='GF_A'?'Golo marcado':'Golo sofrido',team:teamName(type==='GF_A'?'A':'B'),onSelect:category=>{if(type==='GF_A')startGoalFlow(category,context);else handleTeamEvent(type,category,context);}});
 }
 function startGoalFlow(goalCategory, context){
   pendingPlayerEvent = null;
@@ -2487,11 +2475,7 @@ function startAction(action, zone, context, actionTeam, shotCategory){
   }else{updatePlayersUI();renderLower();}
 }
 function chooseShotCategory(action,context,team){
- const dialog=document.createElement('dialog');dialog.className='gc-zone-dialog';dialog.setAttribute('aria-label','Origem do remate');
- const title=document.createElement('h3');title.textContent=teamName(team)+' · '+actionNames[action]+' — origem';dialog.appendChild(title);
- const choices=document.createElement('div');Object.assign(choices.style,{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'});
- for(const category of GOAL_CATEGORIES){const button=document.createElement('button');button.type='button';button.textContent=category;button.onclick=()=>{dialog.close();startAction(action,null,context,team,category);};choices.appendChild(button);}
- dialog.appendChild(choices);const cancel=document.createElement('button');cancel.textContent='Cancelar';cancel.onclick=()=>dialog.close();dialog.appendChild(cancel);dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.appendChild(dialog);dialog.showModal();
+ chooseOriginDialog({title:actionNames[action],team:teamName(team),onSelect:category=>startAction(action,null,context,team,category)});
 }
 function shotOrigins(events,team){
  const result={};for(const e of events){const own=eventTeam(e)===team,goal=e.type==='GF_A'||e.type==='GA_A';let category,on=0,off=0,g=0;
@@ -3056,6 +3040,7 @@ const resetWithPeriods=resetTimer;
 resetTimer=function(){matchPeriod=1;document.getElementById('setMinutes').value=regulationMinutes;resetWithPeriods();updateHalfBadge();};
 /* Fecho consistente de todas as janelas, incluindo conteúdo com scroll. */
 function attachDialogClose(dialog){
+  if(dialog.classList.contains('gc-origin-dialog'))return;
   if(dialog.querySelector('.gc-dialog-closebar'))return;
   const bar=document.createElement('div');bar.className='gc-dialog-closebar';
   const close=document.createElement('button');close.type='button';close.textContent='✕ Fechar';close.setAttribute('aria-label','Fechar janela');
@@ -3533,6 +3518,7 @@ updateTeamBadge=function(){updateBadgeWithWellness();wellnessModuleLink.href='we
 <script>(function(){const link=document.createElement('a');link.id='athletesModuleLink';link.hidden=true;link.dataset.moduleLink='athleteStats';link.title='Estatísticas dos atletas';link.setAttribute('aria-label','Abrir estatísticas dos atletas');link.href='atletas.html?equipa='+encodeURIComponent(activeTeam);link.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16M6 16v-5M12 16V4M18 16V8"/></svg>';link.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--gc-line,#40505e);border-radius:8px;background:var(--gc-raised,#202d39);color:var(--gc-ink,#dce9f3)';document.getElementById('wellnessModuleLink').insertAdjacentElement('afterend',link);link.onclick=event=>{if(pendingPlayerEvent||pendingGoalScorer||pendingAssistForGoal||selectedAction){event.preventDefault();alert('Conclui a ação antes de abrir as estatísticas.');return;}if(running&&!confirm('Pausar o jogo e abrir as estatísticas?')){event.preventDefault();return;}pauseTimer();saveData();link.href='atletas.html?equipa='+encodeURIComponent(activeTeam);};})();</script>
 <script>window.addEventListener("gc:permissions",()=>document.querySelectorAll("[data-module-link]").forEach(link=>link.hidden=window.gcModuleAccess?.[link.dataset.moduleLink]!==true));</script><script>(function(){let handled=false;function restoreModuleTeam(){if(handled||!window.gcModuleAccess?.gameControl||!window.gcSyncAPI?.initialised())return;const params=new URLSearchParams(location.search),id=params.get('equipa');if(id&&!TEAM_PROFILES[id])return;handled=true;if(id&&id!==activeTeam)switchExistingTeam(id);if(params.get('gerir')==='1')chooseSquad(id||activeTeam,true);}window.addEventListener('gc:ready',restoreModuleTeam);const refresh=window.gcSyncAPI.refresh;window.gcSyncAPI.refresh=function(){refresh.call(this);restoreModuleTeam();};})();</script></body>
 </html>
+
 
 
 
