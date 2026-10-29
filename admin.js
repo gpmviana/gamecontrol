@@ -19,7 +19,7 @@ async function refresh(){
   const p=item.data(),state=p.status||(p.active===false?'rejected':'approved');
   if(el('filter').value!=='all'&&el('filter').value!==state)return;count++;
   const row=document.createElement('article');row.className='row';
-  const title=document.createElement('h2');title.textContent=p.displayName||p.email||item.id;row.appendChild(title);
+  const title=document.createElement('h2');title.textContent=p.displayName||p.name||p.email||item.id;row.appendChild(title);
   const details=document.createElement('p');details.textContent=[p.email,p.club,'Estado: '+({pending:'pendente',approved:'aprovado',rejected:'recusado'}[state]||state),'Email: '+(p.emailVerified?'confirmado':p.registrationVersion===1?'por confirmar':'conta anterior')].filter(Boolean).join(' · ');row.appendChild(details);
   const inspect=document.createElement('button');inspect.textContent='Consultar equipas e jogos';row.appendChild(inspect);
   const content=document.createElement('div');row.appendChild(content);
@@ -49,7 +49,7 @@ async function refresh(){
     button.disabled=state==='approved'&&p.registrationVersion===1&&!p.emailVerified;
     button.onclick=async()=>{
      const deviceLimit=Number(devices.value);if(!Number.isInteger(deviceLimit)||deviceLimit<1||deviceLimit>100){el('status').textContent='Escolhe entre 1 e 100 dispositivos.';return;}
-     if(!confirm(text+' para '+(p.email||p.displayName)+'?'))return;
+     if(!confirm(text+' para '+(p.email||p.displayName||p.name||item.id)+'?'))return;
      button.disabled=true;
      try{await updateDoc(doc(db,'users',item.id),{status:state,active:state==='approved',deviceLimit,reviewedAt:serverTimestamp(),reviewedBy:auth.currentUser.uid});await refresh();}
      catch(error){el('status').textContent='Não foi possível guardar a decisão. Confirma as permissões.';button.disabled=false;}
