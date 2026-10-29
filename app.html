@@ -2473,16 +2473,30 @@ const teamName = team => document.getElementById(team === 'B' ? 'teamB' : 'teamA
 function eventTeam(ev){return ev.team || (ev.type === 'GA_A' ? 'B' : 'A');}
 function actionContext(){return {half:matchPeriod,clock:formatTime(remaining),ts:Date.now(),activeIds:players.filter(p=>p.active).map(p=>p.id)};}
 function cancelAction(){selectedAction=null;pendingPlayerEvent=null;pendingGoalScorer=null;pendingAssistForGoal=null;updatePlayersUI();renderLower();}
-function startAction(action, zone, context, actionTeam){
+function startAction(action, zone, context, actionTeam, shotCategory){
   cancelAction();
   const team=actionTeam||document.getElementById('actionTeam').value;
   if(action==='GOAL'){chooseGoalCategory(team==='B'?'GA_A':'GF_A');return;}
+  if((action==='SHOT_ON'||action==='SHOT_OFF')&&!shotCategory){chooseShotCategory(action,context||actionContext(),team);return;}
   if((action==='RECOVERY'||action==='LOSS')&&!zone){chooseActionZone(action,actionContext(),team);return;}
   selectedAction={type:'ACTION',action,team,...(context||actionContext())};
   if(zone) selectedAction.zone=zone;
+  if(shotCategory) selectedAction.shotCategory=shotCategory;
   if(team==='B'){
     commitAction();
   }else{updatePlayersUI();renderLower();}
+}
+function chooseShotCategory(action,context,team){
+ const dialog=document.createElement('dialog');dialog.className='gc-zone-dialog';dialog.setAttribute('aria-label','Origem do remate');
+ const title=document.createElement('h3');title.textContent=teamName(team)+' · '+actionNames[action]+' — origem';dialog.appendChild(title);
+ const choices=document.createElement('div');Object.assign(choices.style,{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'});
+ for(const category of GOAL_CATEGORIES){const button=document.createElement('button');button.type='button';button.textContent=category;button.onclick=()=>{dialog.close();startAction(action,null,context,team,category);};choices.appendChild(button);}
+ dialog.appendChild(choices);const cancel=document.createElement('button');cancel.textContent='Cancelar';cancel.onclick=()=>dialog.close();dialog.appendChild(cancel);dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.appendChild(dialog);dialog.showModal();
+}
+function shotOrigins(events,team){
+ const result={};for(const e of events){const own=eventTeam(e)===team,goal=e.type==='GF_A'||e.type==='GA_A';let category,on=0,off=0,g=0;
+ if(own&&goal){category=e.goalCategory;on=1;g=1;}else if(own&&(e.action==='SHOT_ON'||e.action==='SHOT_OFF')){category=e.shotCategory;on=+(e.action==='SHOT_ON');off=+(e.action==='SHOT_OFF');}else if(!own&&e.action==='SAVE'){on=1;}else continue;
+ category=category||'Sem classificação';const row=result[category]||(result[category]={on:0,off:0,goals:0});row.on+=on;row.off+=off;row.goals+=g;}return result;
 }
 function chooseActionZone(action, context, team){
   const dialog=document.createElement('dialog');dialog.className='gc-zone-dialog';
@@ -2555,7 +2569,7 @@ function countStats(team, playerId, events=timeline){
 function eventText(e){
   if(e.type==='SUB')return `${e.entered?'Entrada':'Saída'} · ${players.find(p=>p.id===e.playerId)?.name||'#'+e.playerId}`;
   const who=e.playerId?players.find(p=>p.id===e.playerId)?.name||'#'+e.playerId:e.opponent?'Adversário '+e.opponent:'Sem jogador associado';
-  if(e.type==='ACTION')return [actionNames[e.action],teamName(eventTeam(e)),who,e.zone].filter(Boolean).join(' · ');
+  if(e.type==='ACTION')return [actionNames[e.action],teamName(eventTeam(e)),who,e.zone,e.shotCategory].filter(Boolean).join(' · ');
   const info=describeEvent(e);return [teamName(eventTeam(e)),info.main,info.extra].filter(Boolean).join(' · ');
 }
 function removeEvent(index){
@@ -2582,6 +2596,9 @@ function renderLower(){
     }
     if(!s.goals)content+='<p class="gc-note">Sem golos registados.</p>';
     content+='</div>';
+    content+='<h4>Origem dos remates</h4><div class="gc-stat-list">';
+    const origins=shotOrigins(timeline,team);for(const [category,row] of Object.entries(origins)){content+='<div><span>'+escapeHtml(category)+'</span><strong>'+(row.on+row.off)+' · '+row.on+' à baliza · '+row.goals+' golos</strong></div>';}
+    if(!Object.keys(origins).length)content+='<p class="gc-note">Sem remates registados.</p>';content+='</div>';
     for(const [action,label] of [['RECOVERY','Recuperações por zona'],['LOSS','Perdas por zona']]){
       content+='<h4>'+label+'</h4><div class="gc-zone-summary">';
       for(const zone of ['Zona defensiva','Meio-campo','Zona ofensiva']){
@@ -2616,7 +2633,7 @@ function switchLowerTab(tab){
   renderLower();
 }
 function downloadActionCsv(){
-  const rows=[['Parte','Relógio','Equipa','Ação','Jogador','Zona','Origem do golo'],...timeline.map(e=>[e.half,e.clock,teamName(eventTeam(e)),e.type==='ACTION'?actionNames[e.action]:e.type==='SUB'?(e.entered?'Entrada':'Saída'):describeEvent(e).main,players.find(p=>p.id===e.playerId)?.name||e.opponent||'',e.zone||'',e.goalCategory||''])];
+  const rows=[['Parte','Relógio','Equipa','Ação','Jogador','Zona','Origem do golo','Origem do remate'],...timeline.map(e=>[e.half,e.clock,teamName(eventTeam(e)),e.type==='ACTION'?actionNames[e.action]:e.type==='SUB'?(e.entered?'Entrada':'Saída'):describeEvent(e).main,players.find(p=>p.id===e.playerId)?.name||e.opponent||'',e.zone||'',e.goalCategory||'',e.shotCategory||''])];
   const csv='\ufeff'+rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
   const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   const link=document.createElement('a');link.href=url;link.download='GameControl-eventos.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -2789,7 +2806,7 @@ function viewArchivedMatch(game){
   game.timeline.forEach(e=>{
     const name=game.players.find(p=>p.id===e.playerId)?.name||'';
     const label=e.type==='ACTION'?actionNames[e.action]:e.type==='GF_A'?'Golo marcado':e.type==='GA_A'?'Golo sofrido':e.type==='SUB'?(e.entered?'Entrada':'Saída'):{FK_P:'Falta',YC_P:'Amarelo',RC_P:'Vermelho'}[e.type]||e.type;
-    content+='<p class="gc-note">'+escapeHtml([e.half+'ª parte',e.clock,label,name,e.goalCategory,e.zone].filter(Boolean).join(' · '))+'</p>';
+    content+='<p class="gc-note">'+escapeHtml([e.half+'ª parte',e.clock,label,name,e.goalCategory,e.shotCategory,e.zone].filter(Boolean).join(' · '))+'</p>';
   });
   host.innerHTML=content;
 }
