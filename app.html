@@ -3089,6 +3089,28 @@ window.gcSyncAPI={
  }
 };
 
+/* Trocar de equipa sem criar, terminar ou reiniciar jogos. */
+function switchExistingTeam(id){
+  if(id===activeTeam)return true;
+  if(!Object.hasOwn(TEAM_PROFILES,id))return false;
+  if(pendingPlayerEvent||pendingGoalScorer||pendingAssistForGoal||selectedAction){alert('Conclui ou cancela a ação selecionada antes de mudar de equipa.');return false;}
+  if(running&&!confirm('Pausar o jogo atual e mudar de equipa? Os tempos e os eventos ficam guardados.'))return false;
+  pauseTimer();saveData();activateTeam(id);return true;
+}
+const teamSwitchRow=document.createElement('div');teamSwitchRow.style.cssText='display:flex;align-items:center;justify-content:center;gap:10px;margin:8px 12px 14px;flex-wrap:wrap';
+const teamSwitchLabel=document.createElement('label');teamSwitchLabel.htmlFor='currentTeamSelect';teamSwitchLabel.textContent='Equipa atual';teamSwitchLabel.style.cssText='font-size:13px;color:var(--gc-muted)';
+const currentTeamSelect=document.createElement('select');currentTeamSelect.id='currentTeamSelect';currentTeamSelect.style.cssText='font:inherit;font-size:14px;max-width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--gc-line);background:var(--gc-bg);color:var(--gc-ink)';
+teamSwitchRow.appendChild(teamSwitchLabel);teamSwitchRow.appendChild(currentTeamSelect);document.getElementById('teamProfileBadge').after(teamSwitchRow);
+function updateTeamSelector(){
+  currentTeamSelect.replaceChildren();
+  for(const [id,name] of Object.entries(TEAM_PROFILES)){const option=document.createElement('option');option.value=id;option.textContent=name;currentTeamSelect.appendChild(option);}
+  currentTeamSelect.value=activeTeam;currentTeamSelect.disabled=Object.keys(TEAM_PROFILES).length<2;
+}
+currentTeamSelect.onchange=()=>{if(!switchExistingTeam(currentTeamSelect.value))currentTeamSelect.value=activeTeam;};
+const updateBadgeBeforeSelector=updateTeamBadge;
+updateTeamBadge=function(){updateBadgeBeforeSelector();updateTeamSelector();};
+updateTeamSelector();
+
 /* Boot */
 loadData();
 if(!document.getElementById("teamA").value)document.getElementById("teamA").value=TEAM_PROFILES[activeTeam];
@@ -3101,5 +3123,6 @@ updateFloatingPlayBtn();
 </script>
 </body>
 </html>
+
 
 
