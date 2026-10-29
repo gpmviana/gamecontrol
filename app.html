@@ -1,6 +1,35 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
+<script>
+(function(){
+ const raw=window.localStorage,ownerKey='gc_sync_storage_owner_v1';
+ const prefix=()=> 'gc_account_'+(raw.getItem(ownerKey)||'unassigned')+'__';
+ const shared=key=>key==='gc_device_id';
+ const actual=key=>shared(key)?key:prefix()+key;
+ window.gcAccountStorage={getItem:key=>raw.getItem(actual(key)),setItem:(key,value)=>raw.setItem(actual(key),String(value)),removeItem:key=>raw.removeItem(actual(key))};
+ window.gcInitialAccountData=!!raw.getItem(prefix()+'gc_sync_initialised_v1');
+ window.gcPrepareAccountStorage=async uid=>{
+  if(raw.getItem(ownerKey)===uid)return false;
+  const target='gc_account_'+uid+'__';
+  const legacy=[];
+  const allowed=key=>/^(gameControl_withWorkloadGestao_v2|gc_(team_profiles_v1|active_team_v1|roster_v1|match_archive_v1|current_match_id_v1|match_date_v1|presets_v1))($|_)/.test(key);
+  if(!raw.getItem(target+'gc_sync_initialised_v1')&&!raw.getItem('gc_legacy_claimed_by_v1')){
+   for(let i=0;i<raw.length;i++){const key=raw.key(i);if(allowed(key))legacy.push([key,raw.getItem(key)]);}
+  }
+  if(legacy.length&&confirm('Existem equipas/jogos antigos neste navegador, ainda sem dono. Pertencem à conta com que acabaste de entrar?\n\nOK: associar uma cópia à tua conta para sincronizar.\nCancelar: começar o espaço privado da conta sem importar esses dados. Os originais não são apagados.')){
+   // Guardar primeiro os valores; só identificar o dono quando a cópia estiver concluída.
+   for(const [key,value]of legacy)raw.setItem(target+key,value);
+   raw.setItem(target+'gc_sync_initialised_v1','true');raw.setItem('gc_legacy_claimed_by_v1',uid);
+  }
+  raw.setItem(ownerKey,uid);return true;
+ };
+ window.gcRawAccountBackup=()=>{
+  const data={};for(let i=0;i<raw.length;i++){const key=raw.key(i);if(key.startsWith(prefix()))data[key.slice(prefix().length)]=raw.getItem(key);}return data;
+ };
+})();
+
+</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Game Control</title>
@@ -809,10 +838,10 @@
   // ✅ deviceId único por browser
   function getDeviceId(){
     const k = "gc_device_id";
-    let v = localStorage.getItem(k);
+    let v = window.gcAccountStorage.getItem(k);
     if(!v){
       v = crypto.randomUUID();
-      localStorage.setItem(k, v);
+      window.gcAccountStorage.setItem(k, v);
     }
     return v;
   }
@@ -914,6 +943,7 @@
       logoutBtn.addEventListener("click", async () => {
         try{
           if(heartbeatInterval) clearInterval(heartbeatInterval);
+          window.gcSyncSession?.stop();
           await signOut(auth);
         }catch(err){
           console.error(err);
@@ -932,6 +962,8 @@
             return;
           }
           const { deviceRef } = await ensureDeviceAllowed(profile);
+          if(window.gcSyncSession?.uid!==user.uid)window.gcSyncSession?.stop();
+          if(await window.gcPrepareAccountStorage(user.uid)){location.reload();return;}
           if(profile.data.role==='admin'&&!document.getElementById('adminAccountsLink')){
             const link=document.createElement('a');link.id='adminAccountsLink';link.href='admin.html';link.textContent='Aprovar contas';link.style.cssText='font-size:12px;color:inherit;padding:8px';document.querySelector('.top-buttons').appendChild(link);
           }
@@ -940,6 +972,7 @@
           startHeartbeat(deviceRef);
           loginScreen.style.display = "none";
           appWrapper.style.display  = "block";
+          try{const {startAccountSync}=await import('./sincronizacao.js');await startAccountSync(user,db);}catch(error){console.error(error);alert('A aplicação abriu em modo local. Não foi possível iniciar a sincronização. Confirma que publicaste o ficheiro sincronizacao.js.');}
           if(logoutBtn) logoutBtn.style.display = "inline-flex";
         }catch(e){
           console.error(e);
@@ -950,6 +983,7 @@
           if(logoutBtn) logoutBtn.style.display = "none";
         }
       }else{
+        window.gcSyncSession?.stop();
         if(heartbeatInterval) clearInterval(heartbeatInterval);
         loginScreen.style.display = "flex";
         appWrapper.style.display  = "none";
@@ -1240,14 +1274,14 @@ body{font-weight:400;line-height:1.45}
   </div>
 </div>
 <script>
-const TEAM_PROFILES=JSON.parse(localStorage.getItem('gc_team_profiles_v1')||'{"A":"A minha equipa"}');
-if(!TEAM_PROFILES.B&&localStorage.getItem('gameControl_withWorkloadGestao_v2_B'))TEAM_PROFILES.B='Equipa B';
-let activeTeam=localStorage.getItem('gc_active_team_v1');
+const TEAM_PROFILES=JSON.parse(window.gcAccountStorage.getItem('gc_team_profiles_v1')||'{"A":"A minha equipa"}');
+if(!TEAM_PROFILES.B&&window.gcAccountStorage.getItem('gameControl_withWorkloadGestao_v2_B'))TEAM_PROFILES.B='Equipa B';
+let activeTeam=window.gcAccountStorage.getItem('gc_active_team_v1');
 if(!TEAM_PROFILES[activeTeam])activeTeam=Object.keys(TEAM_PROFILES)[0];
 // O arquivo antigo fica associado à equipa A, sem apagar os dados originais.
 for(const base of ['gameControl_withWorkloadGestao_v2','gc_presets_v1','gc_match_archive_v1','gc_current_match_id_v1','gc_match_date_v1']){
- const previous=localStorage.getItem(base);
- if(previous!==null&&localStorage.getItem(base+'_A')===null)localStorage.setItem(base+'_A',previous);
+ const previous=window.gcAccountStorage.getItem(base);
+ if(previous!==null&&window.gcAccountStorage.getItem(base+'_A')===null)window.gcAccountStorage.setItem(base+'_A',previous);
 }
 let matchPeriod=1,regulationMinutes=20,extraMinutes=5;
 let duration = 20 * 60;
@@ -1915,10 +1949,10 @@ function closeEventsPanel(){
 }
 /* Presets */
 function getPresets(){
-  return JSON.parse(localStorage.getItem(PRESETS_KEY) || "{}");
+  return JSON.parse(window.gcAccountStorage.getItem(PRESETS_KEY) || "{}");
 }
 function setPresets(obj){
-  localStorage.setItem(PRESETS_KEY, JSON.stringify(obj));
+  window.gcAccountStorage.setItem(PRESETS_KEY, JSON.stringify(obj));
 }
 function renderPresetList(){
   const list = document.getElementById("presetList");
@@ -1997,10 +2031,10 @@ function saveData(){
     scoreB,
     timeline
   };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  window.gcAccountStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 function loadData(){
-  const raw = localStorage.getItem(STORAGE_KEY);
+  const raw = window.gcAccountStorage.getItem(STORAGE_KEY);
   if(!raw){
     players = [];
     for(let i=1;i<=14;i++){
@@ -2101,7 +2135,7 @@ function loadData(){
     updateFloatingPlayBtn();
   }catch(e){
     console.error(e);
-    localStorage.removeItem(STORAGE_KEY);
+    window.gcAccountStorage.removeItem(STORAGE_KEY);
     loadData();
   }
 }/* Export PNG – igual ao original (já com golos/assistências e timeline) */
@@ -2572,10 +2606,10 @@ document.getElementById('tlClearBtn').addEventListener('click',()=>{selectedActi
 /* Arquivo local e combinações de jogadores. */
 let ARCHIVE_KEY='gc_match_archive_v1_'+activeTeam;
 let MATCH_ID_KEY='gc_current_match_id_v1_'+activeTeam;
-let currentMatchId=localStorage.getItem(MATCH_ID_KEY)||crypto.randomUUID();
-localStorage.setItem(MATCH_ID_KEY,currentMatchId);
+let currentMatchId=window.gcAccountStorage.getItem(MATCH_ID_KEY)||crypto.randomUUID();
+window.gcAccountStorage.setItem(MATCH_ID_KEY,currentMatchId);
 function readArchive(){
-  const raw=localStorage.getItem(ARCHIVE_KEY);
+  const raw=window.gcAccountStorage.getItem(ARCHIVE_KEY);
   if(!raw)return [];
   const data=JSON.parse(raw);if(!Array.isArray(data))throw Error('Arquivo inválido');return data;
 }
@@ -2591,7 +2625,7 @@ function saveMatch(){
     const games=readArchive(),snapshot=archiveSnapshot();
     const index=games.findIndex(g=>g.id===snapshot.id);
     if(index>=0)games[index]=snapshot;else games.push(snapshot);
-    localStorage.setItem(ARCHIVE_KEY,JSON.stringify(games));
+    window.gcAccountStorage.setItem(ARCHIVE_KEY,JSON.stringify(games));
     renderArchive();renderCombinations();return true;
   }catch(error){alert('Não foi possível guardar o jogo. O jogo atual foi mantido. Exporta uma cópia dos dados.');console.error(error);return false;}
 }
@@ -2599,9 +2633,9 @@ function saveAndNewMatch(){
   if(!confirm('Guardar este jogo no arquivo e começar um novo? O plantel será mantido.'))return;
   if(!saveMatch())return;
   resetTimer();
-  currentMatchId=crypto.randomUUID();localStorage.setItem(MATCH_ID_KEY,currentMatchId);
+  currentMatchId=crypto.randomUUID();window.gcAccountStorage.setItem(MATCH_ID_KEY,currentMatchId);
   document.getElementById('teamB').value='';document.getElementById('matchDate').value=localMatchDate();
-  localStorage.setItem('gc_match_date_v1',document.getElementById('matchDate').value);
+  window.gcAccountStorage.setItem('gc_match_date_v1',document.getElementById('matchDate').value);
   saveData();renderArchive();renderCombinations();switchLowerTab('times');
 }
 function localMatchDate(){const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
@@ -2693,8 +2727,8 @@ function exportMatchBackup(){
     const a=document.createElement('a');a.href=url;a.download='GameControl-jogos-'+localMatchDate()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }catch(e){alert('Não foi possível exportar os dados.');}
 }
-document.getElementById('matchDate').value=localStorage.getItem('gc_match_date_v1_'+activeTeam)||localMatchDate();
-document.getElementById('matchDate').onchange=()=>localStorage.setItem('gc_match_date_v1',document.getElementById('matchDate').value);
+document.getElementById('matchDate').value=window.gcAccountStorage.getItem('gc_match_date_v1_'+activeTeam)||localMatchDate();
+document.getElementById('matchDate').onchange=()=>window.gcAccountStorage.setItem('gc_match_date_v1',document.getElementById('matchDate').value);
 document.getElementById('resetBtn').textContent='Guardar e novo jogo';
 document.getElementById('resetBtn').onclick=saveAndNewMatch;
 document.getElementById('saveMatchBtn').onclick=()=>{if(saveMatch())alert('Jogo guardado. Se voltares a guardar este jogo, o registo é atualizado.');};
@@ -2705,18 +2739,18 @@ switchLowerTab=function(tab){switchWithArchive(tab);if(tab==='archive')renderArc
 renderArchive();
 function teamStorageKey(base){return base+'_'+activeTeam;}
 function activateTeam(id){
-  activeTeam=id;localStorage.setItem('gc_active_team_v1',id);
+  activeTeam=id;window.gcAccountStorage.setItem('gc_active_team_v1',id);
   STORAGE_KEY=teamStorageKey('gameControl_withWorkloadGestao_v2');
   PRESETS_KEY=teamStorageKey('gc_presets_v1');
   ARCHIVE_KEY=teamStorageKey('gc_match_archive_v1');
   MATCH_ID_KEY=teamStorageKey('gc_current_match_id_v1');
-  currentMatchId=localStorage.getItem(MATCH_ID_KEY)||crypto.randomUUID();
-  localStorage.setItem(MATCH_ID_KEY,currentMatchId);
+  currentMatchId=window.gcAccountStorage.getItem(MATCH_ID_KEY)||crypto.randomUUID();
+  window.gcAccountStorage.setItem(MATCH_ID_KEY,currentMatchId);
   selectedAction=null;pendingPlayerEvent=null;pendingGoalScorer=null;pendingAssistForGoal=null;
   duration=1200;remaining=1200;firstHalf=true;scoreA=0;scoreB=0;timeline=[];players=[];
   document.getElementById('teamA').value=TEAM_PROFILES[id];document.getElementById('teamB').value='';
   loadData();syncActionStats();
-  document.getElementById('matchDate').value=localStorage.getItem(teamStorageKey('gc_match_date_v1'))||localMatchDate();
+  document.getElementById('matchDate').value=window.gcAccountStorage.getItem(teamStorageKey('gc_match_date_v1'))||localMatchDate();
   document.getElementById('archiveDetail').hidden=true;
   updateTeamBadge();renderArchive();renderCombinations();renderLower();
 }
@@ -2739,20 +2773,20 @@ function chooseNewMatchTeam(manageOnly=false){
   form.onsubmit=event=>{
     event.preventDefault();const value=name.value.trim();if(!value)return;
     if(Object.values(TEAM_PROFILES).some(n=>n.toLocaleLowerCase('pt')===value.toLocaleLowerCase('pt'))){alert('Já existe uma equipa com esse nome.');return;}
-    const id=crypto.randomUUID();TEAM_PROFILES[id]=value;localStorage.setItem('gc_team_profiles_v1',JSON.stringify(TEAM_PROFILES));localStorage.setItem('gc_roster_v1_'+id,'[]');dialog.close();chooseSquad(id,manageOnly);
+    const id=crypto.randomUUID();TEAM_PROFILES[id]=value;window.gcAccountStorage.setItem('gc_team_profiles_v1',JSON.stringify(TEAM_PROFILES));window.gcAccountStorage.setItem('gc_roster_v1_'+id,'[]');dialog.close();chooseSquad(id,manageOnly);
   };dialog.appendChild(form);
   const cancel=document.createElement('button');cancel.textContent='Cancelar';cancel.onclick=()=>dialog.close();dialog.appendChild(cancel);
   dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.appendChild(dialog);dialog.showModal();
 }
 function readTeamRoster(id){
-  const raw=localStorage.getItem('gc_roster_v1_'+id);
+  const raw=window.gcAccountStorage.getItem('gc_roster_v1_'+id);
   if(raw)return JSON.parse(raw);
-  const saved=localStorage.getItem('gameControl_withWorkloadGestao_v2_'+id);
+  const saved=window.gcAccountStorage.getItem('gameControl_withWorkloadGestao_v2_'+id);
   const source=id===activeTeam?players:saved?JSON.parse(saved).players:[];
   return source.map(p=>({id:p.id,name:p.name,isGK:!!p.isGK,number:p.number??''}));
 }
 function saveTeamRoster(id,roster){
-  localStorage.setItem('gc_roster_v1_'+id,JSON.stringify(roster));
+  window.gcAccountStorage.setItem('gc_roster_v1_'+id,JSON.stringify(roster));
   if(id!==activeTeam)return;
   const byId=new Map(roster.map(p=>[p.id,p]));
   players.forEach(player=>{
@@ -2771,10 +2805,10 @@ function beginSquadMatch(id,roster,selected){
   pauseTimer();saveData();
   if(id!==activeTeam){activateTeam(id);if(timeline.length||computeGameTime()>0){if(!saveMatch())return false;}}
   resetTimer();players=selected.map(freshMatchPlayer);buildPlayersDOM();
-  localStorage.setItem('gc_roster_v1_'+id,JSON.stringify(roster));
-  currentMatchId=crypto.randomUUID();localStorage.setItem(MATCH_ID_KEY,currentMatchId);
+  window.gcAccountStorage.setItem('gc_roster_v1_'+id,JSON.stringify(roster));
+  currentMatchId=crypto.randomUUID();window.gcAccountStorage.setItem(MATCH_ID_KEY,currentMatchId);
   document.getElementById('teamA').value=TEAM_PROFILES[id];document.getElementById('teamB').value='';
-  document.getElementById('matchDate').value=localMatchDate();localStorage.setItem(teamStorageKey('gc_match_date_v1'),localMatchDate());
+  document.getElementById('matchDate').value=localMatchDate();window.gcAccountStorage.setItem(teamStorageKey('gc_match_date_v1'),localMatchDate());
   saveData();updateSummary();updateTeamBadge();renderArchive();renderCombinations();switchLowerTab('times');return true;
 }
 function chooseSquad(id,manageOnly=false){
@@ -2826,7 +2860,7 @@ function chooseSquad(id,manageOnly=false){
     const numbers=all.filter(p=>p.number!=='').map(p=>Number(p.number));if(new Set(numbers).size!==numbers.length){alert('Há jogadores com o mesmo número.');return null;}
     return {all,selected:all.filter((p,i)=>entries[i].call.checked)};
   }
-  function saveName(){TEAM_PROFILES[id]=teamNameInput.value.trim();localStorage.setItem('gc_team_profiles_v1',JSON.stringify(TEAM_PROFILES));updateTeamBadge();}
+  function saveName(){TEAM_PROFILES[id]=teamNameInput.value.trim();window.gcAccountStorage.setItem('gc_team_profiles_v1',JSON.stringify(TEAM_PROFILES));updateTeamBadge();}
   const footer=document.createElement('div');footer.className='gc-setup-footer';
   const back=document.createElement('button');back.textContent='Voltar';back.onclick=()=>{dialog.close();chooseNewMatchTeam(manageOnly);};
   const save=document.createElement('button');save.textContent='Guardar plantel';save.onclick=()=>{const data=collect();if(data){saveName();saveTeamRoster(id,data.all);alert('Plantel guardado. As posições e nomes dos convocados foram atualizados no jogo atual.');}};
@@ -2838,7 +2872,7 @@ function chooseSquad(id,manageOnly=false){
 document.getElementById('resetBtn').onclick=chooseNewMatchTeam;
 document.getElementById('resetBtn').onclick=()=>chooseNewMatchTeam(false);
 const manageTeamsButton=document.getElementById('editNamesBtn');manageTeamsButton.title='Gerir equipas e jogadores';manageTeamsButton.setAttribute('aria-label','Gerir equipas e jogadores');manageTeamsButton.onclick=()=>chooseNewMatchTeam(true);
-document.getElementById('matchDate').onchange=()=>localStorage.setItem(teamStorageKey('gc_match_date_v1'),document.getElementById('matchDate').value);
+document.getElementById('matchDate').onchange=()=>window.gcAccountStorage.setItem(teamStorageKey('gc_match_date_v1'),document.getElementById('matchDate').value);
 updateTeamBadge();
 /* Incrementar a versão quando existir uma nova atualização a apresentar. */
 const UPDATES_VERSION='2026-10-28.3';
@@ -2867,7 +2901,7 @@ function showGameControlUpdates(){
   });dialog.appendChild(body);
   const footer=document.createElement('div');footer.className='gc-updates-footer';
   const button=document.createElement('button');button.type='button';button.textContent='Entendido · continuar';button.onclick=()=>dialog.close();footer.appendChild(button);dialog.appendChild(footer);
-  dialog.addEventListener('close',()=>{localStorage.setItem(UPDATES_SEEN_KEY,UPDATES_VERSION);dialog.remove();},{once:true});
+  dialog.addEventListener('close',()=>{window.gcAccountStorage.setItem(UPDATES_SEEN_KEY,UPDATES_VERSION);dialog.remove();},{once:true});
   document.body.appendChild(dialog);dialog.showModal();button.focus();
 }
 const updatesButton=document.createElement('button');updatesButton.type='button';updatesButton.id='gcUpdatesButton';updatesButton.textContent='Novidades';updatesButton.title='Ver todas as novidades';updatesButton.onclick=showGameControlUpdates;
@@ -2875,7 +2909,7 @@ document.querySelector('.top-buttons').appendChild(updatesButton);
 function maybeShowGameControlUpdates(){
   const login=document.getElementById('loginScreen');
   if(login&&getComputedStyle(login).display!=='none')return;
-  if(localStorage.getItem(UPDATES_SEEN_KEY)!==UPDATES_VERSION)showGameControlUpdates();
+  if(window.gcAccountStorage.getItem(UPDATES_SEEN_KEY)!==UPDATES_VERSION)showGameControlUpdates();
 }
 window.addEventListener('DOMContentLoaded',()=>{
   maybeShowGameControlUpdates();
@@ -2927,7 +2961,7 @@ archiveSnapshot=function(){return {...snapshotWithPeriods(),matchPeriod,regulati
 const loadWithPeriods=loadData;
 loadData=function(){
   matchPeriod=1;regulationMinutes=20;extraMinutes=5;loadWithPeriods();
-  const raw=localStorage.getItem(STORAGE_KEY);
+  const raw=window.gcAccountStorage.getItem(STORAGE_KEY);
   if(raw){const saved=JSON.parse(raw);matchPeriod=[1,2,3,4].includes(saved.matchPeriod)?saved.matchPeriod:(matchPeriod);regulationMinutes=saved.regulationMinutes||Math.round(duration/60)||20;extraMinutes=saved.extraMinutes||5;}
   document.getElementById('setMinutes').value=regulationMinutes;updateHalfBadge();
 };
@@ -2952,11 +2986,11 @@ dialogCloseObserver.observe(document.body,{childList:true,subtree:true});
 /* Ordenação dos cartões por pega, com suporte para rato e toque. */
 function persistPlayerOrder(){
   const rosterKey='gc_roster_v1_'+activeTeam;
-  const raw=localStorage.getItem(rosterKey);
+  const raw=window.gcAccountStorage.getItem(rosterKey);
   if(raw){
     const roster=JSON.parse(raw),order=new Map(players.map((p,i)=>[String(p.id),i]));
     roster.sort((a,b)=>(order.get(String(a.id))??Infinity)-(order.get(String(b.id))??Infinity));
-    localStorage.setItem(rosterKey,JSON.stringify(roster));
+    window.gcAccountStorage.setItem(rosterKey,JSON.stringify(roster));
   }
   saveData();
 }
@@ -3009,6 +3043,52 @@ function finishPlayerDrag(event,cancelled){
 }
 playerGrid.addEventListener('pointerup',event=>finishPlayerDrag(event,false));
 playerGrid.addEventListener('pointercancel',event=>finishPlayerDrag(event,true));
+/* Interface entre o jogo e a sincronização; os registos locais continuam a ser a base do jogo. */
+window.gcSyncAPI={
+ running:()=>!!(running||pendingPlayerEvent||pendingGoalScorer||pendingAssistForGoal||selectedAction||document.querySelector('dialog[open]')),
+ initialised:()=>window.gcAccountStorage.getItem('gc_sync_initialised_v1')==='true',
+ seed(){window.gcAccountStorage.setItem('gc_sync_initialised_v1','true');},
+ collect(){
+  if(!this.initialised())return {};
+  saveData();
+  const profiles=JSON.parse(window.gcAccountStorage.getItem('gc_team_profiles_v1')||JSON.stringify(TEAM_PROFILES)),result={};
+  for(const [id,name]of Object.entries(profiles)){
+   const state=JSON.parse(window.gcAccountStorage.getItem('gameControl_withWorkloadGestao_v2_'+id)||'null');
+   const roster=JSON.parse(window.gcAccountStorage.getItem('gc_roster_v1_'+id)||'null')||(state?.players||[]).map(p=>({id:p.id,name:p.name,isGK:!!p.isGK}));
+   result[id]={id,name,roster,state,matchId:window.gcAccountStorage.getItem('gc_current_match_id_v1_'+id),matchDate:window.gcAccountStorage.getItem('gc_match_date_v1_'+id),presets:JSON.parse(window.gcAccountStorage.getItem('gc_presets_v1_'+id)||'{}')};
+   const archive=JSON.parse(window.gcAccountStorage.getItem('gc_match_archive_v1_'+id)||'[]');
+   for(const game of archive)result[id+'/matches/'+game.id]=game;
+  }
+  return result;
+ },
+ apply(path,payload){
+  const parts=path.split('/'),id=parts[0];
+  if(parts.length===1){
+   const profiles=JSON.parse(window.gcAccountStorage.getItem('gc_team_profiles_v1')||'{}');profiles[id]=payload.name;window.gcAccountStorage.setItem('gc_team_profiles_v1',JSON.stringify(profiles));
+   window.gcAccountStorage.setItem('gc_roster_v1_'+id,JSON.stringify(payload.roster||[]));
+   if(payload.state)window.gcAccountStorage.setItem('gameControl_withWorkloadGestao_v2_'+id,JSON.stringify(payload.state));
+   if(payload.matchId)window.gcAccountStorage.setItem('gc_current_match_id_v1_'+id,payload.matchId);
+   if(payload.matchDate)window.gcAccountStorage.setItem('gc_match_date_v1_'+id,payload.matchDate);
+   window.gcAccountStorage.setItem('gc_presets_v1_'+id,JSON.stringify(payload.presets||{}));
+  }else{
+   const key='gc_match_archive_v1_'+id,archive=JSON.parse(window.gcAccountStorage.getItem(key)||'[]'),index=archive.findIndex(game=>game.id===payload.id);
+   if(index<0)archive.push(payload);else archive[index]=payload;window.gcAccountStorage.setItem(key,JSON.stringify(archive));
+  }
+  this.seed();
+ },
+ refresh(){
+  if(running)return;
+  const profiles=JSON.parse(window.gcAccountStorage.getItem('gc_team_profiles_v1')||'{}');
+  for(const id of Object.keys(TEAM_PROFILES))delete TEAM_PROFILES[id];Object.assign(TEAM_PROFILES,profiles);
+  const id=profiles[activeTeam]?activeTeam:Object.keys(profiles)[0];
+  if(id)activateTeam(id);
+ },
+ backup(){
+  saveData();const data={format:'gamecontrol-account-copy',version:1,createdAt:new Date().toISOString(),data:window.gcRawAccountBackup()};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download='GameControl-conta-'+localMatchDate()+'.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }
+};
+
 /* Boot */
 loadData();
 if(!document.getElementById("teamA").value)document.getElementById("teamA").value=TEAM_PROFILES[activeTeam];
