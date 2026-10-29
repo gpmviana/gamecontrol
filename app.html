@@ -1230,7 +1230,7 @@ header{position:relative;z-index:1300}
   <button id="floatingPlayBtn" class="paused">⏵</button>
   <div id="teamInputs">
     <span class="scoreBubble" id="scoreA">0</span>
-    <input id="teamA" placeholder="Equipa A">
+    <input id="teamA" placeholder="A tua equipa" readonly aria-label="Equipa selecionada" title="Nome automático da equipa selecionada. Para o alterar, usa Gerir equipas.">
     <strong>vs</strong>
     <input id="teamB" placeholder="Equipa B">
     <span class="scoreBubble" id="scoreB">0</span>
@@ -2123,7 +2123,7 @@ function loadData(){
   }
   try{
     const d = JSON.parse(raw);
-    document.getElementById("teamA").value = d.teamA || "";
+    document.getElementById("teamA").value = TEAM_PROFILES[activeTeam] || d.teamA || "";
     document.getElementById("teamB").value = d.teamB || "";
     duration = typeof d.duration==="number" ? d.duration : duration;
     remaining = typeof d.remaining==="number" ? d.remaining : remaining;
@@ -2810,7 +2810,7 @@ function activateTeam(id){
   document.getElementById('archiveDetail').hidden=true;
   updateTeamBadge();renderArchive();renderCombinations();renderLower();
 }
-function updateTeamBadge(){document.getElementById('teamProfileBadge').textContent=TEAM_PROFILES[activeTeam];}
+function updateTeamBadge(){const name=TEAM_PROFILES[activeTeam]||'A minha equipa';document.getElementById('teamProfileBadge').textContent=name;document.getElementById('teamA').value=name;}
 function chooseNewMatchTeam(manageOnly=false){
   const dialog=document.createElement('dialog');dialog.className='gc-zone-dialog gc-setup-dialog';
   dialog.innerHTML='<div class="gc-setup-heading"><small>NOVO JOGO · PASSO 1 DE 2</small><h2>A tua equipa</h2><p>Escolhe uma equipa ou cria outra. O plantel e os jogos ficam separados por equipa.</p></div>';
@@ -3335,7 +3335,7 @@ function showGameControlFAQ(){
 
 /* Boot */
 loadData();
-if(!document.getElementById("teamA").value)document.getElementById("teamA").value=TEAM_PROFILES[activeTeam];
+document.getElementById("teamA").value=TEAM_PROFILES[activeTeam]||"A minha equipa";
 syncActionStats();
 renderLower();
 updateTimerDisplay();
