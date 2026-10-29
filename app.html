@@ -2701,7 +2701,7 @@ function renderArchive(){
     const row=document.createElement('div');row.className='gc-history-row';
     const title=document.createElement('span');title.textContent=game.date+' · '+game.teamA+' '+game.scoreA+' — '+game.scoreB+' '+game.teamB;
     const button=document.createElement('button');button.textContent='Consultar';button.onclick=()=>viewArchivedMatch(game);
-    row.appendChild(title);row.appendChild(button);host.appendChild(row);
+    row.appendChild(title);const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;flex-wrap:wrap';controls.appendChild(button);const exportButton=document.createElement('button');exportButton.textContent='Exportar relatório PNG';exportButton.onclick=()=>exportArchivedReport(game);controls.appendChild(exportButton);row.appendChild(controls);host.appendChild(row);
   });
 }
 function viewArchivedMatch(game){
@@ -3111,6 +3111,106 @@ const updateBadgeBeforeSelector=updateTeamBadge;
 updateTeamBadge=function(){updateBadgeBeforeSelector();updateTeamSelector();};
 updateTeamSelector();
 
+/* Relatório de um jogo arquivado, sem trocar o jogo em curso. */
+function buildArchivedReport(game){
+  const width=1200,margin=48,content=width-margin*2;
+  const measure=document.createElement('canvas').getContext('2d');
+  const rows=[];
+  function wrap(value,maxWidth,size,bold){
+    measure.font=(bold?'600 ':'')+size+'px "Segoe UI", Arial, sans-serif';
+    const result=[];let line='';
+    for(const word of String(value??'').split(/\s+/)){
+      const candidate=line?line+' '+word:word;
+      if(line&&measure.measureText(candidate).width>maxWidth){result.push(line);line='';}
+      let rest=word;
+      if(!line&&measure.measureText(rest).width>maxWidth){
+        let part='';for(const char of rest){if(part&&measure.measureText(part+char).width>maxWidth){result.push(part);part='';}part+=char;}line=part;
+      }else line=line?line+' '+word:word;
+    }
+    if(line||!result.length)result.push(line);return result;
+  }
+  function text(value,size=18,bold=false,color='#334759'){
+    const lines=wrap(value,content,size,bold);rows.push({kind:'text',lines,size,bold,color,height:lines.length*(size+7)+14});
+  }
+  function heading(value){text(value,23,true,'#1d3447');}
+  function table(cells,widths,header=false){
+    const size=header?15:16;
+    const lines=cells.map((cell,i)=>wrap(cell,widths[i]-20,size,header));
+    rows.push({kind:'table',lines,widths,size,header,height:Math.max(...lines.map(l=>l.length))*(size+7)+22});
+  }
+  const roster=Array.isArray(game.players)?game.players:[],events=Array.isArray(game.timeline)?game.timeline:[];
+  const a=countStats('A',undefined,events),b=countStats('B',undefined,events);
+  text('GAME CONTROL · RELATÓRIO DE JOGO',15,true,'#668398');
+  text((game.teamA||'Nossa equipa')+' '+(game.scoreA??a.goals)+' — '+(game.scoreB??b.goals)+' '+(game.teamB||'Adversário'),30,true,'#172e40');
+  text('Data: '+(game.date||'Não indicada')+' · Relatório do jogo guardado',16);
+  heading('Estatísticas das equipas');
+  const teamWidths=[504,300,300];table(['Indicador',game.teamA||'Nossa equipa',game.teamB||'Adversário'],teamWidths,true);
+  table(['Remates totais',a.on+a.off,b.on+b.off],teamWidths);
+  for(const [label,key]of [['Golos','goals'],['Assistências','assists'],['Remates à baliza','on'],['Remates fora','off'],['Defesas','saves'],['Recuperações','recovery'],['Perdas de bola','loss'],['Faltas','fouls'],['Cartões amarelos','yellow'],['Cartões vermelhos','red']])table([label,a[key],b[key]],teamWidths);
+  heading('Tempos e rotações · '+(game.teamA||'Nossa equipa'));
+  const timeWidths=[344,152,152,152,152,152];
+  table(['Jogador','1ª parte','2ª + prol.','Total','Fora','Rotações'],timeWidths,true);
+  roster.forEach(p=>table([p.name+(p.isGK?' (GR)':''),formatTime(p.part1||0),formatTime(p.part2||0),formatTime(p.seconds||0),formatTime(p.secondsOut||0),p.rotations||0],timeWidths));
+  heading('Ações por jogador');
+  const actionWidths=[304,100,100,100,100,100,100,100,100];
+  table(['Jogador','Golos','Assist.','À baliza','Fora','Defesas','Recup.','Perdas','Faltas'],actionWidths,true);
+  roster.forEach(p=>{const s=countStats('A',p.id,events);table([p.name,s.goals,s.assists,s.on,s.off,s.saves,s.recovery,s.loss,s.fouls],actionWidths);});
+  heading('Origem dos golos');table(['Categoria','Marcados','Sofridos'],teamWidths,true);
+  const categories=[...new Set(events.filter(e=>e.type==='GF_A'||e.type==='GA_A').map(e=>e.goalCategory||'Sem classificação'))];
+  if(!categories.length)text('Sem golos registados.',16);
+  for(const category of categories){const count=type=>events.filter(e=>e.type===type&&(e.goalCategory||'Sem classificação')===category).length;table([category,count('GF_A'),count('GA_A')],teamWidths);}
+  for(const [type,label]of [['RECOVERY','Recuperações por zona'],['LOSS','Perdas por zona']]){
+    heading(label);table(['Zona',game.teamA||'Nossa equipa',game.teamB||'Adversário'],teamWidths,true);
+    for(const zone of ['Zona defensiva','Meio-campo','Zona ofensiva','Sem zona']){const count=team=>events.filter(e=>e.action===type&&(e.team||'A')===team&&(e.zone||'Sem zona')===zone).length;table([zone,count('A'),count('B')],teamWidths);}
+  }
+  heading('Histórico de eventos e substituições');
+  if(!events.length)text('Sem eventos registados.',16);
+  const nameFor=id=>roster.find(p=>p.id===id)?.name||String(id);
+  for(const e of events){
+    const label=e.type==='ACTION'?actionNames[e.action]:e.type==='GF_A'?'Golo marcado':e.type==='GA_A'?'Golo sofrido':e.type==='SUB'?(e.entered?'Entrada':'Saída'):{FK_P:'Falta',YC_P:'Cartão amarelo',RC_P:'Cartão vermelho'}[e.type]||e.type;
+    const team=e.team==='B'||e.type==='GA_A'?game.teamB:game.teamA;
+    const parts=[periodLabel(e.half),e.clock,label,team,e.playerId?nameFor(e.playerId):'',e.assistPlayerId?'Assistência: '+nameFor(e.assistPlayerId):'',e.goalCategory,e.zone];
+    text(parts.filter(Boolean).join(' · '),16);
+    if(e.type==='GF_A'||e.type==='GA_A'){
+      const names=Array.isArray(e.lineup)?e.lineup.map(p=>p.name):(e.activeIds||[]).map(nameFor);
+      if(names.length)text('Em campo: '+names.join(', '),14,false,'#67798a');
+    }
+  }
+  text('Golos incluídos nos remates à baliza. Cada defesa acrescenta um remate à baliza à equipa contrária. Os tempos do prolongamento estão incluídos na 2ª parte.',13,false,'#67798a');
+  // Dividir antes do limite de tamanho dos canvas dos navegadores.
+  const pages=[];let page=[],height=0;
+  for(const row of rows){if(page.length&&height+row.height>10000){pages.push(page);page=[];height=0;}page.push(row);height+=row.height;}if(page.length)pages.push(page);
+  return {width,margin,content,pages};
+}
+function downloadArchivedReportPage(game,report,index){
+  const rows=report.pages[index],canvas=document.createElement('canvas');canvas.width=report.width;canvas.height=rows.reduce((sum,row)=>sum+row.height,0)+report.margin*2+36;
+  const context=canvas.getContext('2d');context.fillStyle='#f7f9fb';context.fillRect(0,0,canvas.width,canvas.height);context.textBaseline='top';
+  let y=report.margin;
+  for(const row of rows){
+    context.font=(row.bold||row.header?'600 ':'')+row.size+'px "Segoe UI", Arial, sans-serif';
+    if(row.kind==='text'){
+      context.fillStyle=row.color;row.lines.forEach((line,n)=>context.fillText(line,report.margin,y+n*(row.size+7)+7));
+    }else{
+      context.fillStyle=row.header?'#e0eaf1':'#ffffff';context.fillRect(report.margin,y,report.content,row.height-2);
+      context.fillStyle=row.header?'#28485f':'#334759';let x=report.margin;
+      row.lines.forEach((lines,i)=>{lines.forEach((line,n)=>context.fillText(line,x+10,y+10+n*(row.size+7)));x+=row.widths[i];});
+      context.strokeStyle='#dce5ec';context.beginPath();context.moveTo(report.margin,y+row.height-2);context.lineTo(report.margin+report.content,y+row.height-2);context.stroke();
+    }y+=row.height;
+  }
+  context.font='13px "Segoe UI", Arial, sans-serif';context.fillStyle='#718698';context.fillText('Game Control · '+(index+1)+' / '+report.pages.length,report.margin,y+20);
+  const clean=value=>String(value||'equipa').replace(/[^\p{L}\p{N}_-]/gu,'_');
+  const filename='Relatorio_'+clean(game.teamA)+'_vs_'+clean(game.teamB)+'_'+clean(game.date)+'_'+(index+1)+'.png';
+  const link=document.createElement('a');link.download=filename;
+  canvas.toBlob(blob=>{if(!blob){alert('Não foi possível gerar a imagem.');return;}const url=URL.createObjectURL(blob);link.href=url;link.click();setTimeout(()=>URL.revokeObjectURL(url),5000);},'image/png');
+}
+function exportArchivedReport(game){
+  const report=buildArchivedReport(game);
+  if(report.pages.length===1){downloadArchivedReportPage(game,report,0);return;}
+  const dialog=document.createElement('dialog');dialog.className='gc-zone-dialog';const title=document.createElement('h3');title.textContent='Relatório dividido em '+report.pages.length+' imagens';dialog.appendChild(title);
+  report.pages.forEach((_,index)=>{const button=document.createElement('button');button.textContent='Descarregar página '+(index+1);button.style.cssText='display:block;padding:12px;margin:8px 0';button.onclick=()=>downloadArchivedReportPage(game,report,index);dialog.appendChild(button);});
+  dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.appendChild(dialog);dialog.showModal();
+}
+
 /* Boot */
 loadData();
 if(!document.getElementById("teamA").value)document.getElementById("teamA").value=TEAM_PROFILES[activeTeam];
@@ -3123,6 +3223,7 @@ updateFloatingPlayBtn();
 </script>
 </body>
 </html>
+
 
 
 
