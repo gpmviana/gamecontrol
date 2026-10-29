@@ -8,7 +8,7 @@ let currentUser=null,currentProfile=null,started=false,stops=[],locked=true,flus
 const gate=document.getElementById('moduleGate'),content=document.getElementById('moduleContent'),status=document.getElementById('moduleStatus'),sync=document.getElementById('moduleSyncStatus');
 const raw=localStorage,prefix=uid=>'gc_account_'+uid+'__',key=k=>prefix(currentUser.uid)+k;
 function message(text){status.textContent=text;}
-function lock(text){locked=true;content.hidden=true;content.inert=true;gate.hidden=false;message(text);clearTimeout(flushTimer);}
+function lock(text){document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());locked=true;content.hidden=true;content.inert=true;gate.hidden=false;message(text);clearTimeout(flushTimer);}
 function stop(){for(const fn of stops)fn();stops=[];clearTimeout(flushTimer);}
 function canUse(){return !locked&&navigator.onLine&&currentUser?.uid===auth.currentUser?.uid&&moduleAllowed(currentProfile,auth.currentUser,moduleName);}
 function cacheGet(k){return raw.getItem(key(k));}function cacheSet(k,v){raw.setItem(key(k),String(v));}

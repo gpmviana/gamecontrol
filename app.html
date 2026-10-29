@@ -1169,7 +1169,7 @@ body{font-weight:400;line-height:1.45}
 @media(max-width:600px){.gc-player-form{grid-template-columns:110px minmax(0,1fr)}.gc-roster-row,.gc-roster-manage .gc-roster-row{grid-template-columns:105px minmax(0,1fr)}.gc-call-label{grid-column:1/-1}.gc-player-form>button{grid-column:1/-1}}
 @media(max-width:600px){header{flex-wrap:wrap;gap:8px}.top-buttons{flex-wrap:wrap}.gc-updates-dialog h2{padding:18px 16px 0;font-size:18px}.gc-updates-dialog>p,.gc-updates-body{padding-left:16px;padding-right:16px}}
 </style>
-<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#171c22"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Game Control"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#171c22"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Game Control"><link rel="apple-touch-icon" href="icon-192.png?v=20261029-blue">
 <style>
 #gcOfflineBar,#gcSyncBar{display:none!important}
 header{position:relative;z-index:1300}
@@ -1191,11 +1191,11 @@ header{position:relative;z-index:1300}
 
 </style>
 <style>.gc-faq-dialog details{border-top:1px solid var(--gc-line);padding:14px 0}.gc-faq-dialog summary{font-size:14px;font-weight:600;color:var(--gc-tint);cursor:pointer;line-height:1.5}.gc-faq-dialog details p{font-size:13px;line-height:1.7;margin:12px 0;color:var(--gc-ink)}.gc-updates-footer button+button{margin-top:8px}.gc-faq-dialog{width:720px}</style>
-<link rel="stylesheet" href="modules.css"></head>
+<link rel="stylesheet" href="modules.css"><link rel="icon" type="image/png" href="favicon.png?v=20261029-blue"></head>
 <body>
 <header>
   <div class="header-left">
-    <img src="logo-gc.png" alt="Game Control" class="header-logo">
+    <img src="logo-gc.png?v=20261029-blue" alt="Game Control" class="header-logo">
     <span class="header-title">GAME CONTROL</span>
   </div>
   <div class="top-buttons">
@@ -2193,7 +2193,9 @@ function loadData(){
     loadData();
   }
 }/* Export PNG – igual ao original (já com golos/assistências e timeline) */
-function exportPng(){
+const gcBrandLogoReady=new Promise(resolve=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>resolve(null);image.src='logo-gc.png?v=20261029-blue';});
+async function exportPng(){
+  const brand=await gcBrandLogoReady;
   const teamA = (document.getElementById("teamA").value||"Equipa A").trim();
   const teamB = (document.getElementById("teamB").value||"Equipa B").trim();
   const title = `${teamA} ${scoreA}–${scoreB} ${teamB}`;
@@ -2264,7 +2266,7 @@ function exportPng(){
   const tableWidth = colWidths.reduce((a,b)=>a+b,0);
   const margin = 20;
   const rowH = 32, headerH = 36;
-  const titleH = 30;
+  const titleH = 58;
   const padding = 12;
   const timelineBlockH = timelineLines.length ? (24 + timelineLines.length * 18) : 0;
   const tableHeight = padding + headerH + rows.length*rowH + padding;
@@ -2278,11 +2280,12 @@ function exportPng(){
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0,0,canvasW,canvasH);
+  if(brand)ctx.drawImage(brand,margin,margin+8,42,42);
   ctx.fillStyle = "#000";
   ctx.font = "bold 22px Arial";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(title, canvasW/2, margin + titleH/2);
+  ctx.fillText(title, canvasW/2, margin + titleH/2, canvasW-160);
   const cardX = (canvasW - contentWidth)/2;
   const cardY = margin + titleH + 10;
   ctx.fillStyle = "#ffffff";
@@ -2756,7 +2759,7 @@ function renderArchive(){
     const row=document.createElement('div');row.className='gc-history-row';
     const title=document.createElement('span');title.textContent=game.date+' · '+game.teamA+' '+game.scoreA+' — '+game.scoreB+' '+game.teamB;
     const button=document.createElement('button');button.textContent='Consultar';button.onclick=()=>viewArchivedMatch(game);
-    row.appendChild(title);const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;flex-wrap:wrap';controls.appendChild(button);const exportButton=document.createElement('button');exportButton.textContent='Exportar relatório PNG';exportButton.onclick=()=>exportArchivedReport(game);controls.appendChild(exportButton);const wellnessLink=document.createElement('a');wellnessLink.textContent='PSE no Wellness →';wellnessLink.dataset.moduleLink='wellness';wellnessLink.hidden=window.gcModuleAccess?.wellness!==true;wellnessLink.href='wellness.html?equipa='+encodeURIComponent(activeTeam)+'&jogo='+encodeURIComponent(game.id);wellnessLink.style.cssText='padding:9px;align-self:center';controls.appendChild(wellnessLink);const remove=document.createElement('button');remove.textContent='Apagar';remove.onclick=()=>deleteArchivedGame(game.id);controls.appendChild(remove);row.appendChild(controls);host.appendChild(row);
+    row.appendChild(title);const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;flex-wrap:wrap';controls.appendChild(button);const exportButton=document.createElement('button');exportButton.textContent='Exportar relatório PNG';exportButton.onclick=()=>exportArchivedReport(game);controls.appendChild(exportButton);const wellnessLink=document.createElement('a');wellnessLink.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/><path d="M3 12h4l2-4 4 8 2-4h6"/></svg>';wellnessLink.className='gc-archive-wellness';wellnessLink.title='Abrir a PSE deste jogo no Wellness';wellnessLink.setAttribute('aria-label','Abrir a PSE deste jogo no Wellness');wellnessLink.dataset.moduleLink='wellness';wellnessLink.hidden=window.gcModuleAccess?.wellness!==true;wellnessLink.href='wellness.html?equipa='+encodeURIComponent(activeTeam)+'&jogo='+encodeURIComponent(game.id);wellnessLink.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-raised);color:var(--gc-ink);align-self:center;box-sizing:border-box';controls.appendChild(wellnessLink);const remove=document.createElement('button');remove.textContent='Apagar';remove.onclick=()=>deleteArchivedGame(game.id);controls.appendChild(remove);row.appendChild(controls);host.appendChild(row);
   });
   const trash=document.createElement('button');trash.textContent='Jogos apagados ('+readArchive(true).filter(g=>g.deleted).length+')';trash.onclick=showDeletedGames;trash.style.marginTop='14px';host.appendChild(trash);
 }
@@ -3249,10 +3252,12 @@ function buildArchivedReport(game){
   for(const row of rows){if(page.length&&height+row.height>10000){pages.push(page);page=[];height=0;}page.push(row);height+=row.height;}if(page.length)pages.push(page);
   return {width,margin,content,pages};
 }
-function downloadArchivedReportPage(game,report,index){
-  const rows=report.pages[index],canvas=document.createElement('canvas');canvas.width=report.width;canvas.height=rows.reduce((sum,row)=>sum+row.height,0)+report.margin*2+36;
+async function downloadArchivedReportPage(game,report,index){
+  const brand=await gcBrandLogoReady;
+  const rows=report.pages[index],canvas=document.createElement('canvas');canvas.width=report.width;canvas.height=rows.reduce((sum,row)=>sum+row.height,0)+report.margin*2+100;
   const context=canvas.getContext('2d');context.fillStyle='#f7f9fb';context.fillRect(0,0,canvas.width,canvas.height);context.textBaseline='top';
-  let y=report.margin;
+  if(brand)context.drawImage(brand,report.margin,report.margin,50,50);context.font='600 16px "Segoe UI", Arial, sans-serif';context.fillStyle='#28485f';context.fillText('GAME CONTROL',report.margin+64,report.margin+16);
+  let y=report.margin+64;
   for(const row of rows){
     context.font=(row.bold||row.header?'600 ':'')+row.size+'px "Segoe UI", Arial, sans-serif';
     if(row.kind==='text'){
