@@ -1160,6 +1160,26 @@ body{font-weight:400;line-height:1.45}
 @media(max-width:600px){header{flex-wrap:wrap;gap:8px}.top-buttons{flex-wrap:wrap}.gc-updates-dialog h2{padding:18px 16px 0;font-size:18px}.gc-updates-dialog>p,.gc-updates-body{padding-left:16px;padding-right:16px}}
 </style>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#171c22"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Game Control"><link rel="apple-touch-icon" href="icon-192.png">
+<style>
+#gcOfflineBar,#gcSyncBar{display:none!important}
+header{position:relative;z-index:1300}
+#gcAppMenu{position:relative;font-family:inherit}
+#gcAppMenu>summary{list-style:none;display:grid;place-items:center;width:36px;height:36px;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-raised);color:var(--gc-ink);font-size:20px;cursor:pointer}
+#gcAppMenu>summary::-webkit-details-marker{display:none}
+.gc-menu-body{position:absolute;right:0;top:44px;width:290px;max-width:calc(100vw - 28px);max-height:75vh;overflow-y:auto;z-index:2100;border:1px solid var(--gc-line);border-radius:12px;background:var(--gc-bg);box-shadow:0 15px 45px #0006;padding:10px;text-align:left}
+.gc-menu-body section{padding:4px 0 8px;border-bottom:1px solid var(--gc-line)}.gc-menu-body section:last-child{border:0}
+.gc-menu-body h3{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--gc-muted);margin:8px 10px}
+.gc-menu-body button,.gc-menu-body a{display:block!important;width:100%;box-sizing:border-box;text-align:left;font:inherit!important;font-size:13px!important;font-weight:400!important;background:transparent!important;color:var(--gc-ink)!important;border:0!important;border-radius:6px!important;padding:10px!important;text-decoration:none;cursor:pointer;line-height:1.4}
+.gc-menu-body button:hover,.gc-menu-body a:hover{background:var(--gc-raised)!important}
+.gc-menu-body [hidden]{display:none!important}
+#themeToggle:before{content:'Mudar tema ';font-size:13px}
+#gcCompactStatus{display:flex;justify-content:center;align-items:center;gap:7px;padding:7px 12px;color:var(--gc-muted);font-size:11px;min-height:29px}
+.gc-status-dot{height:5px;width:5px;border-radius:50%;background:var(--gc-tint)}#gcCompactStatus[data-warning=true] .gc-status-dot{background:#dab97a}
+#gcCompactStatus button{padding:3px 7px;border:1px solid var(--gc-line);border-radius:5px;background:var(--gc-raised);color:var(--gc-ink);font:inherit;cursor:pointer}
+.top-buttons{align-items:center}.top-buttons>#editNamesBtn,.top-buttons>#loadPanelBtn{width:36px;height:36px;border-radius:8px;font-size:20px}
+@media(max-width:600px){header{flex-wrap:nowrap!important}.header-title{font-size:12px}.header-logo{height:30px}.top-buttons{gap:4px}.gc-menu-body{position:fixed;top:62px;right:12px;max-height:75vh}#gcCompactStatus{font-size:10px}}
+
+</style>
 </head>
 <body>
 <header>
@@ -3245,9 +3265,9 @@ updateFloatingPlayBtn();
 </script>
 <script>
 /* Instalação e cópias da conta; não usa os dados locais de outras contas. */
-const offlineBar=document.createElement('div');offlineBar.style.cssText='padding:8px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--gc-muted);border-bottom:1px solid var(--gc-line)';
+const offlineBar=document.createElement('div');offlineBar.id='gcOfflineBar';offlineBar.style.cssText='padding:8px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--gc-muted);border-bottom:1px solid var(--gc-line)';
 const offlineText=document.createElement('span');offlineText.textContent='A preparar ficheiros para utilização offline…';offlineBar.appendChild(offlineText);document.querySelector('header').after(offlineBar);
-function offlineControl(label,handler){const button=document.createElement('button');button.textContent=label;button.style.cssText='font:inherit;padding:6px 9px;border-radius:6px;border:1px solid var(--gc-line);background:var(--gc-raised);color:var(--gc-ink);cursor:pointer';button.onclick=handler;offlineBar.appendChild(button);return button;}
+function offlineControl(label,handler){const button=document.createElement('button');button.textContent=label;button.style.cssText='font:inherit;padding:6px 9px;border-radius:6px;border:1px solid var(--gc-line);background:var(--gc-raised);color:var(--gc-ink);cursor:pointer';button.onclick=handler;offlineBar.appendChild(button);if(label==='Instalar aplicação')button.id='gcInstallApp';if(label==='Exportar cópia completa')button.id='gcBackupExport';if(label==='Importar cópia')button.id='gcBackupImport';return button;}
 let deferredInstall,offlineReady=false;
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstall=event;});
 offlineControl('Instalar aplicação',async()=>{
@@ -3296,8 +3316,79 @@ window.addEventListener('online',updateOfflineState);window.addEventListener('of
 new MutationObserver(updateOfflineState).observe(document.getElementById('loginScreen'),{attributes:true,attributeFilter:['style']});
 
 </script>
+<script>
+/* Controlos essenciais à vista; ferramentas e estado detalhado no menu. */
+const cleanHeader=document.querySelector('header'),cleanTop=document.querySelector('.top-buttons');
+const appMenu=document.createElement('details');appMenu.id='gcAppMenu';
+const appMenuToggle=document.createElement('summary');appMenuToggle.textContent='☰';appMenuToggle.setAttribute('aria-label','Abrir menu da aplicação');appMenuToggle.title='Menu';appMenu.appendChild(appMenuToggle);
+const appMenuBody=document.createElement('div');appMenuBody.className='gc-menu-body';appMenu.appendChild(appMenuBody);
+const groups={};
+for(const [key,label]of [['tools','Ferramentas'],['data','Dados e cópias'],['app','Aplicação'],['account','Conta']]){
+ const section=document.createElement('section'),title=document.createElement('h3');title.textContent=label;section.appendChild(title);appMenuBody.appendChild(section);groups[key]=section;
+}
+cleanTop.appendChild(appMenu);
+const cleanStatus=document.createElement('div');cleanStatus.id='gcCompactStatus';
+const cleanStatusDot=document.createElement('span');cleanStatusDot.className='gc-status-dot';
+const cleanStatusText=document.createElement('span');
+const conflictShortcut=document.createElement('button');conflictShortcut.textContent='Resolver';conflictShortcut.hidden=true;conflictShortcut.onclick=()=>{appMenu.open=true;appMenu.querySelector('[data-conflict-action]')?.focus();};
+cleanStatus.appendChild(cleanStatusDot);cleanStatus.appendChild(cleanStatusText);cleanStatus.appendChild(conflictShortcut);cleanHeader.after(cleanStatus);
+function readSyncText(){return document.getElementById('gcSyncBar')?.querySelector('span')?.textContent||'';}
+function readOfflineText(){return document.getElementById('gcOfflineBar')?.querySelector('span')?.textContent||'';}
+function updateCompactStatus(){
+ const login=document.getElementById('loginScreen');cleanStatus.hidden=!!login&&getComputedStyle(login).display!=='none';groups.account.hidden=cleanStatus.hidden;
+ const sync=readSyncText(),offline=readOfflineText(),conflict=/versões diferentes|conflito/i.test(sync);
+ cleanStatus.dataset.warning=String(conflict||/pendente|possível|alterações por receber/i.test(sync));
+ conflictShortcut.hidden=!conflict;
+ cleanStatusText.textContent=!navigator.onLine?'Sem ligação · dados guardados neste dispositivo':conflict?'Conflito de versões por resolver':sync.startsWith('Sincronizado')?sync.replace('Sincronizado · ','Sincronizado às '):/alterações.*receber/i.test(sync)?'Alterações por receber':/pendente|possível/i.test(sync)?'Sincronização pendente':'A sincronizar…';
+ cleanStatus.title=[sync,offline].filter(Boolean).join('\n');
+ const installed=window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true;
+ const install=document.getElementById('gcInstallApp');if(install)install.hidden=installed;
+}
+const observedBars=new WeakSet();
+function moveControl(id,label,group){const element=document.getElementById(id);if(!element)return;if(label)element.textContent=label;if(element.parentElement!==groups[group])groups[group].appendChild(element);}
+function organiseAppMenu(){
+ for(const [id,label,group]of [
+  ['printBtn','Exportar relatório do jogo atual','tools'],['presetsBtn','Configurações guardadas','tools'],
+  ['configureClockBtn','Cronómetro e prolongamento','tools'],['gcInstallApp','Instalar aplicação','app'],
+  ['gcBackupExport','Exportar cópia de segurança','data'],['gcBackupImport','Importar cópia de segurança','data'],
+  ['themeToggle',null,'app'],['fullscreenBtn','Ecrã inteiro','app'],['gcUpdatesButton','Novidades','app'],
+  ['adminAccountsLink','Aprovar contas','account'],['logoutBtn','Terminar sessão','account']
+ ])moveControl(id,label,group);
+ const theme=document.getElementById('themeToggle');if(theme){theme.title='Mudar tema';theme.setAttribute('aria-label','Mudar tema');}
+ const syncBar=document.getElementById('gcSyncBar');
+ if(syncBar){for(const button of [...syncBar.querySelectorAll('button')]){
+   if(button.textContent==='Exportar cópia completa'){button.remove();continue;}
+   if(button.textContent==='Resolver conflito')button.dataset.conflictAction='true';
+   groups.data.appendChild(button);
+ }}
+ for(const bar of [document.getElementById('gcSyncBar'),document.getElementById('gcOfflineBar')]){
+  if(!bar||observedBars.has(bar))continue;observedBars.add(bar);
+  const span=bar.querySelector('span');if(span)new MutationObserver(updateCompactStatus).observe(span,{childList:true,characterData:true,subtree:true});
+ }
+ updateCompactStatus();
+}
+const stateButton=document.createElement('button');stateButton.textContent='Estado da ligação e ajuda offline';stateButton.onclick=()=>{
+ const dialog=document.createElement('dialog');dialog.className='gc-zone-dialog';
+ const title=document.createElement('h3');title.textContent='Ligação e utilização offline';dialog.appendChild(title);
+ for(const value of [readSyncText(),readOfflineText(),'A primeira entrada precisa de internet. Depois da validação e da preparação dos ficheiros, podes utilizar offline até 7 dias.','Sem rede, os dados ficam neste dispositivo. O envio é retomado com internet e a aplicação aberta. Antes de fechar, confirma a sincronização.','A cópia de segurança guarda um ficheiro da tua conta. Exporta-a antes de importar dados ou limpar o navegador.']){
+  if(!value)continue;const paragraph=document.createElement('p');paragraph.textContent=value;dialog.appendChild(paragraph);
+ }
+ dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.appendChild(dialog);dialog.showModal();
+};groups.app.appendChild(stateButton);
+new MutationObserver(organiseAppMenu).observe(cleanTop,{childList:true});
+new MutationObserver(organiseAppMenu).observe(document.body,{childList:true});
+new MutationObserver(updateCompactStatus).observe(document.getElementById('loginScreen'),{attributes:true,attributeFilter:['style']});
+window.addEventListener('online',updateCompactStatus);window.addEventListener('offline',updateCompactStatus);window.addEventListener('appinstalled',updateCompactStatus);
+window.matchMedia?.('(display-mode: standalone)').addEventListener?.('change',updateCompactStatus);
+document.addEventListener('click',event=>{if(appMenu.open&&!appMenu.contains(event.target))appMenu.open=false;});
+appMenuBody.addEventListener('click',event=>{if(event.target.closest('button,a'))appMenu.open=false;});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&appMenu.open){appMenu.open=false;appMenuToggle.focus();}});
+organiseAppMenu();
+
+</script>
 </body>
 </html>
+
 
 
 
