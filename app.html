@@ -804,6 +804,7 @@
   };
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
+  auth.languageCode="pt";
   const db  = getFirestore(app);
   // ✅ deviceId único por browser
   function getDeviceId(){
@@ -836,13 +837,20 @@
     });
     return count;
   }
+  function validateProfileAccess(profile,user){
+    const data=profile.data||{};
+    if(data.status==='pending')throw new Error('Conta pendente de aprovação. Consulta o estado em «Consultar pedido».');
+    if(data.status==='rejected')throw new Error('Pedido recusado ou conta suspensa. Contacta o Game Control.');
+    if(data.active===false)throw new Error('Conta desativada. Contacta o Game Control.');
+    if(data.registrationVersion===1){
+      if(data.status!=='approved')throw new Error('Conta pendente de aprovação. Consulta o estado em «Consultar pedido».');
+      if(!user?.emailVerified)throw new Error('Confirma o teu email antes de entrar. Abre «Consultar pedido» para atualizar o estado.');
+    }
+  }
   async function ensureDeviceAllowed(profile){
     const deviceId = getDeviceId();
     // regras base
-    const active = profile.data?.active;
-    if(active === false){
-      throw new Error("Conta desativada.");
-    }
+    validateProfileAccess(profile,auth.currentUser);
     const limit = Number(profile.data?.deviceLimit ?? 3); // default 3
     const deviceRef = doc(profile.baseRef, "devices", deviceId);
     const deviceSnap = await getDoc(deviceRef);
@@ -924,6 +932,9 @@
             return;
           }
           const { deviceRef } = await ensureDeviceAllowed(profile);
+          if(profile.data.role==='admin'&&!document.getElementById('adminAccountsLink')){
+            const link=document.createElement('a');link.id='adminAccountsLink';link.href='admin.html';link.textContent='Aprovar contas';link.style.cssText='font-size:12px;color:inherit;padding:8px';document.querySelector('.top-buttons').appendChild(link);
+          }
           // opcional: marca lastLogin no doc base
           await updateDoc(profile.baseRef, { lastLogin: serverTimestamp() }).catch(()=>{});
           startHeartbeat(deviceRef);
@@ -1113,14 +1124,18 @@ body{font-weight:400;line-height:1.45}
 <!-- LOGIN -->
 <div id="loginScreen">
   <div id="loginCard">
-    <h2 id="loginTitle">Login Game Control</h2>
+    <h2 id="loginTitle">Entrar no Game Control</h2>
     <p id="loginSubtitle">Acede ao teu painel de gestão de jogo.</p>
-    <label class="login-label">Email</label>
+    <label class="login-label" for="loginEmail">Email</label>
     <input id="loginEmail" type="email" placeholder="exemplo@club.pt">
-    <label class="login-label">Password</label>
-    <input id="loginPassword" type="password" placeholder="Password">
+    <label class="login-label" for="loginPassword">Palavra-passe</label>
+    <input id="loginPassword" type="password" placeholder="Palavra-passe" autocomplete="current-password">
     <button id="loginBtn">Entrar</button>
-    <div id="loginError"></div>
+    <div id="loginError" role="status" aria-live="polite"></div>
+    <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:6px;font-size:13px">
+      <a href="registar.html" style="color:#bfd8eb">Criar conta</a>
+      <a href="registar.html" style="color:#bfd8eb">Consultar pedido</a>
+    </div>
   </div>
 </div>
 <!-- APP -->
@@ -3006,4 +3021,5 @@ updateFloatingPlayBtn();
 </script>
 </body>
 </html>
+
 
