@@ -1212,7 +1212,7 @@ header{position:relative;z-index:1300}
 
 </style>
 <style>.gc-faq-dialog details{border-top:1px solid var(--gc-line);padding:14px 0}.gc-faq-dialog summary{font-size:14px;font-weight:600;color:var(--gc-tint);cursor:pointer;line-height:1.5}.gc-faq-dialog details p{font-size:13px;line-height:1.7;margin:12px 0;color:var(--gc-ink)}.gc-updates-footer button+button{margin-top:8px}.gc-faq-dialog{width:720px}</style>
-<link rel="stylesheet" href="modules.css"><link rel="icon" type="image/png" href="favicon.png?v=20261029-blue"></head>
+<link rel="stylesheet" href="modules.css"><link rel="icon" type="image/png" href="favicon.png?v=20261029-blue"><link rel="stylesheet" href="history.css?v=20261030"><script src="history-core.js?v=20261030"></script></head>
 <body>
 <header>
   <div class="header-left">
@@ -2757,7 +2757,7 @@ function renderArchive(){
   let games;try{games=readArchive();}catch(e){host.textContent='Erro ao ler o arquivo. Os dados não foram apagados.';return;}
   if(!games.length){const note=document.createElement('p');note.textContent='Ainda não há jogos guardados.';host.appendChild(note);}
   games.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.savedAt.localeCompare(a.savedAt)).forEach(game=>{
-    const row=document.createElement('div');row.className='gc-history-row';
+    const row=document.createElement('div');row.className='gc-history-row';row.dataset.gameId=game.id;
     const title=document.createElement('span');title.textContent=game.date+' · '+game.teamA+' '+game.scoreA+' — '+game.scoreB+' '+game.teamB;
     const button=document.createElement('button');button.textContent='Consultar';button.onclick=()=>viewArchivedMatch(game);
     row.appendChild(title);const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;flex-wrap:wrap';controls.appendChild(button);const exportButton=document.createElement('button');exportButton.textContent='Exportar relatório PNG';exportButton.onclick=()=>exportArchivedReport(game);controls.appendChild(exportButton);const wellnessLink=document.createElement('a');wellnessLink.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/><path d="M3 12h4l2-4 4 8 2-4h6"/></svg>';wellnessLink.className='gc-archive-wellness';wellnessLink.title='Abrir a PSE deste jogo no Wellness';wellnessLink.setAttribute('aria-label','Abrir a PSE deste jogo no Wellness');wellnessLink.dataset.moduleLink='wellness';wellnessLink.hidden=window.gcModuleAccess?.wellness!==true;wellnessLink.href='wellness.html?equipa='+encodeURIComponent(activeTeam)+'&jogo='+encodeURIComponent(game.id);wellnessLink.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-raised);color:var(--gc-ink);align-self:center;box-sizing:border-box';controls.appendChild(wellnessLink);const remove=document.createElement('button');remove.textContent='Apagar';remove.onclick=()=>deleteArchivedGame(game.id);controls.appendChild(remove);row.appendChild(controls);host.appendChild(row);
@@ -3040,7 +3040,7 @@ const resetWithPeriods=resetTimer;
 resetTimer=function(){matchPeriod=1;document.getElementById('setMinutes').value=regulationMinutes;resetWithPeriods();updateHalfBadge();};
 /* Fecho consistente de todas as janelas, incluindo conteúdo com scroll. */
 function attachDialogClose(dialog){
-  if(dialog.classList.contains('gc-origin-dialog'))return;
+  if(dialog.classList.contains('gc-origin-dialog')||dialog.classList.contains('gc-past-dialog'))return;
   if(dialog.querySelector('.gc-dialog-closebar'))return;
   const bar=document.createElement('div');bar.className='gc-dialog-closebar';
   const close=document.createElement('button');close.type='button';close.textContent='✕ Fechar';close.setAttribute('aria-label','Fechar janela');
@@ -3214,19 +3214,19 @@ function buildArchivedReport(game){
   const a=countStats('A',undefined,events),b=countStats('B',undefined,events);
   text('GAME CONTROL · RELATÓRIO DE JOGO',15,true,'#668398');
   text((game.teamA||'Nossa equipa')+' '+(game.scoreA??a.goals)+' — '+(game.scoreB??b.goals)+' '+(game.teamB||'Adversário'),30,true,'#172e40');
-  text('Data: '+(game.date||'Não indicada')+' · Relatório do jogo guardado',16);
-  heading('Estatísticas das equipas');
+  text('Data: '+(game.date||'Não indicada')+' · Relatório do jogo guardado',16);if(game.source==='manual-history')text('Registo anterior: — = não registado. Ações, origens e formações refletem apenas os detalhes conhecidos.',14);
+  if(game.source==='manual-history')a.assists=roster.reduce((sum,p)=>sum+(GCHistory.playerValue(game,p,'assists')||0),0);heading(game.source==='manual-history'?'Ações registadas das equipas · dados disponíveis':'Estatísticas das equipas');
   const teamWidths=[504,300,300];table(['Indicador',game.teamA||'Nossa equipa',game.teamB||'Adversário'],teamWidths,true);
   table(['Remates totais',a.on+a.off,b.on+b.off],teamWidths);
   for(const [label,key]of [['Golos','goals'],['Assistências','assists'],['Remates à baliza','on'],['Remates fora','off'],['Defesas','saves'],['Recuperações','recovery'],['Perdas de bola','loss'],['Faltas','fouls'],['Cartões amarelos','yellow'],['Cartões vermelhos','red']])table([label,a[key],b[key]],teamWidths);
   heading('Tempos e rotações · '+(game.teamA||'Nossa equipa'));
   const timeWidths=[344,152,152,152,152,152];
   table(['Jogador','1ª parte','2ª + prol.','Total','Fora','Rotações'],timeWidths,true);
-  roster.forEach(p=>table([p.name+(p.isGK?' (GR)':''),formatTime(p.part1||0),formatTime(p.part2||0),formatTime(p.seconds||0),formatTime(p.secondsOut||0),p.rotations||0],timeWidths));
+  roster.forEach(p=>{const time=v=>game.source==='manual-history'&&!GCHistory.known(v)?'—':formatTime(v||0);table([p.name+(p.isGK?' (GR)':''),time(p.part1),time(p.part2),time(p.seconds),time(p.secondsOut),game.source==='manual-history'?'—':p.rotations||0],timeWidths);});
   heading('Ações por jogador');
   const actionWidths=[304,100,100,100,100,100,100,100,100];
   table(['Jogador','Golos','Assist.','À baliza','Fora','Defesas','Recup.','Perdas','Faltas'],actionWidths,true);
-  roster.forEach(p=>{const s=countStats('A',p.id,events);table([p.name,s.goals,s.assists,s.on,s.off,s.saves,s.recovery,s.loss,s.fouls],actionWidths);});
+  roster.forEach(p=>{const s=countStats('A',p.id,events);table([p.name,game.source==='manual-history'?GCHistory.playerValue(game,p,'goals')??'—':s.goals,game.source==='manual-history'?GCHistory.playerValue(game,p,'assists')??'—':s.assists,s.on,s.off,s.saves,s.recovery,s.loss,s.fouls],actionWidths);});
   heading('Origem dos golos');table(['Categoria','Marcados','Sofridos'],teamWidths,true);
   const categories=[...new Set(events.filter(e=>e.type==='GF_A'||e.type==='GA_A').map(e=>e.goalCategory||'Sem classificação'))];
   if(!categories.length)text('Sem golos registados.',16);
@@ -3241,7 +3241,7 @@ function buildArchivedReport(game){
   for(const e of events){
     const label=e.type==='ACTION'?actionNames[e.action]:e.type==='GF_A'?'Golo marcado':e.type==='GA_A'?'Golo sofrido':e.type==='SUB'?(e.entered?'Entrada':'Saída'):{FK_P:'Falta',YC_P:'Cartão amarelo',RC_P:'Cartão vermelho'}[e.type]||e.type;
     const team=e.team==='B'||e.type==='GA_A'?game.teamB:game.teamA;
-    const parts=[periodLabel(e.half),e.clock,label,team,e.playerId?nameFor(e.playerId):'',e.assistPlayerId?'Assistência: '+nameFor(e.assistPlayerId):'',e.goalCategory,e.zone];
+    const parts=[e.half?periodLabel(e.half):'',e.clock,label,team,e.playerId?nameFor(e.playerId):'',e.assistPlayerId?'Assistência: '+nameFor(e.assistPlayerId):'',e.goalCategory,e.zone];
     text(parts.filter(Boolean).join(' · '),16);
     if(e.type==='GF_A'||e.type==='GA_A'){
       const names=Array.isArray(e.lineup)?e.lineup.map(p=>p.name):(e.activeIds||[]).map(nameFor);
@@ -3286,6 +3286,7 @@ function exportArchivedReport(game){
 }
 
 const GAMECONTROL_FAQ=[
+ ['Como adiciono jogos e sessões anteriores?',['Em Jogos guardados, usa Adicionar jogo anterior. Escolhe a data, adversário, resultado e convocados. Preenche apenas os minutos, golos, assistências e ações que tens registados. O jogo em curso mantém-se.','Em cada golo, podes identificar a origem e quem estava em campo. Só as formações conhecidas entram na análise de quartetos, duplas e presenças em golos.','No Wellness, usa Sessão anterior para registar treinos ou jogos passados com PSE e minutos por jogador; o bem-estar é opcional. Para aproveitar um jogo guardado, usa Importar jogo e confirma em Criar sessão.','Campos em branco significam não registado. Nas Estatísticas, os totais somam apenas os dados conhecidos. Para corrigir um registo anterior, usa Editar jogo anterior ou Editar registo anterior em tabela. Confirma Sincronizado antes de fechar.']],
  ['Como apago ou recupero jogos?',['Em Jogos guardados, usa Apagar junto à partida. O jogo deixa de entrar no arquivo normal e nas Estatísticas. Podes recuperá-lo em Jogos apagados.','As sessões do Wellness são independentes: apaga-as no Calendário do Wellness, se também as quiseres retirar. Confirma a sincronização antes de fechar.']],
  ['Posso partilhar a minha conta?',['Cada conta deve pertencer a uma única pessoa. Cada treinador deve usar a sua conta para manter equipas, jogos e registos separados.','Podes usar a tua conta nos teus dispositivos autorizados. Para registar um jogo em direto, usa apenas um dispositivo de cada vez e confirma a sincronização antes de mudar.']],
  ['Como guardo o jogo sem começar outro?',['Carrega em Guardar jogo. O cronómetro fica pausado e a partida é guardada em Jogos guardados, mantendo o resultado, os tempos e os eventos no ecrã.','Se voltares a guardar a mesma partida, o registo é atualizado sem criar uma cópia duplicada. Antes de fechar, confirma a indicação Sincronizado.','Usa Novo jogo apenas quando quiseres escolher a equipa e os convocados para outra partida. A partida atual também é guardada antes de ser iniciada a seguinte.']],
@@ -3516,8 +3517,9 @@ updateTeamBadge=function(){updateBadgeWithWellness();wellnessModuleLink.href='we
 })();
 </script>
 <script>(function(){const link=document.createElement('a');link.id='athletesModuleLink';link.hidden=true;link.dataset.moduleLink='athleteStats';link.title='Estatísticas dos atletas';link.setAttribute('aria-label','Abrir estatísticas dos atletas');link.href='atletas.html?equipa='+encodeURIComponent(activeTeam);link.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16M6 16v-5M12 16V4M18 16V8"/></svg>';link.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--gc-line,#40505e);border-radius:8px;background:var(--gc-raised,#202d39);color:var(--gc-ink,#dce9f3)';document.getElementById('wellnessModuleLink').insertAdjacentElement('afterend',link);link.onclick=event=>{if(pendingPlayerEvent||pendingGoalScorer||pendingAssistForGoal||selectedAction){event.preventDefault();alert('Conclui a ação antes de abrir as estatísticas.');return;}if(running&&!confirm('Pausar o jogo e abrir as estatísticas?')){event.preventDefault();return;}pauseTimer();saveData();link.href='atletas.html?equipa='+encodeURIComponent(activeTeam);};})();</script>
-<script>window.addEventListener("gc:permissions",()=>document.querySelectorAll("[data-module-link]").forEach(link=>link.hidden=window.gcModuleAccess?.[link.dataset.moduleLink]!==true));</script><script>(function(){let handled=false;function restoreModuleTeam(){if(handled||!window.gcModuleAccess?.gameControl||!window.gcSyncAPI?.initialised())return;const params=new URLSearchParams(location.search),id=params.get('equipa');if(id&&!TEAM_PROFILES[id])return;handled=true;if(id&&id!==activeTeam)switchExistingTeam(id);if(params.get('gerir')==='1')chooseSquad(id||activeTeam,true);}window.addEventListener('gc:ready',restoreModuleTeam);const refresh=window.gcSyncAPI.refresh;window.gcSyncAPI.refresh=function(){refresh.call(this);restoreModuleTeam();};})();</script></body>
+<script>window.addEventListener("gc:permissions",()=>document.querySelectorAll("[data-module-link]").forEach(link=>link.hidden=window.gcModuleAccess?.[link.dataset.moduleLink]!==true));</script><script>(function(){let handled=false;function restoreModuleTeam(){if(handled||!window.gcModuleAccess?.gameControl||!window.gcSyncAPI?.initialised())return;const params=new URLSearchParams(location.search),id=params.get('equipa');if(id&&!TEAM_PROFILES[id])return;handled=true;if(id&&id!==activeTeam)switchExistingTeam(id);if(params.get('gerir')==='1')chooseSquad(id||activeTeam,true);}window.addEventListener('gc:ready',restoreModuleTeam);const refresh=window.gcSyncAPI.refresh;window.gcSyncAPI.refresh=function(){refresh.call(this);restoreModuleTeam();};})();</script><script src="past-matches.js?v=20261030"></script></body>
 </html>
+
 
 
 
