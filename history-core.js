@@ -6,7 +6,7 @@
  function playerValue(game,p,key){
   if(game.source!=='manual-history')return known(p[key])?p[key]:0;
   if(known(p[key]))return p[key];
-  if(key==='goals'||key==='assists'){const id=String(p.id),field=key==='goals'?'playerId':'assistPlayerId',events=(game.timeline||[]).filter(e=>e.type==='GF_A');const n=events.filter(e=>String(e[field])===id).length;if(n)return n;if(!events.length||events.every(e=>e[field]||(key==='assists'&&e.noAssist)))return 0;}
+  if(key==='goals'||key==='assists'){const id=String(p.id),field=key==='goals'?'playerId':'assistPlayerId',events=(game.timeline||[]).filter(e=>e.type==='GF_A');const n=events.filter(e=>!e.ownGoal&&String(e[field])===id).length;if(n)return n;if(!events.length||events.every(e=>e.ownGoal||e[field]||(key==='assists'&&e.noAssist)))return 0;}
   return null;
  }
  function buildMatch(config,roster,{id,teamId,teamName,today,now}){
@@ -40,3 +40,4 @@
  }
  root.GCHistory={known,number,date,playerValue,buildMatch};
 })(typeof window!=='undefined'?window:globalThis);
+

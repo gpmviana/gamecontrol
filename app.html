@@ -1225,7 +1225,7 @@ header{position:relative;z-index:1300}
     <button id="loadPanelBtn" title="Gestão de Cargas">⚡</button>
     <button id="editNamesBtn" title="Editar nomes">👥</button>
     <button id="presetsBtn" title="Presets">💾</button>
-    <button id="printBtn" title="Exportar PNG">📸</button>
+    <button id="printBtn" title="Relatório do jogo / PDF / PNG">📸</button>
     <button id="logoutBtn" title="Sair" style="display:none;">🚪</button>
   </div>
 </header>
@@ -1627,11 +1627,11 @@ function rebuildStatsFromTimeline(){
   timeline.forEach(ev=>{
     if(ev.type === "GF_A"){
       scoreA++;
-      if(ev.playerId){
+      if(ev.playerId&&!ev.ownGoal){
         const pl = players.find(x=>x.id===ev.playerId);
         if(pl) pl.goals = (pl.goals||0)+1;
       }
-      if(ev.assistPlayerId){
+      if(ev.assistPlayerId&&!ev.ownGoal){
         const as = players.find(x=>x.id===ev.assistPlayerId);
         if(as) as.assists = (as.assists||0)+1;
       }
@@ -1669,21 +1669,21 @@ const GOAL_CATEGORIES = [
   "Lateral", "Canto", "Livre", "Penálti", "5×4", "Guarda-redes subido",
   "Roubo de bola", "Perda de bola"
 ];
-function chooseOriginDialog({title,team,onSelect}){
+function chooseOriginDialog({title,team,onSelect,allowOwnGoal=false}){
  const dialog=document.createElement('dialog');dialog.className='gc-origin-dialog';dialog.setAttribute('aria-label',title);
  const header=document.createElement('header');header.className='gc-origin-header';
  const identity=document.createElement('div');const eyebrow=document.createElement('div');eyebrow.className='gc-origin-eyebrow';eyebrow.textContent='ORIGEM DA JOGADA';
  const heading=document.createElement('h2');heading.textContent=title;identity.append(eyebrow,heading);
  const close=document.createElement('button');close.type='button';close.className='gc-origin-close';close.textContent='×';close.setAttribute('aria-label','Fechar janela');close.onclick=()=>dialog.close();header.append(identity,close);
  const subtitle=document.createElement('p');subtitle.className='gc-origin-subtitle';subtitle.textContent=team+' · Escolhe uma origem.';
- const grid=document.createElement('div');grid.className='gc-origin-grid';
- for(const category of GOAL_CATEGORIES){const button=document.createElement('button');button.type='button';button.className='gc-origin-option';const label=document.createElement('span');label.textContent=category;const arrow=document.createElement('span');arrow.className='gc-origin-arrow';arrow.textContent='›';arrow.setAttribute('aria-hidden','true');button.append(label,arrow);button.onclick=()=>{dialog.close();onSelect(category);};grid.appendChild(button);}
+ const ownLabel=document.createElement('label');ownLabel.style.cssText='display:flex;align-items:center;gap:10px;padding:12px;margin:10px 0;border:1px solid var(--gc-line);border-radius:10px';const ownInput=document.createElement('input');ownInput.type='checkbox';ownInput.style.cssText='width:20px;height:20px';ownLabel.append(ownInput,document.createTextNode('Autogolo'));ownLabel.hidden=!allowOwnGoal;ownLabel.style.display=allowOwnGoal?'flex':'none';const grid=document.createElement('div');grid.className='gc-origin-grid';
+ for(const category of GOAL_CATEGORIES){const button=document.createElement('button');button.type='button';button.className='gc-origin-option';const label=document.createElement('span');label.textContent=category;const arrow=document.createElement('span');arrow.className='gc-origin-arrow';arrow.textContent='›';arrow.setAttribute('aria-hidden','true');button.append(label,arrow);button.onclick=()=>{dialog.close();onSelect(category,ownInput.checked);};grid.appendChild(button);}
  const footer=document.createElement('div');footer.className='gc-origin-footer';const hint=document.createElement('span');hint.textContent='Uma escolha por jogada';const cancel=document.createElement('button');cancel.type='button';cancel.className='gc-origin-cancel';cancel.textContent='Cancelar';cancel.onclick=()=>dialog.close();footer.append(hint,cancel);
- dialog.append(header,subtitle,grid,footer);dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.appendChild(dialog);dialog.showModal();
+ dialog.append(header,subtitle,ownLabel,grid,footer);dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.appendChild(dialog);dialog.showModal();
 }
 function chooseGoalCategory(type){
  const context={half:matchPeriod,clock:formatTime(remaining),activeIds:players.filter(p=>p.active).map(p=>p.id),ts:Date.now()};
- chooseOriginDialog({title:type==='GF_A'?'Golo marcado':'Golo sofrido',team:teamName(type==='GF_A'?'A':'B'),onSelect:category=>{if(type==='GF_A')startGoalFlow(category,context);else handleTeamEvent(type,category,context);}});
+ chooseOriginDialog({title:type==='GF_A'?'Golo marcado':'Golo sofrido',team:teamName(type==='GF_A'?'A':'B'),allowOwnGoal:true,onSelect:(category,ownGoal)=>{if(ownGoal){pendingPlayerEvent=null;pendingAssistForGoal=null;pendingGoalScorer=null;selectedAction=null;handleTeamEvent(type,category,{...context,ownGoal:true,noAssist:true,lineup:players.filter(p=>context.activeIds.includes(p.id)).map(p=>({id:p.id,name:p.name,isGK:!!p.isGK}))});syncActionStats();updatePlayersUI();updateSummary();renderLower();saveData();}else if(type==='GF_A')startGoalFlow(category,context);else handleTeamEvent(type,category,context);}});
 }
 function startGoalFlow(goalCategory, context){
   pendingPlayerEvent = null;
@@ -1914,8 +1914,8 @@ function describeEvent(ev){
   const halfTxt = ev.half === 1 ? "1ª parte" : "2ª parte";
   const baseTime = ev.clock || formatTime(remaining);
   let typeTxt = "";
-  if(ev.type === "GF_A") typeTxt = "Golo a favor";
-  else if(ev.type === "GA_A") typeTxt = "Golo sofrido";
+  if(ev.type === "GF_A") typeTxt = ev.ownGoal?"Autogolo a favor":"Golo a favor";
+  else if(ev.type === "GA_A") typeTxt = ev.ownGoal?"Autogolo sofrido":"Golo sofrido";
   else if(ev.type === "FK_P") typeTxt = "Falta";
   else if(ev.type === "YC_P") typeTxt = "Cartão amarelo";
   else if(ev.type === "RC_P") typeTxt = "Cartão vermelho";
@@ -2479,7 +2479,7 @@ function chooseShotCategory(action,context,team){
 }
 function shotOrigins(events,team){
  const result={};for(const e of events){const own=eventTeam(e)===team,goal=e.type==='GF_A'||e.type==='GA_A';let category,on=0,off=0,g=0;
- if(own&&goal){category=e.goalCategory;on=1;g=1;}else if(own&&(e.action==='SHOT_ON'||e.action==='SHOT_OFF')){category=e.shotCategory;on=+(e.action==='SHOT_ON');off=+(e.action==='SHOT_OFF');}else if(!own&&e.action==='SAVE'){on=1;}else continue;
+ if(own&&goal){category=e.goalCategory;on=e.ownGoal?0:1;g=1;}else if(own&&(e.action==='SHOT_ON'||e.action==='SHOT_OFF')){category=e.shotCategory;on=+(e.action==='SHOT_ON');off=+(e.action==='SHOT_OFF');}else if(!own&&e.action==='SAVE'){on=1;}else continue;
  category=category||'Sem classificação';const row=result[category]||(result[category]={on:0,off:0,goals:0});row.on+=on;row.off+=off;row.goals+=g;}return result;
 }
 function chooseActionZone(action, context, team){
@@ -2539,8 +2539,8 @@ function countStats(team, playerId, events=timeline){
   events.forEach(e=>{
     const own=eventTeam(e)===team, player=!playerId||e.playerId===playerId;
     if(own&&e.type==='GF_A'||own&&e.type==='GA_A'){
-      if(player){s.goals++;s.on++;}
-      if(e.assistPlayerId&&(!playerId||e.assistPlayerId===playerId))s.assists++;
+      if(!playerId||!e.ownGoal&&player)s.goals++;if(player&&!e.ownGoal)s.on++;
+      if(!e.ownGoal&&e.assistPlayerId&&(!playerId||e.assistPlayerId===playerId))s.assists++;
     }
     if(own&&player){
       const key={SHOT_ON:'on',SHOT_OFF:'off',SAVE:'saves',FOUL:'fouls',RECOVERY:'recovery',LOSS:'loss',YELLOW:'yellow',RED:'red'}[e.action] || {FK_P:'fouls',YC_P:'yellow',RC_P:'red'}[e.type];
@@ -2760,7 +2760,7 @@ function renderArchive(){
     const row=document.createElement('div');row.className='gc-history-row';row.dataset.gameId=game.id;
     const title=document.createElement('span');title.textContent=game.date+' · '+game.teamA+' '+game.scoreA+' — '+game.scoreB+' '+game.teamB;
     const button=document.createElement('button');button.textContent='Consultar';button.onclick=()=>viewArchivedMatch(game);
-    row.appendChild(title);const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;flex-wrap:wrap';controls.appendChild(button);const exportButton=document.createElement('button');exportButton.textContent='Exportar relatório PNG';exportButton.onclick=()=>exportArchivedReport(game);controls.appendChild(exportButton);const wellnessLink=document.createElement('a');wellnessLink.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/><path d="M3 12h4l2-4 4 8 2-4h6"/></svg>';wellnessLink.className='gc-archive-wellness';wellnessLink.title='Abrir a PSE deste jogo no Wellness';wellnessLink.setAttribute('aria-label','Abrir a PSE deste jogo no Wellness');wellnessLink.dataset.moduleLink='wellness';wellnessLink.hidden=window.gcModuleAccess?.wellness!==true;wellnessLink.href='wellness.html?equipa='+encodeURIComponent(activeTeam)+'&jogo='+encodeURIComponent(game.id);wellnessLink.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-raised);color:var(--gc-ink);align-self:center;box-sizing:border-box';controls.appendChild(wellnessLink);const remove=document.createElement('button');remove.textContent='Apagar';remove.onclick=()=>deleteArchivedGame(game.id);controls.appendChild(remove);row.appendChild(controls);host.appendChild(row);
+    row.appendChild(title);const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;flex-wrap:wrap';controls.appendChild(button);const exportButton=document.createElement('button');exportButton.textContent='Relatório / PDF / PNG';exportButton.onclick=()=>exportArchivedReport(game);controls.appendChild(exportButton);const wellnessLink=document.createElement('a');wellnessLink.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/><path d="M3 12h4l2-4 4 8 2-4h6"/></svg>';wellnessLink.className='gc-archive-wellness';wellnessLink.title='Abrir a PSE deste jogo no Wellness';wellnessLink.setAttribute('aria-label','Abrir a PSE deste jogo no Wellness');wellnessLink.dataset.moduleLink='wellness';wellnessLink.hidden=window.gcModuleAccess?.wellness!==true;wellnessLink.href='wellness.html?equipa='+encodeURIComponent(activeTeam)+'&jogo='+encodeURIComponent(game.id);wellnessLink.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-raised);color:var(--gc-ink);align-self:center;box-sizing:border-box';controls.appendChild(wellnessLink);const remove=document.createElement('button');remove.textContent='Apagar';remove.onclick=()=>deleteArchivedGame(game.id);controls.appendChild(remove);row.appendChild(controls);host.appendChild(row);
   });
   const trash=document.createElement('button');trash.textContent='Jogos apagados ('+readArchive(true).filter(g=>g.deleted).length+')';trash.onclick=showDeletedGames;trash.style.marginTop='14px';host.appendChild(trash);
 }
@@ -3517,8 +3517,13 @@ updateTeamBadge=function(){updateBadgeWithWellness();wellnessModuleLink.href='we
 })();
 </script>
 <script>(function(){const link=document.createElement('a');link.id='athletesModuleLink';link.hidden=true;link.dataset.moduleLink='athleteStats';link.title='Estatísticas dos atletas';link.setAttribute('aria-label','Abrir estatísticas dos atletas');link.href='atletas.html?equipa='+encodeURIComponent(activeTeam);link.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16M6 16v-5M12 16V4M18 16V8"/></svg>';link.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--gc-line,#40505e);border-radius:8px;background:var(--gc-raised,#202d39);color:var(--gc-ink,#dce9f3)';document.getElementById('wellnessModuleLink').insertAdjacentElement('afterend',link);link.onclick=event=>{if(pendingPlayerEvent||pendingGoalScorer||pendingAssistForGoal||selectedAction){event.preventDefault();alert('Conclui a ação antes de abrir as estatísticas.');return;}if(running&&!confirm('Pausar o jogo e abrir as estatísticas?')){event.preventDefault();return;}pauseTimer();saveData();link.href='atletas.html?equipa='+encodeURIComponent(activeTeam);};})();</script>
-<script>window.addEventListener("gc:permissions",()=>document.querySelectorAll("[data-module-link]").forEach(link=>link.hidden=window.gcModuleAccess?.[link.dataset.moduleLink]!==true));</script><script>(function(){let handled=false;function restoreModuleTeam(){if(handled||!window.gcModuleAccess?.gameControl||!window.gcSyncAPI?.initialised())return;const params=new URLSearchParams(location.search),id=params.get('equipa');if(id&&!TEAM_PROFILES[id])return;handled=true;if(id&&id!==activeTeam)switchExistingTeam(id);if(params.get('gerir')==='1')chooseSquad(id||activeTeam,true);}window.addEventListener('gc:ready',restoreModuleTeam);const refresh=window.gcSyncAPI.refresh;window.gcSyncAPI.refresh=function(){refresh.call(this);restoreModuleTeam();};})();</script><script src="past-matches.js?v=20261030"></script></body>
+<script>window.addEventListener("gc:permissions",()=>document.querySelectorAll("[data-module-link]").forEach(link=>link.hidden=window.gcModuleAccess?.[link.dataset.moduleLink]!==true));</script><script>(function(){let handled=false;function restoreModuleTeam(){if(handled||!window.gcModuleAccess?.gameControl||!window.gcSyncAPI?.initialised())return;const params=new URLSearchParams(location.search),id=params.get('equipa');if(id&&!TEAM_PROFILES[id])return;handled=true;if(id&&id!==activeTeam)switchExistingTeam(id);if(params.get('gerir')==='1')chooseSquad(id||activeTeam,true);}window.addEventListener('gc:ready',restoreModuleTeam);const refresh=window.gcSyncAPI.refresh;window.gcSyncAPI.refresh=function(){refresh.call(this);restoreModuleTeam();};})();</script><script src="past-matches.js?v=20261030"></script><script src="gc-report.js"></script><script>
+exportArchivedReport=game=>GCReport.open(game);
+exportPng=()=>{if(pendingGoalScorer||pendingAssistForGoal||selectedAction||pendingPlayerEvent){alert('Conclui ou cancela a ação antes de exportar.');return;}GCReport.open(archiveSnapshot());};
+const gcReportButton=document.getElementById('printBtn');if(gcReportButton)gcReportButton.onclick=exportPng;
+</script></body>
 </html>
+
 
 
 
