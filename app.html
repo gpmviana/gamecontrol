@@ -932,8 +932,17 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
     return { deviceId, deviceRef, limit };
   }
   let heartbeatInterval = null,permissionWatch=null;
-  function clearModuleAccess(){window.gcModuleAccess={gameControl:false,wellness:false,athleteStats:false};window.dispatchEvent(new Event('gc:permissions'));}
-  function watchPermissions(user,profile){permissionWatch?.();permissionWatch=onSnapshot(profile.baseRef,snapshot=>{if(snapshot.metadata.fromCache)return;const data=snapshot.exists()?snapshot.data():{};window.gcModuleAccess=modulePermissions(data);window.dispatchEvent(new Event('gc:permissions'));if(!snapshot.exists()||!moduleAllowed(data,user,'gameControl')){window.gcSyncSession?.stop();if(typeof pauseTimer==='function')pauseTimer();localStorage.removeItem(OFFLINE_GRANT_KEY);document.getElementById('appWrapper').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginError').textContent='Acesso retirado ou conta suspensa. Contacta a administração.';clearModuleAccess();}else grantOffline(user);},()=>{window.gcSyncSession?.stop();localStorage.removeItem(OFFLINE_GRANT_KEY);clearModuleAccess();document.getElementById('appWrapper').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginError').textContent='Não foi possível confirmar as permissões. Atualiza com ligação.';});}
+  
+  function updateAdminShortcut(profile){
+    const allowed=profile?.role==='admin'&&profile.active!==false&&(!profile.status||profile.status==='approved');
+    window.gcIsAdmin=allowed;
+    if(!allowed){document.getElementById('adminAccountsLink')?.remove();return;}
+    let link=document.getElementById('adminAccountsLink');
+    if(!link){link=document.createElement('a');link.id='adminAccountsLink';link.href='admin.html';link.title='Painel de administração';link.setAttribute('aria-label','Abrir painel de administração');link.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-raised);color:var(--gc-ink);text-decoration:none';link.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 4 3.5 7 8 9 4.5-2 8-5 8-9V6z"/><circle cx="12" cy="10" r="2.3"/><path d="M8.5 16a3.7 3.7 0 0 1 7 0"/></svg>';link.onclick=event=>{if(!window.gcIsAdmin){event.preventDefault();return;}if(pendingPlayerEvent||pendingGoalScorer||pendingAssistForGoal||selectedAction){event.preventDefault();alert('Conclui ou cancela a ação antes de abrir o painel.');return;}if(running&&!confirm('Pausar o jogo e abrir a administração? O estado atual fica guardado.')){event.preventDefault();return;}pauseTimer();saveData();};const anchor=document.getElementById('wellnessModuleLink')||document.getElementById('loadPanelBtn');if(anchor)anchor.insertAdjacentElement('afterend',link);else document.querySelector('.top-buttons').append(link);}
+  }
+
+  function clearModuleAccess(){updateAdminShortcut(null);window.gcModuleAccess={gameControl:false,wellness:false,athleteStats:false};window.dispatchEvent(new Event('gc:permissions'));}
+  function watchPermissions(user,profile){permissionWatch?.();permissionWatch=onSnapshot(profile.baseRef,snapshot=>{if(snapshot.metadata.fromCache)return;const data=snapshot.exists()?snapshot.data():{};updateAdminShortcut(data);window.gcModuleAccess=modulePermissions(data);window.dispatchEvent(new Event('gc:permissions'));if(!snapshot.exists()||!moduleAllowed(data,user,'gameControl')){window.gcSyncSession?.stop();if(typeof pauseTimer==='function')pauseTimer();localStorage.removeItem(OFFLINE_GRANT_KEY);document.getElementById('appWrapper').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginError').textContent='Acesso retirado ou conta suspensa. Contacta a administração.';clearModuleAccess();}else grantOffline(user);},()=>{window.gcSyncSession?.stop();localStorage.removeItem(OFFLINE_GRANT_KEY);clearModuleAccess();document.getElementById('appWrapper').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginError').textContent='Não foi possível confirmar as permissões. Atualiza com ligação.';});}
 
   function startHeartbeat(deviceRef){
     if(heartbeatInterval) clearInterval(heartbeatInterval);
@@ -987,6 +996,7 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
       try{const {startAccountSync}=await import('./sincronizacao.js');await startAccountSync(user,db,{offline:true});}catch(error){console.warn('Sincronização por iniciar quando houver internet',error);}
     }
     async function handleAuthState(user){
+      updateAdminShortcut(null);
       const logged = !!user;
       permissionWatch?.();permissionWatch=null;clearModuleAccess();
       if(logged){
@@ -1008,9 +1018,7 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
           const { deviceRef } = await ensureDeviceAllowed(profile);
           if(window.gcSyncSession?.uid!==user.uid)window.gcSyncSession?.stop();
           if(await window.gcPrepareAccountStorage(user.uid)){location.reload();return;}
-          if(profile.data.role==='admin'&&!document.getElementById('adminAccountsLink')){
-            const link=document.createElement('a');link.id='adminAccountsLink';link.href='admin.html';link.textContent='Aprovar contas';link.style.cssText='font-size:12px;color:inherit;padding:8px';document.querySelector('.top-buttons').appendChild(link);
-          }
+          updateAdminShortcut(profile.data);
           // opcional: marca lastLogin no doc base
           await updateDoc(profile.baseRef, { lastLogin: serverTimestamp() }).catch(()=>{});
           startHeartbeat(deviceRef);
@@ -1351,8 +1359,29 @@ header{position:relative;z-index:1300}
 <script>
 const TEAM_PROFILES=JSON.parse(window.gcAccountStorage.getItem('gc_team_profiles_v1')||'{"A":"A minha equipa"}');
 if(!TEAM_PROFILES.B&&window.gcAccountStorage.getItem('gameControl_withWorkloadGestao_v2_B'))TEAM_PROFILES.B='Equipa B';
+
+function archivedTeams(){try{return JSON.parse(window.gcAccountStorage.getItem('gc_archived_teams_v1')||'{}');}catch{return {};}}
+function teamIsArchived(id){return archivedTeams()[id]?.archived===true;}
+function visibleTeams(){return Object.entries(TEAM_PROFILES).filter(([id])=>!teamIsArchived(id));}
+function setTeamArchived(id,archived){const metadata=archivedTeams();metadata[id]={archived,changedAt:new Date().toISOString()};window.gcAccountStorage.setItem('gc_archived_teams_v1',JSON.stringify(metadata));}
+function archiveTeam(id){
+ if(!TEAM_PROFILES[id]||teamIsArchived(id))return false;
+ if(id===activeTeam){alert('Guarda o jogo e muda primeiro para outra equipa. Depois podes apagar esta equipa sem perder o jogo.');return false;}
+ if(visibleTeams().length<=1){alert('Mantém pelo menos uma equipa ativa. Cria ou recupera outra primeiro.');return false;}
+ const typed=prompt('Apagar «'+TEAM_PROFILES[id]+'» da seleção? O plantel, os jogos e o Wellness são conservados. Podes recuperá-la em Equipas arquivadas.\n\nEscreve o nome da equipa para confirmar:');
+ if(typed!==TEAM_PROFILES[id])return false;
+ try{setTeamArchived(id,true);updateTeamSelector();return true;}catch{alert('Não foi possível guardar a alteração.');return false;}
+}
+function showArchivedTeams(){
+ const dialog=document.createElement('dialog');dialog.className='gc-zone-dialog gc-setup-dialog';const title=document.createElement('h2');title.textContent='Equipas arquivadas';dialog.append(title);
+ const note=document.createElement('p');note.textContent='O plantel, os jogos e o Wellness mantêm-se guardados. Recuperar volta a disponibilizar a equipa para novos jogos.';dialog.append(note);
+ const rows=Object.entries(TEAM_PROFILES).filter(([id])=>teamIsArchived(id));if(!rows.length){const p=document.createElement('p');p.textContent='Não há equipas arquivadas.';dialog.append(p);}
+ for(const [id,name]of rows){const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:15px;padding:15px 0;border-bottom:1px solid var(--gc-line)';const label=document.createElement('strong');label.textContent=name;const button=document.createElement('button');button.type='button';button.textContent='Recuperar';button.onclick=()=>{try{setTeamArchived(id,false);updateTeamSelector();dialog.close();chooseNewMatchTeam(true);}catch{alert('Não foi possível recuperar a equipa.');}};row.append(label,button);dialog.append(row);}
+ const close=document.createElement('button');close.textContent='Fechar';close.onclick=()=>dialog.close();dialog.append(close);dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.append(dialog);dialog.showModal();
+}
+
 let activeTeam=window.gcAccountStorage.getItem('gc_active_team_v1');
-if(!TEAM_PROFILES[activeTeam])activeTeam=Object.keys(TEAM_PROFILES)[0];
+if(!TEAM_PROFILES[activeTeam]||teamIsArchived(activeTeam))activeTeam=visibleTeams()[0]?.[0]||Object.keys(TEAM_PROFILES)[0];
 // O arquivo antigo fica associado à equipa A, sem apagar os dados originais.
 for(const base of ['gameControl_withWorkloadGestao_v2','gc_presets_v1','gc_match_archive_v1','gc_current_match_id_v1','gc_match_date_v1']){
  const previous=window.gcAccountStorage.getItem(base);
@@ -1438,6 +1467,7 @@ function tick(){
   saveData();
 }
 function startTimer(){
+  if(teamIsArchived(activeTeam)){alert('Esta equipa está arquivada. Recupera-a ou escolhe outra equipa antes de iniciar o jogo.');chooseNewMatchTeam(true);return;}
   if(running) return;
   running = true;
   clearInterval(timerInterval);
@@ -2836,11 +2866,11 @@ function chooseNewMatchTeam(manageOnly=false){
   dialog.innerHTML='<div class="gc-setup-heading"><small>NOVO JOGO · PASSO 1 DE 2</small><h2>A tua equipa</h2><p>Escolhe uma equipa ou cria outra. O plantel e os jogos ficam separados por equipa.</p></div>';
   if(manageOnly)dialog.innerHTML='<div class="gc-setup-heading"><small>EQUIPAS E PLANTÉIS</small><h2>Gerir equipas</h2><p>Cria equipas, altera os nomes e gere os jogadores sem alterar o jogo atual.</p></div>';
   const teams=document.createElement('div');teams.className='gc-team-options';
-  for(const [id,label] of Object.entries(TEAM_PROFILES)){
+  for(const [id,label] of visibleTeams()){
     const button=document.createElement('button');button.className='gc-team-option';
     const title=document.createElement('strong');title.textContent=label;
     const meta=document.createElement('span');meta.textContent=readTeamRoster(id).length+' jogadores no plantel'+(id===activeTeam?' · Equipa atual':'');
-    button.appendChild(title);button.appendChild(meta);button.onclick=()=>{dialog.close();chooseSquad(id,manageOnly);};teams.appendChild(button);
+    button.appendChild(title);button.appendChild(meta);button.onclick=()=>{dialog.close();chooseSquad(id,manageOnly);};if(manageOnly){const card=document.createElement('div');card.style.cssText='display:flex;flex-direction:column;gap:7px';const remove=document.createElement('button');remove.type='button';remove.textContent='Apagar equipa';remove.style.cssText='font-size:12px;padding:9px;border:1px solid #a9656a;border-radius:8px;background:transparent;color:var(--gc-ink)';remove.onclick=()=>{if(archiveTeam(id)){dialog.close();chooseNewMatchTeam(true);}};card.append(button,remove);teams.append(card);}else teams.appendChild(button);
   }dialog.appendChild(teams);
   const form=document.createElement('form');form.className='gc-create-team';
   const label=document.createElement('label');label.textContent='Criar nova equipa';
@@ -2851,7 +2881,7 @@ function chooseNewMatchTeam(manageOnly=false){
     if(Object.values(TEAM_PROFILES).some(n=>n.toLocaleLowerCase('pt')===value.toLocaleLowerCase('pt'))){alert('Já existe uma equipa com esse nome.');return;}
     const id=crypto.randomUUID();TEAM_PROFILES[id]=value;window.gcAccountStorage.setItem('gc_team_profiles_v1',JSON.stringify(TEAM_PROFILES));window.gcAccountStorage.setItem('gc_roster_v1_'+id,'[]');dialog.close();chooseSquad(id,manageOnly);
   };dialog.appendChild(form);
-  const cancel=document.createElement('button');cancel.textContent='Cancelar';cancel.onclick=()=>dialog.close();dialog.appendChild(cancel);
+  if(manageOnly){const archived=document.createElement('button');archived.type='button';archived.textContent='Equipas arquivadas ('+Object.keys(TEAM_PROFILES).filter(teamIsArchived).length+')';archived.onclick=()=>{dialog.close();showArchivedTeams();};dialog.append(archived);}const cancel=document.createElement('button');cancel.textContent='Cancelar';cancel.onclick=()=>dialog.close();dialog.appendChild(cancel);
   dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.appendChild(dialog);dialog.showModal();
 }
 function readTeamRoster(id){
@@ -3127,7 +3157,7 @@ window.gcSyncAPI={
   for(const [id,name]of Object.entries(profiles)){
    const state=JSON.parse(window.gcAccountStorage.getItem('gameControl_withWorkloadGestao_v2_'+id)||'null');
    const roster=JSON.parse(window.gcAccountStorage.getItem('gc_roster_v1_'+id)||'null')||(state?.players||[]).map(p=>({id:p.id,name:p.name,isGK:!!p.isGK}));
-   result[id]={id,name,roster,state,matchId:window.gcAccountStorage.getItem('gc_current_match_id_v1_'+id),matchDate:window.gcAccountStorage.getItem('gc_match_date_v1_'+id),presets:JSON.parse(window.gcAccountStorage.getItem('gc_presets_v1_'+id)||'{}')};
+   result[id]={id,name,roster,state,archiveStatus:archivedTeams()[id]||{archived:false},matchId:window.gcAccountStorage.getItem('gc_current_match_id_v1_'+id),matchDate:window.gcAccountStorage.getItem('gc_match_date_v1_'+id),presets:JSON.parse(window.gcAccountStorage.getItem('gc_presets_v1_'+id)||'{}')};
    const archive=JSON.parse(window.gcAccountStorage.getItem('gc_match_archive_v1_'+id)||'[]');
    for(const game of archive)result[id+'/matches/'+game.id]=game;
   }
@@ -3136,6 +3166,7 @@ window.gcSyncAPI={
  apply(path,payload){
   const parts=path.split('/'),id=parts[0];
   if(parts.length===1){
+   const archiveStatus=archivedTeams();archiveStatus[id]=payload.archiveStatus||{archived:false};window.gcAccountStorage.setItem('gc_archived_teams_v1',JSON.stringify(archiveStatus));
    const profiles=JSON.parse(window.gcAccountStorage.getItem('gc_team_profiles_v1')||'{}');profiles[id]=payload.name;window.gcAccountStorage.setItem('gc_team_profiles_v1',JSON.stringify(profiles));
    window.gcAccountStorage.setItem('gc_roster_v1_'+id,JSON.stringify(payload.roster||[]));
    if(payload.state)window.gcAccountStorage.setItem('gameControl_withWorkloadGestao_v2_'+id,JSON.stringify(payload.state));
@@ -3152,8 +3183,8 @@ window.gcSyncAPI={
   if(running)return;
   const profiles=JSON.parse(window.gcAccountStorage.getItem('gc_team_profiles_v1')||'{}');
   for(const id of Object.keys(TEAM_PROFILES))delete TEAM_PROFILES[id];Object.assign(TEAM_PROFILES,profiles);
-  const id=profiles[activeTeam]?activeTeam:Object.keys(profiles)[0];
-  if(id)activateTeam(id);
+  const id=profiles[activeTeam]&&!teamIsArchived(activeTeam)?activeTeam:visibleTeams()[0]?.[0];
+  if(id)activateTeam(id);else updateTeamSelector();
  },
  backup(){
   saveData();const data={format:'gamecontrol-account-copy',version:1,createdAt:new Date().toISOString(),data:window.gcRawAccountBackup()};
@@ -3164,7 +3195,7 @@ window.gcSyncAPI={
 /* Trocar de equipa sem criar, terminar ou reiniciar jogos. */
 function switchExistingTeam(id){
   if(id===activeTeam)return true;
-  if(!Object.hasOwn(TEAM_PROFILES,id))return false;
+  if(!Object.hasOwn(TEAM_PROFILES,id)||teamIsArchived(id))return false;
   if(pendingPlayerEvent||pendingGoalScorer||pendingAssistForGoal||selectedAction){alert('Conclui ou cancela a ação selecionada antes de mudar de equipa.');return false;}
   if(running&&!confirm('Pausar o jogo atual e mudar de equipa? Os tempos e os eventos ficam guardados.'))return false;
   pauseTimer();saveData();activateTeam(id);return true;
@@ -3175,8 +3206,8 @@ const currentTeamSelect=document.createElement('select');currentTeamSelect.id='c
 teamSwitchRow.appendChild(teamSwitchLabel);teamSwitchRow.appendChild(currentTeamSelect);document.getElementById('teamProfileBadge').after(teamSwitchRow);
 function updateTeamSelector(){
   currentTeamSelect.replaceChildren();
-  for(const [id,name] of Object.entries(TEAM_PROFILES)){const option=document.createElement('option');option.value=id;option.textContent=name;currentTeamSelect.appendChild(option);}
-  currentTeamSelect.value=activeTeam;currentTeamSelect.disabled=Object.keys(TEAM_PROFILES).length<2;
+  for(const [id,name] of visibleTeams()){const option=document.createElement('option');option.value=id;option.textContent=name;currentTeamSelect.appendChild(option);}
+  currentTeamSelect.value=activeTeam;currentTeamSelect.disabled=visibleTeams().length<2;
 }
 currentTeamSelect.onchange=()=>{if(!switchExistingTeam(currentTeamSelect.value))currentTeamSelect.value=activeTeam;};
 const updateBadgeBeforeSelector=updateTeamBadge;
@@ -3457,7 +3488,7 @@ function organiseAppMenu(){
   ['configureClockBtn','Cronómetro e prolongamento','tools'],['gcInstallApp','Instalar aplicação','app'],
   ['gcBackupExport','Exportar cópia de segurança','data'],['gcBackupImport','Importar cópia de segurança','data'],
   ['themeToggle',null,'app'],['fullscreenBtn','Ecrã inteiro','app'],['gcUpdatesButton','Novidades','app'],
-  ['adminAccountsLink','Aprovar contas','account'],['logoutBtn','Terminar sessão','account']
+  ['logoutBtn','Terminar sessão','account']
  ])moveControl(id,label,group);
  const theme=document.getElementById('themeToggle');if(theme){theme.title='Mudar tema';theme.setAttribute('aria-label','Mudar tema');}
  const syncBar=document.getElementById('gcSyncBar');
@@ -3523,6 +3554,7 @@ exportPng=()=>{if(pendingGoalScorer||pendingAssistForGoal||selectedAction||pendi
 const gcReportButton=document.getElementById('printBtn');if(gcReportButton)gcReportButton.onclick=exportPng;
 </script></body>
 </html>
+
 
 
 
