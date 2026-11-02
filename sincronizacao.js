@@ -1,3 +1,4 @@
+import {startPermanent} from './permanent.js';
 import {createControl} from './control-sync.js';
 import {collection,doc,onSnapshot,runTransaction,serverTimestamp,getDocFromServer,getDocsFromServer} from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
 
@@ -22,7 +23,7 @@ export async function startAccountSync(user,db,options={}){
  let active=true,busy=false,queued=false,ready=false,lastError='',unsubscribers=[],teamsWatched=new Set(),matchesReady=new Set();
  const gameWrapper=document.getElementById('appWrapper');if(gameWrapper)gameWrapper.inert=!options.offline;
  const remote=new Map(),conflicts=new Map(),approved=new Map();let pendingTeams=0;
- let controller;
+ let controller,timer;
  const meta=JSON.parse(store.getItem('gc_sync_meta_v1')||'{"docs":{}}');meta.docs ||= {};
  const bar=document.createElement('div');bar.id='gcSyncBar';bar.style.cssText='padding:10px 14px;font-size:12px;background:var(--gc-panel);color:var(--gc-muted);border-bottom:1px solid var(--gc-line);display:flex;gap:10px;align-items:center;flex-wrap:wrap';
  document.getElementById('gcSyncBar')?.remove();
@@ -52,10 +53,19 @@ export async function startAccountSync(user,db,options={}){
   async receive(id,revision){const root=await getDocFromServer(refFor(id)),matches=await getDocsFromServer(collection(refFor(id),'matches'));if(!root.exists()||root.data().revision<revision)throw Error('Ainda não foi recebida a versão confirmada.');const local=api.collect();for(const [p,v]of Object.entries(local))if(p.split('/')[0]===id)preserve(p,v,'Antes de receber passagem de registo');const values=[[id,root.data()],...matches.docs.map(d=>[id+'/matches/'+d.id,d.data()])];for(const [p,v]of values){if(!v.payload)continue;api.apply(p,v.payload);remote.set(p,v);acknowledge(p,v);conflicts.delete(p);approved.delete(p);}api.refresh();},
   restore(path,payload){const local=api.collect()[path];preserve(path,local,'Antes de recuperar versão');api.restoreArchive(path,payload);if(remote.get(path))acknowledge(path,remote.get(path));approved.set(path,canonicalString(api.collect()[path]));schedule();}
  });
+ const permanent=await startPermanent(user,db,{
+  kinds:['team','match','version','session'],storage:store,writer:()=>controller.token,
+  guard(){if(!api.deletionReady?.())throw Error('Pausa o jogo e conclui a ação antes de eliminar.');},
+  flush:()=>reconcile(),
+  async withTeam(id,task){if(id===api.activeTeam()){if(!controller.own(id))await controller.requestCurrent();if(!controller.valid(id))throw Error('É necessário ter o registo desta equipa para eliminar.');return task();}return controller.metadataLease(id,task);},
+  changed(p){api.prunePermanent?.(p);for(const key of [...remote.keys()])if(p.blocks(key)){remote.delete(key);conflicts.delete(key);approved.delete(key);delete meta.docs[key];}saveMeta();schedule();},
+  error:error=>report('Não foi possível confirmar as eliminações: '+error.code)
+ });
+ window.gcOpenPermanent=()=>permanent.openPending();
  function preserve(path,payload,reason){GCSafe.remember(store,path,payload,reason);}
  const refFor=path=>doc(db,'users',user.uid,'teams',...path.split('/'));
  function archiveChangeOnly(a,b){if(!a||!b)return false;const x={...a},y={...b};delete x.archiveStatus;delete y.archiveStatus;return canonicalString(x)===canonicalString(y)&&canonicalString(a.archiveStatus)!==canonicalString(b.archiveStatus);}
- const saveMeta=()=>store.setItem('gc_sync_meta_v1',JSON.stringify(meta));
+ function saveMeta(){store.setItem('gc_sync_meta_v1',JSON.stringify(meta));}
  function acknowledge(path,item){meta.docs[path]={revision:item.revision,digest:canonicalString(item.payload)};saveMeta();}
  function report(message){text.textContent=message;resolveButton.hidden=!conflicts.size;}
  window.gcResolveConflicts=resolveConflicts;
@@ -109,7 +119,7 @@ export async function startAccountSync(user,db,options={}){
    // Equipas primeiro; jogos a seguir.
    for(const path of [...paths].sort((a,b)=>a.split('/').length-b.split('/').length)){
     if(!active)return;
-    let payload=local[path];const cloud=remote.get(path);let decision=syncDecision(payload,cloud,meta.docs[path],api.running());
+    if(window.gcPermanent?.blocks(path))continue;let payload=local[path];const cloud=remote.get(path);let decision=syncDecision(payload,cloud,meta.docs[path],api.running());
     if(decision!=='ack'&&!path.includes('/')&&window.gcReadOnly&&cloud&&payload&&!api.running()&&!(payload.state?.scoreA||payload.state?.scoreB)&&
       !(payload.state?.timeline||[]).length&&!(payload.state?.players||[]).some(p=>Number(p.seconds)>0)&&
       canonicalString(payload.roster)===canonicalString(cloud.payload.roster)&&payload.name===cloud.payload.name)decision='download';
@@ -144,7 +154,7 @@ export async function startAccountSync(user,db,options={}){
    else{lastError='Alterações locais mantidas · sincronização pendente: '+(error.code||error.message);report(lastError);}
   }finally{busy=false;if(gameWrapper)gameWrapper.inert=false;if(queued&&active)setTimeout(reconcile,1500);}
  }
- let timer;
+
  function schedule(){if(!active)return;clearTimeout(timer);timer=setTimeout(reconcile,900);}
  function compareItem(path,item,claiming=false){
   const teamId=path.split('/')[0],root=api.collect()[teamId]||remote.get(teamId)?.payload;
@@ -168,9 +178,11 @@ export async function startAccountSync(user,db,options={}){
  }
  const interval=setInterval(()=>{if(active)reconcile();},15000);
  const online=()=>{lastError='';schedule();};window.addEventListener('online',online);window.addEventListener('offline',schedule);
- window.gcSyncSession={uid:user.uid,stop(){controller.stop();active=false;clearInterval(interval);clearTimeout(timer);unsubscribers.forEach(stop=>stop());window.removeEventListener('online',online);window.removeEventListener('offline',schedule);if(gameWrapper)gameWrapper.inert=false;bar.remove();}};
+ window.gcSyncSession={uid:user.uid,stop(){permanent.stop();controller.stop();active=false;clearInterval(interval);clearTimeout(timer);unsubscribers.forEach(stop=>stop());window.removeEventListener('online',online);window.removeEventListener('offline',schedule);if(gameWrapper)gameWrapper.inert=false;bar.remove();}};
  schedule();
 }
+
+
 
 
 

@@ -14,7 +14,7 @@
   if(raw.getItem(ownerKey)===uid)return false;
   const target='gc_account_'+uid+'__';
   const legacy=[];
-  const allowed=key=>/^(gameControl_withWorkloadGestao_v2|gc_(team_profiles_v1|archived_teams_v1|active_team_v1|roster_v1|athlete_links_v1|recovery_v2|sync_conflict_copies_v1|match_archive_v1|current_match_id_v1|match_date_v1|presets_v1))($|_)/.test(key);
+  const allowed=key=>/^(gameControl_withWorkloadGestao_v2|gc_(team_profiles_v1|archived_teams_v1|active_team_v1|roster_v1|athlete_links_v1|purges_v1|recovery_v2|sync_conflict_copies_v1|match_archive_v1|current_match_id_v1|match_date_v1|presets_v1))($|_)/.test(key);
   if(!raw.getItem(target+'gc_sync_initialised_v1')&&!raw.getItem('gc_legacy_claimed_by_v1')){
    for(let i=0;i<raw.length;i++){const key=raw.key(i);if(allowed(key))legacy.push([key,raw.getItem(key)]);}
   }
@@ -1377,10 +1377,10 @@ function archiveTeam(id){
  try{setTeamArchived(id,true);updateTeamSelector();return true;}catch{alert('Não foi possível guardar a alteração.');return false;}
 }
 function showArchivedTeams(){
- const dialog=document.createElement('dialog');dialog.className='gc-zone-dialog gc-setup-dialog';const title=document.createElement('h2');title.textContent='Equipas arquivadas';dialog.append(title);
+ const dialog=document.createElement('dialog');dialog.dataset.gcRead='true';dialog.className='gc-zone-dialog gc-setup-dialog';const title=document.createElement('h2');title.textContent='Equipas arquivadas';dialog.append(title);
  const note=document.createElement('p');note.textContent='O plantel, os jogos e o Wellness mantêm-se guardados. Recuperar volta a disponibilizar a equipa para novos jogos.';dialog.append(note);
  const rows=Object.entries(TEAM_PROFILES).filter(([id])=>teamIsArchived(id));if(!rows.length){const p=document.createElement('p');p.textContent='Não há equipas arquivadas.';dialog.append(p);}
- for(const [id,name]of rows){const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:15px;padding:15px 0;border-bottom:1px solid var(--gc-line)';const label=document.createElement('strong');label.textContent=name;const button=document.createElement('button');button.type='button';button.textContent='Recuperar';button.onclick=()=>{try{setTeamArchived(id,false);updateTeamSelector();dialog.close();chooseNewMatchTeam(true);}catch{alert('Não foi possível recuperar a equipa.');}};row.append(label,button);dialog.append(row);}
+ for(const [id,name]of rows){const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:15px;padding:15px 0;border-bottom:1px solid var(--gc-line)';const label=document.createElement('strong');label.textContent=name;const button=document.createElement('button');button.type='button';button.textContent='Recuperar';button.onclick=()=>{try{setTeamArchived(id,false);updateTeamSelector();dialog.close();chooseNewMatchTeam(true);}catch{alert('Não foi possível recuperar a equipa.');}};const purge=document.createElement('button');purge.textContent='Eliminar definitivamente';purge.onclick=async()=>{purge.disabled=true;try{if(!window.gcPermanent)throw Error('Aguarda pela ligação à sincronização.');if(await gcPermanent.remove('team',id)){dialog.close();showArchivedTeams();}}catch(e){alert(e.message);}finally{purge.disabled=false;}};row.style.flexWrap='wrap';row.append(label,button,purge);dialog.append(row);}
  const close=document.createElement('button');close.textContent='Fechar';close.onclick=()=>dialog.close();dialog.append(close);dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.append(dialog);dialog.showModal();
 }
 
@@ -2825,9 +2825,9 @@ function deleteArchivedGame(id){
  document.getElementById('archiveDetail').hidden=true;renderArchive();renderCombinations();
 }
 function showDeletedGames(){
- const dialog=document.createElement('dialog');dialog.className='gc-zone-dialog gc-setup-dialog';const title=document.createElement('h2');title.textContent='Jogos apagados';dialog.appendChild(title);
+ const dialog=document.createElement('dialog');dialog.dataset.gcRead='true';dialog.className='gc-zone-dialog gc-setup-dialog';const title=document.createElement('h2');title.textContent='Jogos apagados';dialog.appendChild(title);
  const games=readArchive(true).filter(g=>g.deleted);if(!games.length){const empty=document.createElement('p');empty.textContent='Não há jogos apagados nesta equipa.';dialog.appendChild(empty);}
- for(const game of games){const row=document.createElement('div');row.className='gc-history-row';const label=document.createElement('span');label.textContent=game.date+' · '+game.teamA+' × '+game.teamB;const restore=document.createElement('button');restore.textContent='Recuperar';restore.onclick=()=>{const all=readArchive(true),item=all.find(g=>g.id===game.id);if(!item)return;item.deleted=false;delete item.deletedAt;item.savedAt=new Date().toISOString();try{window.gcAccountStorage.setItem(ARCHIVE_KEY,JSON.stringify(all));}catch(error){alert('Não foi possível recuperar o jogo.');return;}dialog.close();renderArchive();renderCombinations();};row.append(label,restore);dialog.appendChild(row);}
+ for(const game of games){const row=document.createElement('div');row.className='gc-history-row';const label=document.createElement('span');label.textContent=game.date+' · '+game.teamA+' × '+game.teamB;const restore=document.createElement('button');restore.textContent='Recuperar';restore.onclick=()=>{const all=readArchive(true),item=all.find(g=>g.id===game.id);if(!item)return;item.deleted=false;delete item.deletedAt;item.savedAt=new Date().toISOString();try{window.gcAccountStorage.setItem(ARCHIVE_KEY,JSON.stringify(all));}catch(error){alert('Não foi possível recuperar o jogo.');return;}dialog.close();renderArchive();renderCombinations();};const purge=document.createElement('button');purge.textContent='Eliminar definitivamente';purge.onclick=async()=>{purge.disabled=true;try{if(!window.gcPermanent)throw Error('Aguarda pela ligação à sincronização.');if(await gcPermanent.remove('match',activeTeam,game.id)){dialog.close();showDeletedGames();}}catch(e){alert(e.message);}finally{purge.disabled=false;}};row.style.flexWrap='wrap';row.append(label,restore,purge);dialog.appendChild(row);}
  const close=document.createElement('button');close.textContent='Fechar';close.onclick=()=>dialog.close();dialog.appendChild(close);dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.appendChild(dialog);dialog.showModal();
 }
 
@@ -3035,9 +3035,13 @@ const manageTeamsButton=document.getElementById('editNamesBtn');manageTeamsButto
 document.getElementById('matchDate').onchange=()=>window.gcAccountStorage.setItem(teamStorageKey('gc_match_date_v1'),document.getElementById('matchDate').value);
 updateTeamBadge();
 /* Incrementar a versão quando existir uma nova atualização a apresentar. */
-const UPDATES_VERSION='2026-11-02.4';
+const UPDATES_VERSION='2026-11-02.5';
 const UPDATES_SEEN_KEY='gc_updates_seen_v1';
 const GAMECONTROL_UPDATES=[
+ ['Equipas A e B em simultâneo',['Na mesma conta, podes registar uma equipa no tablet e outra no telemóvel. Só a equipa que já está em utilização fica em consulta nos restantes dispositivos.']],
+ ['Continuar sem internet',['O dispositivo que está a registar mantém a reserva da equipa quando perde a ligação. Os dados ficam guardados localmente e o envio é retomado com a aplicação aberta. A reserva não fica livre por terem passado 90 segundos.']],
+ ['Identifica o teu dispositivo',['Escolhe um nome como Tablet do X ou Telemóvel do X. Esse nome aparece nos pedidos de registo. Podes alterá-lo em Menu → Nome deste dispositivo.']],
+ ['Eliminar definitivamente',['Equipas arquivadas, jogos e sessões apagados, e cópias recuperáveis passam a ter eliminação definitiva com confirmação. Esta ação precisa de internet e não permite recuperar o item na aplicação.']],
  ['Passar o registo com autorização',['Usa Pedir registo na mesma equipa. O pedido dura 90 segundos e só passa depois de guardar e confirmar os dados no outro dispositivo. Sem internet, a equipa continua reservada. Podes usar outra equipa em simultâneo.']],
  ['Perfil e atletas',['Completa o nome e o clube se faltarem. Depois podes editar em Menu → Perfil. Nos plantéis, já podes desfazer uma ligação entre atletas.']],
  ['Guardar com recuperação',['Guardar novamente atualiza a partida. Em Jogos guardados → Versões podes exportar ou recuperar registos anteriores conservados desde esta atualização.']],
@@ -3050,7 +3054,7 @@ function showGameControlUpdates(){
   const dialog=document.createElement('dialog');dialog.id='gcUpdatesDialog';dialog.className='gc-zone-dialog gc-updates-dialog';
   dialog.setAttribute('aria-labelledby','gcUpdatesTitle');
   const heading=document.createElement('h2');heading.id='gcUpdatesTitle';heading.textContent='Novidades do Game Control';dialog.appendChild(heading);
-  const version=document.createElement('p');version.className='gc-note';version.textContent='Uma atualização para organizar melhor o teu jogo.';dialog.appendChild(version);
+  const version=document.createElement('p');version.className='gc-note';version.textContent='Atualização · 02/11/2026';dialog.appendChild(version);
   const body=document.createElement('div');body.className='gc-updates-body';
   GAMECONTROL_UPDATES.forEach(([title,items])=>{
     const section=document.createElement('section');const h=document.createElement('h3');h.textContent=title;section.appendChild(h);
@@ -3204,6 +3208,7 @@ playerGrid.addEventListener('pointercancel',event=>finishPlayerDrag(event,true))
 /* Interface entre o jogo e a sincronização; os registos locais continuam a ser a base do jogo. */
 window.gcSyncAPI={
  transferReady:()=>!(pendingPlayerEvent||pendingGoalScorer||pendingAssistForGoal||selectedAction||document.querySelector('dialog[open]')),
+ deletionReady:()=>!(running||pendingPlayerEvent||pendingGoalScorer||pendingAssistForGoal||selectedAction),
  activeTeam:()=>activeTeam,
  pause:()=>pauseTimer(),
  setViewer(value){if(value&&!window.gcReadOnly)pauseTimer();window.gcReadOnly=value;},
@@ -3242,6 +3247,16 @@ window.gcSyncAPI={
    if(index<0)archive.push(payload);else archive[index]=payload;window.gcAccountStorage.setItem(key,JSON.stringify(archive));
   }
   this.seed();
+ },
+ prunePermanent(p){
+  const store=window.gcAccountStorage,profiles=JSON.parse(store.getItem('gc_team_profiles_v1')||'{}');let changed=false;
+  for(const id of Object.keys(profiles)){
+   if(p.blocks(id)){delete profiles[id];delete TEAM_PROFILES[id];for(const prefix of ['gameControl_withWorkloadGestao_v2_','gc_roster_v1_','gc_athlete_links_v1_','gc_match_archive_v1_','gc_current_match_id_v1_','gc_match_date_v1_','gc_presets_v1_'])store.removeItem(prefix+id);changed=true;}
+   else{const key='gc_match_archive_v1_'+id,old=JSON.parse(store.getItem(key)||'[]'),next=old.filter(g=>!p.blocks(id+'/matches/'+g.id));if(next.length!==old.length){store.setItem(key,JSON.stringify(next));changed=true;}}
+  }
+  store.setItem('gc_team_profiles_v1',JSON.stringify(profiles));
+  for(const key of ['gc_recovery_v2','gc_sync_conflict_copies_v1']){const values=JSON.parse(store.getItem(key)||'[]');store.setItem(key,JSON.stringify(values.filter(v=>!p.blocks(v.path||''))));}
+  if(changed){this.refresh();renderArchive();renderCombinations();}
  },
  refresh(){
   if(running)return;
@@ -3384,82 +3399,7 @@ function exportArchivedReport(game){
   dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.appendChild(dialog);dialog.showModal();
 }
 
-const GAMECONTROL_FAQ=[
- ['Como acompanho o jogo noutro dispositivo?',['Ao escolher uma equipa livre, o registo fica disponível automaticamente. Na mesma equipa, os restantes dispositivos espelham o jogo. Podes usar outra equipa ao mesmo tempo. Sem ligação, a consulta mostra o último registo recebido.','Para mudar, no dispositivo que regista, pausa e escolhe Passar para consulta. A aplicação só liberta o controlo depois de confirmar o envio. Depois assume o controlo no outro.','Se um dispositivo ficar sem rede, a reserva mantém-se. Pede o registo e aguarda autorização. A continuação de emergência só aparece após 90 segundos sem comunicação e exige confirmar que o primeiro dispositivo parou. Dois dispositivos sem internet não conseguem comunicar entre si.']],
- ['Como recupero uma versão anterior?',['Em Jogos guardados, usa Versões. O menu também tem Versões e cópias, incluindo cópias de conflitos antigas existentes neste navegador.','Recuperar no arquivo conserva o registo atual antes da troca. Uma cópia do jogo em curso pode ser guardada como jogo recuperado, sem alterar a partida que está aberta.','As versões locais dependem do armazenamento do navegador. As versões do servidor são criadas quando há substituições sincronizadas. Se o armazenamento local estiver cheio, exporta uma cópia completa. As versões começam nesta atualização; não recriam dados que já se perderam antes.']],
- ['Como passo o registo para outro dispositivo?',['Na mesma conta e equipa, escolhe Pedir registo. O pedido dura 90 segundos. Quem está a registar pode aceitar ou recusar.','Ao aceitar, o jogo pausa e os dados são enviados. O outro dispositivo só começa depois de confirmar a receção. Se a passagem falhar, o controlo mantém-se no primeiro dispositivo.','Ficar sem internet não liberta a equipa. Para usar outra equipa, seleciona-a normalmente. Usa Continuar em emergência apenas quando confirmares que o primeiro dispositivo deixou de registar.']],
- ['Como uso o mesmo atleta em duas equipas?',['Cria o atleta no primeiro plantel. No segundo, escolhe Adicionar atleta de outra equipa e seleciona-o. Pode ter convocatórias e minutos diferentes em cada equipa.','Se já o criaste duas vezes, usa Ligar atleta no plantel e confirma que é a mesma pessoa. Não se juntam atletas automaticamente pelo nome. Os jogos e sessões originais mantêm os seus identificadores.','Nas Estatísticas, a equipa filtra o percurso nessa equipa. Todas as equipas mostra o total individual e o quadro Percurso por equipa. A carga global soma as sessões registadas em ambas; evita registar a mesma sessão duas vezes.']],
- ['Como adiciono jogos e sessões anteriores?',['Em Jogos guardados, usa Adicionar jogo anterior. Escolhe a data, adversário, resultado e convocados. Preenche apenas os minutos, golos, assistências e ações que tens registados. O jogo em curso mantém-se.','Em cada golo, podes identificar a origem e quem estava em campo. Só as formações conhecidas entram na análise de quartetos, duplas e presenças em golos.','No Wellness, usa Sessão anterior para registar treinos ou jogos passados com PSE e minutos por jogador; o bem-estar é opcional. Para aproveitar um jogo guardado, usa Importar jogo e confirma em Criar sessão.','Campos em branco significam não registado. Nas Estatísticas, os totais somam apenas os dados conhecidos. Para corrigir um registo anterior, usa Editar jogo anterior ou Editar registo anterior em tabela. Confirma Sincronizado antes de fechar.']],
- ['Como apago ou recupero jogos?',['Em Jogos guardados, usa Apagar junto à partida. O jogo deixa de entrar no arquivo normal e nas Estatísticas. Podes recuperá-lo em Jogos apagados.','As sessões do Wellness são independentes: apaga-as no Calendário do Wellness, se também as quiseres retirar. Confirma a sincronização antes de fechar.']],
- ['Posso partilhar a minha conta?',['Cada conta deve pertencer a uma única pessoa. Cada treinador deve usar a sua conta para manter equipas, jogos e registos separados.','Podes usar a tua conta nos teus dispositivos autorizados. Para registar um jogo em direto, usa apenas um dispositivo de cada vez e confirma a sincronização antes de mudar.']],
- ['Como guardo o jogo sem começar outro?',['Carrega em Guardar jogo. O cronómetro fica pausado e a partida é guardada em Jogos guardados, mantendo o resultado, os tempos e os eventos no ecrã.','Se voltares a guardar a mesma partida, o registo é atualizado sem criar uma cópia duplicada. Antes de fechar, confirma a indicação Sincronizado.','Usa Novo jogo apenas quando quiseres escolher a equipa e os convocados para outra partida. A partida atual também é guardada antes de ser iniciada a seguinte.']],
- ['Como crio a equipa e o plantel?',[
-  'No botão 👥 do topo, abre Gerir equipas. Cria a equipa e adiciona TODOS os jogadores do plantel, indicando se são jogadores de campo ou guarda-redes. Carrega em Guardar plantel.',
-  'Só precisas de criar o plantel uma vez. Nos jogos seguintes, escolhes a equipa e os convocados. Podes voltar a 👥 para acrescentar jogadores ou corrigir nomes e posições.'
- ]],
- ['Como escolho os convocados para um jogo?',[
-  'Carrega em Novo jogo, escolhe a equipa e marca apenas os jogadores convocados. Depois carrega em Começar jogo.',
-  'Só os convocados aparecem nos cartões do jogo. Os restantes continuam no plantel para jogos futuros. O jogo anterior é guardado antes de começar outro.'
- ]],
- ['Como troco de equipa sem começar outro jogo?',[
-  'Usa o seletor Equipa atual. A troca mantém os dados do jogo de cada equipa e permite consultar o respetivo arquivo.',
-  'Se o cronómetro estiver a correr, a aplicação pede para o pausar. Conclui ou cancela qualquer ação selecionada antes de trocar.'
- ]],
- ['Como registo ações e organizo os jogadores?',[
-  'Um toque no cartão faz o jogador entrar ou sair. Para mudar a ordem dos cartões, arrasta apenas a pequena pega ⠿ no canto.',
-  'Em Ações, escolhe a ação da nossa equipa e depois toca no jogador. As ações do adversário têm botões próprios. Nas recuperações e perdas, escolhe a zona do campo.',
-  'Usa a timeline inferior para golos, faltas e cartões da nossa equipa. Nos golos, escolhe uma única origem; num golo marcado, seleciona também o marcador e a assistência. Toca novamente no marcador para ficar sem assistência.'
- ]],
- ['A sincronização é automática?',[
-  'Sim, com a aplicação aberta e internet. Cada equipa pode ser registada por um dispositivo; outros dispositivos espelham essa equipa, mas podem trabalhar noutras. As atualizações são verificadas aproximadamente a cada 15 segundos.',
-  'Confirma a indicação Sincronizado depois da última alteração antes de fechar. O menu inclui Sincronizar agora para pedir uma verificação imediata.',
-  'Cada treinador só vê as suas equipas e jogos. A administração do Game Control pode consultar os dados sincronizados para gerir o serviço.'
- ]],
- ['Como uso a aplicação sem internet?',[
-  'Faz a primeira entrada com internet neste dispositivo e espera que os ficheiros fiquem preparados. Em ☰ → Estado da ligação e ajuda offline, confirma Disponível offline.',
-  'Depois da validação online, a conta pode entrar offline nesse dispositivo durante até 7 dias. Uma nova validação online renova esse período. Registar uma conta, confirmar o email ou receber aprovação precisa de internet.',
-  'Se já controlavas o jogo, podes continuar a registar sem rede. Se abriste offline, usa Registar offline no menu e confirma que ninguém regista a mesma equipa. Ao voltar a ligação, compara eventuais versões e assume o controlo antes de enviar. Não há envio com a aplicação fechada.',
-  'Antes do primeiro jogo real, testa o modo de avião no dispositivo que vais usar. Ainda não validámos todos os modelos de iPad e tablet Android. Terminar sessão ou limpar o navegador pode impedir a entrada offline.'
- ]],
- ['Como instalo no iPad, iPhone ou Android?',[
-  'iPad/iPhone: abre no Safari e usa Partilhar → Adicionar ao ecrã principal → Abrir como aplicação web.',
-  'Android: abre no Chrome e usa o menu ⋮ → Instalar aplicação ou Adicionar ao ecrã principal. Também podes usar ☰ → Instalar aplicação, quando a opção estiver disponível.',
-  'Depois de instalar, abre pelo ícone COM INTERNET, inicia sessão e confirma os dados e a disponibilidade offline. A aplicação instalada pode usar um espaço de armazenamento diferente do separador do navegador.'
- ]],
- ['E se dois dispositivos alterarem os mesmos dados?',[
-  'Usa apenas um dispositivo para controlar um jogo em direto. Para receber alterações noutro dispositivo, pausa o cronómetro e fecha as ações ou janelas abertas.',
-  'Se houver versões incompatíveis, aparece um aviso de conflito. Em Resolver conflito, podes escolher a versão deste dispositivo ou a do Firebase. A aplicação guarda uma cópia local das duas antes de substituir. Exporta uma cópia de segurança antes de resolver dados importantes.'
- ]],
- ['Para que serve a cópia de segurança?',[
-  'Em ☰ → Exportar cópia de segurança, descarregas um ficheiro com os dados locais da conta, incluindo alterações que ainda possam estar por enviar. É uma proteção adicional à sincronização.',
-  'Exporta antes de importar dados, trocar de dispositivo ou limpar o navegador. Em Importar cópia de segurança, escolhe uma cópia completa exportada pela aplicação.',
-  'Importar substitui os dados locais com os mesmos identificadores e pode originar conflitos com versões mais recentes no Firebase. Não inclui palavras-passe nem autorização para entrar offline. As antigas exportações apenas de jogos não são aceites como cópia completa.'
- ]],
- ['Onde consulto e exporto jogos anteriores?',[
-  'Escolhe a equipa em Equipa atual e abre Jogos guardados. Usa Consultar para ver o jogo e Exportar relatório PNG para descarregar o relatório dessa partida.',
-  'Em Quartetos e duplas, escolhe se queres analisar o jogo atual, os guardados ou ambos. As contagens usam os jogadores de campo presentes nos golos; excluem guarda-redes e não são ajustadas ao tempo jogado.'
- ]],
- ['Como altero a duração ou coloco prolongamento?',[
-  'Em ☰ → Cronómetro e prolongamento, escolhe a duração por parte e o período. Tens atalhos de 20 e 30 minutos; o prolongamento tem duas partes de 5 minutos por defeito, ajustáveis.',
-  'Alterar o relógio não apaga os eventos nem os tempos já registados. A aplicação pede confirmação quando já há tempo jogado. Na tabela, o prolongamento soma à 2ª parte.'
- ]],
- ['Como recebo uma atualização?',[
-  'Quando surgir a indicação de atualização pronta, termina o jogo, confirma a sincronização e fecha TODAS as janelas do Game Control, incluindo a aplicação instalada. Depois volta a abrir.',
-  'As atualizações não forçam um recarregamento a meio do jogo. Novidades aparece uma vez por versão em cada navegador; podes reabrir o resumo em ☰ → Novidades.'
- ]]
-];
-function showGameControlFAQ(){
- if(document.getElementById('gcFAQDialog'))return;
- const dialog=document.createElement('dialog');dialog.id='gcFAQDialog';dialog.className='gc-zone-dialog gc-updates-dialog gc-faq-dialog';dialog.setAttribute('aria-labelledby','gcFAQTitle');
- const heading=document.createElement('h2');heading.id='gcFAQTitle';heading.textContent='Ajuda e perguntas frequentes';dialog.appendChild(heading);
- const intro=document.createElement('p');intro.textContent='Abre uma pergunta para veres os passos.';intro.className='gc-note';dialog.appendChild(intro);
- const body=document.createElement('div');body.className='gc-updates-body';
- for(const [question,answers]of GAMECONTROL_FAQ){
-  const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent=question;details.appendChild(summary);
-  answers.forEach(answer=>{const paragraph=document.createElement('p');paragraph.textContent=answer;details.appendChild(paragraph);});body.appendChild(details);
- }
- dialog.appendChild(body);dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.appendChild(dialog);dialog.showModal();
-}
+function showGameControlFAQ(){if(running){if(!confirm('Pausar o cronómetro para consultar a Ajuda? O jogo fica guardado.'))return;pauseTimer();saveData();}window.open('./ajuda.html','_blank','noopener');}
 
 /* Boot */
 loadData();
@@ -3489,7 +3429,7 @@ function validateAccountImport(text){
  if(text.length>15000000)throw Error('A cópia excede o tamanho permitido.');
  const backup=JSON.parse(text);
  if(!['gamecontrol-account-copy','gamecontrol-full'].includes(backup.format)||backup.version!==1||!backup.data||Array.isArray(backup.data)||typeof backup.data!=='object')throw Error('Escolhe uma cópia completa de conta.');
- const allowed=key=>/^(gameControl_withWorkloadGestao_v2|gc_(team_profiles_v1|archived_teams_v1|active_team_v1|roster_v1|athlete_links_v1|recovery_v2|sync_conflict_copies_v1|match_archive_v1|current_match_id_v1|match_date_v1|presets_v1))($|_)/.test(key);
+ const allowed=key=>/^(gameControl_withWorkloadGestao_v2|gc_(team_profiles_v1|archived_teams_v1|active_team_v1|roster_v1|athlete_links_v1|purges_v1|recovery_v2|sync_conflict_copies_v1|match_archive_v1|current_match_id_v1|match_date_v1|presets_v1))($|_)/.test(key);
  const entries=Object.entries(backup.data).filter(([key])=>allowed(key));
  if(!entries.length)throw Error('A cópia não contém equipas ou jogos compatíveis.');
  if(entries.some(([,value])=>typeof value!=='string'||/[<>]/.test(value)))throw Error('A cópia contém dados inválidos.');
@@ -3575,7 +3515,8 @@ function organiseAppMenu(){
  }
  updateCompactStatus();
 }
-const faqMenuButton=document.createElement('button');faqMenuButton.textContent='Ajuda e perguntas frequentes';faqMenuButton.onclick=showGameControlFAQ;groups.app.appendChild(faqMenuButton);
+const purgeMenuButton=document.createElement('button');purgeMenuButton.textContent='Eliminações por concluir';purgeMenuButton.onclick=()=>window.gcOpenPermanent?.();groups.data.append(purgeMenuButton);
+const helpLink=document.createElement('a');helpLink.id='gcHelpLink';helpLink.href='ajuda.html';helpLink.target='_blank';helpLink.rel='noopener';helpLink.onclick=event=>{event.preventDefault();showGameControlFAQ();};helpLink.title='Ajuda';helpLink.setAttribute('aria-label','Abrir ajuda noutro separador');helpLink.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-raised);color:var(--gc-ink);text-decoration:none';helpLink.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4.1 1.9c-1 .8-1.6 1-1.6 2.6M12 17h.01"/></svg>';cleanTop.insertBefore(helpLink,appMenu);
 const stateButton=document.createElement('button');stateButton.textContent='Estado da ligação e ajuda offline';stateButton.onclick=()=>{
  const dialog=document.createElement('dialog');dialog.className='gc-zone-dialog';
  const title=document.createElement('h3');title.textContent='Ligação e utilização offline';dialog.appendChild(title);
@@ -3626,6 +3567,9 @@ exportPng=()=>{if(pendingGoalScorer||pendingAssistForGoal||selectedAction||pendi
 const gcReportButton=document.getElementById('printBtn');if(gcReportButton)gcReportButton.onclick=exportPng;
 </script></body>
 </html>
+
+
+
 
 
 

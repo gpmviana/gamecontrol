@@ -1,7 +1,9 @@
-const VERSION = 'gc-pwa-registration-2026-11-02-4';
+const VERSION = 'gc-pwa-permanent-2026-11-02-5';
 const ROOT = new URL('./', self.location.href);
 
 const SHELL = [
+  'ajuda.html',
+  'permanent.js',
   'profile.js',
   'safe-core.js',
   'control-sync.js',
@@ -150,5 +152,6 @@ self.addEventListener('fetch', event => {
     return response;
   })());
 });
+
 
 

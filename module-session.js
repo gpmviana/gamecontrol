@@ -1,3 +1,4 @@
+import {startPermanent} from './permanent.js';
 import {initializeApp,getApps} from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js';
 import {getFirestore,doc,getDocFromServer,getDocsFromServer,collection,setDoc,updateDoc,onSnapshot,runTransaction,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
@@ -8,7 +9,7 @@ const moduleName=document.body.dataset.gcModule,app=getApps()[0]||initializeApp(
 let currentUser=null,currentProfile=null,started=false,stops=[],locked=true,flushTimer,busy=false,queued=false,blockedSync=false,remoteSessions=new Map(),meta={docs:{}};
 
 const gate=document.getElementById('moduleGate'),content=document.getElementById('moduleContent'),status=document.getElementById('moduleStatus'),sync=document.getElementById('moduleSyncStatus');
-let startRosterWatch=null;
+let startRosterWatch=null,permanent=null;
 const raw=localStorage,prefix=uid=>'gc_account_'+uid+'__',key=k=>prefix(currentUser.uid)+k;
 
 function message(text){status.textContent=text;}
@@ -24,6 +25,7 @@ function lock(text){
 }
 
 function stop(){
+ permanent?.stop();permanent=null;
  for(const fn of stops)fn();
  stops=[];
  clearTimeout(flushTimer);
@@ -104,7 +106,7 @@ async function readCloud(user){
  assertOwner(user);
 
  window.GCSharedRoster={
-  readTeams:()=>Object.entries(profiles).filter(([id])=>!archived[id]).map(([id,name])=>({
+  readTeams:()=>Object.entries(profiles).filter(([id])=>!archived[id]&&!permanent?.blocks(id)).map(([id,name])=>({
    id,
    name,
    athleteLinks:structuredClone(links[id]||{}),
@@ -112,9 +114,9 @@ async function readCloud(user){
   })),
   storage:{
    getItem:k=>{
-    if(k==='gc_team_profiles_v1')return JSON.stringify(Object.fromEntries(Object.entries(profiles).filter(([id])=>!archived[id])));
+    if(k==='gc_team_profiles_v1')return JSON.stringify(Object.fromEntries(Object.entries(profiles).filter(([id])=>!archived[id]&&!permanent?.blocks(id))));
     if(k.startsWith('gc_roster_v1_'))return JSON.stringify(rosters[k.slice(13)]||[]);
-    if(k.startsWith('gc_match_archive_v1_'))return JSON.stringify(archives[k.slice(20)]||[]);
+    if(k.startsWith('gc_match_archive_v1_'))return JSON.stringify((archives[k.slice(20)]||[]).filter(g=>!permanent?.blocks(k.slice(20)+'/matches/'+g.id)));
     if(k==='gc_active_team_v1')return cacheGet(k);
     return cacheGet(k);
    }
@@ -153,7 +155,7 @@ async function readCloud(user){
  const remoteState={
   version:1,
   teams:window.GCSharedRoster.readTeams(),
-  sessions:[...remoteSessions.values()].map(v=>v.payload),
+  sessions:[...remoteSessions.values()].map(v=>v.payload).filter(s=>!permanent?.sessionBlocked(s)),
   currentId:null
  };
 
@@ -172,9 +174,11 @@ async function readCloud(user){
   currentId:null
  };
 
+ localState.sessions=localState.sessions.filter(s=>!permanent?.sessionBlocked(s));
  const localMap=new Map(localState.sessions.map(s=>[s.id,s]));
 
  for(const [id,remote]of remoteSessions){
+  if(permanent?.sessionBlocked(remote.payload))continue;
   const local=localMap.get(id),decision=wellnessMerge(local,remote,meta.docs[id]);
 
   if(decision==='conflict'){
@@ -206,6 +210,7 @@ async function flush(){
   const state=JSON.parse(cacheGet('gc_wellness_v1')||'{"sessions":[]}');
 
   for(const payload of state.sessions){
+   if(permanent?.sessionBlocked(payload))continue;
    if(!canUse())throw Error('Acesso por validar.');
    if(meta.docs[payload.id]?.digest===canonical(payload))continue;
 
@@ -335,6 +340,13 @@ async function boot(user){
    setItem:(k,v)=>cacheSet(k,v),
    removeItem:k=>raw.removeItem(key(k))
   };
+
+  permanent=await startPermanent(user,db,{
+   kinds:moduleName==='wellness'?['session']:[],storage:{getItem:cacheGet,setItem:cacheSet},guard(){if(!canUse())throw Error('O módulo precisa de validar o acesso.');},
+   async flush(){if(busy)throw Error('Espera pela sincronização das sessões.');await flush();if(busy||blockedSync)throw Error('Resolve a sincronização antes de eliminar.');},
+   changed(p){const pendingButton=document.getElementById('gcPurgeResume');if(pendingButton)pendingButton.hidden=!p.items().some(v=>v.kind==='session'&&v.status!=='done');for(const keyName of ['gc_wellness_v1','gc_wellness_view_v1']){const value=JSON.parse(cacheGet(keyName)||'null');if(value){value.sessions=(value.sessions||[]).filter(s=>!p.sessionBlocked(s));cacheSet(keyName,JSON.stringify(value));}}for(const [id,v]of remoteSessions)if(p.sessionBlocked(v.payload))remoteSessions.delete(id);window.dispatchEvent(new Event('gc:purges'));window.dispatchEvent(new Event('gc:teams-updated'));}
+  });stops.push(()=>{permanent?.stop();});
+  if(moduleName==='wellness'){let button=document.getElementById('gcPurgeResume');if(!button){button=document.createElement('button');button.id='gcPurgeResume';button.className='button quiet';button.textContent='Concluir eliminações';sync.after(button);}button.hidden=!permanent.items().some(v=>v.kind==='session'&&v.status!=='done');button.onclick=()=>permanent.openPending();}
 
   window.gcModuleAccess=modulePermissions(currentProfile);
 
@@ -478,4 +490,5 @@ window.addEventListener('beforeunload',event=>{
 
 auth.languageCode='pt';
 onAuthStateChanged(auth,boot);
+
 
