@@ -1,0 +1,21 @@
+<!doctype html><html lang="pt-PT"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Game Control · Diagnóstico</title><style>body{font:15px system-ui;background:#131a20;color:#e4edf4;max-width:800px;margin:40px auto;padding:20px}button{padding:12px 18px;background:#293944;color:inherit;border:1px solid #576b79;border-radius:8px;cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#1c262e;padding:20px;border-radius:12px;line-height:1.6}a{color:#9dcde9}</style>
+<a href="app.html">← Voltar à aplicação</a><h1>Diagnóstico de acesso</h1><p>Consulta a conta e as permissões no servidor. Não altera jogos, equipas ou regras.</p><button id="run">Verificar acesso</button> <button id="copy">Copiar resultado</button><pre id="result">A confirmar a sessão…</pre>
+<script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
+import {getAuth,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js';
+import {getFirestore,doc,collection,getDocFromServer,getDocsFromServer} from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
+import {firebaseConfig} from './firebase-config.js';
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),out=document.getElementById('result'),button=document.getElementById('run');
+let busy=false;
+const date=v=>v?.toDate?.().toISOString()||null;
+async function run(){if(busy)return;busy=true;button.disabled=true;const result={versao:'diagnostico-20261102-1',projeto:firebaseConfig.projectId,horaDispositivo:new Date().toISOString(),online:navigator.onLine,consultas:{}};out.textContent='A consultar o servidor…';
+ try{const user=auth.currentUser;if(!user){out.textContent='Sem sessão neste navegador. Entra primeiro na aplicação e depois abre esta página no mesmo navegador.';return;}
+ result.uid=user.uid;const token=await user.getIdTokenResult(true);result.autenticacao={emailConfirmado:token.claims.email_verified===true,emitido:token.issuedAtTime};
+ let profile=null;for(const base of ['users','clubs']){try{const s=await getDocFromServer(doc(db,base,user.uid));result.consultas[base]=s.exists()?'OK':'Documento inexistente';if(s.exists()&&!profile){const p=s.data();profile=p;result.perfil={colecao:base,role:p.role??'(ausente)',active:p.active??'(ausente)',status:p.status??'(ausente)',registrationVersion:p.registrationVersion??0,modules:p.modules??'(ausente)'};}}catch(e){result.consultas[base]={codigo:e.code,mensagem:e.message};}}
+ try{const teams=await getDocsFromServer(collection(db,'users',user.uid,'teams'));result.consultas.equipas='OK';result.equipas=[];for(const team of teams.docs.slice(0,40)){const t=team.data(),row={id:team.id,nome:t.payload?.name||t.name||'(sem nome)',protocoloJogo:t.protocol??'(ausente)',revisao:t.revision??null};try{const s=await getDocFromServer(doc(team.ref,'control','session'));if(!s.exists())row.controlo='Ainda não existe';else{const c=s.data();row.controlo={campos:Object.keys(c),protocol:c.protocol??'(ausente)',holderTipo:typeof c.holder,ocupado:typeof c.holder==='string'&&c.holder.length>0,label:c.label??null,updatedAt:date(c.updatedAt),expiresAt:date(c.expiresAt)};}}catch(e){row.erroControlo={codigo:e.code,mensagem:e.message};}result.equipas.push(row);}}catch(e){result.consultas.equipas={codigo:e.code,mensagem:e.message};}
+ try{const source=await(await fetch('./control-sync.js',{cache:'no-store'})).text();result.codigoRecebido={protocolo3:source.includes('protocol:3'),pedidos:source.includes('requestRegistration'),retomaApenasLivre:source.includes('lease?.holder&&lease.holder!==token)return')};}catch(e){result.codigoRecebido={erro:e.message};}
+ out.textContent=JSON.stringify(result,null,2);
+ }catch(e){result.erro={codigo:e.code||'',mensagem:e.message};out.textContent=JSON.stringify(result,null,2);}finally{busy=false;button.disabled=false;}}
+button.onclick=run;document.getElementById('copy').onclick=async()=>{try{await navigator.clipboard.writeText(out.textContent);document.getElementById('copy').textContent='Copiado';}catch{document.getElementById('copy').textContent='Seleciona e copia o texto abaixo';}};
+onAuthStateChanged(auth,run);
+</script></html>
