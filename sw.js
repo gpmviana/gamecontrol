@@ -1,7 +1,9 @@
-const VERSION = 'gc-pwa-team-archive-2026-11-01-1';
+const VERSION = 'gc-pwa-safe-athletes-2026-11-02-2';
 const ROOT = new URL('./', self.location.href);
 
 const SHELL = [
+  'safe-core.js',
+  'control-sync.js',
   'gc-report.js',
   'history-core.js',
   'history.css',
