@@ -838,6 +838,7 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
 </style>
 <!-- 🔐 Firebase Auth + Firestore (controlo de dispositivos) -->
 <script type="module">
+  import {startProfile} from "./profile.js";
   import {modulePermissions,moduleAllowed} from "./permissoes.js";
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
@@ -997,6 +998,7 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
       try{const {startAccountSync}=await import('./sincronizacao.js');await startAccountSync(user,db,{offline:true});}catch(error){console.warn('Sincronização por iniciar quando houver internet',error);}
     }
     async function handleAuthState(user){
+      window.gcProfileStop?.();window.gcProfileStop=null;
       updateAdminShortcut(null);
       const logged = !!user;
       permissionWatch?.();permissionWatch=null;clearModuleAccess();
@@ -1024,6 +1026,7 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
           await updateDoc(profile.baseRef, { lastLogin: serverTimestamp() }).catch(()=>{});
           startHeartbeat(deviceRef);
           watchPermissions(user,profile);
+          window.gcProfileStop?.();window.gcProfileStop=startProfile(user,db,profile.baseRef);
           grantOffline(user);
           loginScreen.style.display = "none";
           appWrapper.style.display  = "block";
@@ -2992,10 +2995,13 @@ async function chooseSquad(id,manageOnly=false){
     const note=document.createElement('p');note.textContent=entry?'Escolhe o mesmo atleta noutra equipa. Os jogos antigos mantêm os seus registos; a ficha passa a somar os dois percursos. Só liga se for a mesma pessoa.':'Adiciona o atleta ao plantel desta equipa, mantendo a mesma identidade e o percurso em cada equipa.';pick.append(note);
     const search=document.createElement('input');search.placeholder='Pesquisar atleta';search.setAttribute('aria-label','Pesquisar atleta');pick.append(search);const results=document.createElement('div');results.className='gc-team-options';pick.append(results);
     const candidates=new Map();for(const [tid,tname]of visibleTeams()){if(tid===id)continue;for(const p of readTeamRoster(tid)){const aid=String(p.athleteId||p.id);if(entries.some(e=>e!==entry&&String(e.athleteId)===aid))continue;const old=candidates.get(aid);if(old)old.teams.push(tname);else candidates.set(aid,{...p,athleteId:aid,teams:[tname]});}}
-    function draw(){results.replaceChildren();for(const p of candidates.values()){if(!p.name.toLocaleLowerCase('pt').includes(search.value.toLocaleLowerCase('pt')))continue;const b=document.createElement('button');b.className='gc-team-option';const n=document.createElement('strong');n.textContent=p.name;const t=document.createElement('span');t.textContent=p.teams.join(' · ');b.append(n,t);b.onclick=()=>{if(entry){if(!confirm('Confirmas que '+entry.name.value+' e '+p.name+' são o mesmo atleta? As estatísticas passam a ser agrupadas.'))return;entry.athleteId=p.athleteId;entry.link.textContent='Atleta ligado ✓';}else addRow({...p,id:crypto.randomUUID()});pick.close();};results.append(b);}if(!results.children.length)results.textContent='Sem atletas disponíveis. Cria o atleta no plantel de outra equipa primeiro.';}
+    function draw(){results.replaceChildren();for(const p of candidates.values()){if(!p.name.toLocaleLowerCase('pt').includes(search.value.toLocaleLowerCase('pt')))continue;const b=document.createElement('button');b.className='gc-team-option';const n=document.createElement('strong');n.textContent=p.name;const t=document.createElement('span');t.textContent=p.teams.join(' · ');b.append(n,t);b.onclick=()=>{if(entry){if(!confirm('Confirmas que '+entry.name.value+' e '+p.name+' são o mesmo atleta? As estatísticas passam a ser agrupadas.'))return;entry.athleteId=p.athleteId;entry.link.textContent='Atleta ligado ✓';entry.sharedNote.textContent='Também joga: '+p.teams.join(' · ');}else addRow({...p,id:crypto.randomUUID()});pick.close();};results.append(b);}if(!results.children.length)results.textContent='Sem atletas disponíveis. Cria o atleta no plantel de outra equipa primeiro.';}
     const close=document.createElement('button');close.textContent='Fechar';close.onclick=()=>pick.close();pick.append(close);search.oninput=draw;draw();document.body.append(pick);pick.onclose=()=>pick.remove();pick.showModal();
   }
-  function addLink(entry){const b=document.createElement('button');b.type='button';b.textContent=entry.athleteId!==entry.id?'Atleta ligado ✓':'Ligar atleta';b.title='Ligar a um atleta já existente noutra equipa';b.style.cssText='font-size:11px;padding:5px;grid-column:1/-1;justify-self:end';b.onclick=()=>pickSharedAthlete(entry);entry.link=b;entry.row.append(b);}
+  function addLink(entry){const b=document.createElement('button');b.type='button';b.textContent=entry.athleteId!==entry.id?'Atleta ligado ✓':'Ligar atleta';b.style.cssText='font-size:11px;padding:5px;grid-column:1/-1;justify-self:end';b.onclick=()=>pickSharedAthlete(entry);entry.link=b;entry.row.append(b);
+    const unlink=document.createElement('button');unlink.type='button';unlink.textContent='Desligar ligação';unlink.style.cssText='font-size:11px;padding:5px';unlink.onclick=()=>{if(entry.athleteId===entry.id)return alert('Este atleta já tem uma identidade própria.');if(confirm('Separar este jogador da identidade partilhada? Os registos originais mantêm-se. Guarda o plantel para confirmar.')){entry.athleteId=entry.id;entry.link.textContent='Ligar atleta';entry.sharedNote.textContent='Ligação removida · guarda o plantel.';}};entry.row.append(unlink);
+    const note=document.createElement('small');note.style.cssText='grid-column:1/-1;color:var(--gc-muted)';entry.sharedNote=note;const others=visibleTeams().filter(([tid])=>tid!==id).filter(([tid])=>readTeamRoster(tid).some(p=>String(p.athleteId||p.id)===String(entry.athleteId))).map(([,name])=>name);note.textContent=others.length?'Também joga: '+others.join(' · '):'';entry.row.append(note);
+  }
   entries.forEach(addLink);const originalAddRow=addRow;addRow=function(p){originalAddRow(p);addLink(entries[entries.length-1]);};
   all.onclick=()=>{entries.forEach(e=>e.call.checked=true);refresh();};none.onclick=()=>{entries.forEach(e=>e.call.checked=false);refresh();};
   form.onsubmit=event=>{
@@ -3029,10 +3035,11 @@ const manageTeamsButton=document.getElementById('editNamesBtn');manageTeamsButto
 document.getElementById('matchDate').onchange=()=>window.gcAccountStorage.setItem(teamStorageKey('gc_match_date_v1'),document.getElementById('matchDate').value);
 updateTeamBadge();
 /* Incrementar a versão quando existir uma nova atualização a apresentar. */
-const UPDATES_VERSION='2026-11-02.3';
+const UPDATES_VERSION='2026-11-02.4';
 const UPDATES_SEEN_KEY='gc_updates_seen_v1';
 const GAMECONTROL_UPDATES=[
- ['Um dispositivo a registar',['Escolhe a equipa. Se estiver livre, podes registar automaticamente. Se estiver em uso noutro dispositivo, apenas essa equipa fica espelhada; podes trabalhar noutra equipa.']],
+ ['Passar o registo com autorização',['Usa Pedir registo na mesma equipa. O pedido dura 90 segundos e só passa depois de guardar e confirmar os dados no outro dispositivo. Sem internet, a equipa continua reservada. Podes usar outra equipa em simultâneo.']],
+ ['Perfil e atletas',['Completa o nome e o clube se faltarem. Depois podes editar em Menu → Perfil. Nos plantéis, já podes desfazer uma ligação entre atletas.']],
  ['Guardar com recuperação',['Guardar novamente atualiza a partida. Em Jogos guardados → Versões podes exportar ou recuperar registos anteriores conservados desde esta atualização.']],
  ['O mesmo atleta em várias equipas',['Em Gerir equipas, usa Adicionar atleta de outra equipa. Para jogadores já criados em duplicado, usa Ligar atleta. Nas Estatísticas, escolhe uma equipa ou Todas as equipas.']],
  ['A tua conta continua pessoal',['Usa a tua conta nos teus dispositivos. Cada treinador deve ter a sua conta; os módulos continuam sujeitos à autorização da administração.']]
@@ -3196,6 +3203,7 @@ playerGrid.addEventListener('pointerup',event=>finishPlayerDrag(event,false));
 playerGrid.addEventListener('pointercancel',event=>finishPlayerDrag(event,true));
 /* Interface entre o jogo e a sincronização; os registos locais continuam a ser a base do jogo. */
 window.gcSyncAPI={
+ transferReady:()=>!(pendingPlayerEvent||pendingGoalScorer||pendingAssistForGoal||selectedAction||document.querySelector('dialog[open]')),
  activeTeam:()=>activeTeam,
  pause:()=>pauseTimer(),
  setViewer(value){if(value&&!window.gcReadOnly)pauseTimer();window.gcReadOnly=value;},
@@ -3377,8 +3385,9 @@ function exportArchivedReport(game){
 }
 
 const GAMECONTROL_FAQ=[
- ['Como acompanho o jogo noutro dispositivo?',['Ao escolher uma equipa livre, o registo fica disponível automaticamente. Na mesma equipa, os restantes dispositivos espelham o jogo. Podes usar outra equipa ao mesmo tempo. Sem ligação, a consulta mostra o último registo recebido.','Para mudar, no dispositivo que regista, pausa e escolhe Passar para consulta. A aplicação só liberta o controlo depois de confirmar o envio. Depois assume o controlo no outro.','Se um dispositivo ficar sem rede ou fechar sem libertar, o controlo expira em cerca de 90 segundos. Confirma que deixou de registar antes de assumir noutro; não é possível garantir exclusividade entre dois dispositivos sem internet.']],
+ ['Como acompanho o jogo noutro dispositivo?',['Ao escolher uma equipa livre, o registo fica disponível automaticamente. Na mesma equipa, os restantes dispositivos espelham o jogo. Podes usar outra equipa ao mesmo tempo. Sem ligação, a consulta mostra o último registo recebido.','Para mudar, no dispositivo que regista, pausa e escolhe Passar para consulta. A aplicação só liberta o controlo depois de confirmar o envio. Depois assume o controlo no outro.','Se um dispositivo ficar sem rede, a reserva mantém-se. Pede o registo e aguarda autorização. A continuação de emergência só aparece após 90 segundos sem comunicação e exige confirmar que o primeiro dispositivo parou. Dois dispositivos sem internet não conseguem comunicar entre si.']],
  ['Como recupero uma versão anterior?',['Em Jogos guardados, usa Versões. O menu também tem Versões e cópias, incluindo cópias de conflitos antigas existentes neste navegador.','Recuperar no arquivo conserva o registo atual antes da troca. Uma cópia do jogo em curso pode ser guardada como jogo recuperado, sem alterar a partida que está aberta.','As versões locais dependem do armazenamento do navegador. As versões do servidor são criadas quando há substituições sincronizadas. Se o armazenamento local estiver cheio, exporta uma cópia completa. As versões começam nesta atualização; não recriam dados que já se perderam antes.']],
+ ['Como passo o registo para outro dispositivo?',['Na mesma conta e equipa, escolhe Pedir registo. O pedido dura 90 segundos. Quem está a registar pode aceitar ou recusar.','Ao aceitar, o jogo pausa e os dados são enviados. O outro dispositivo só começa depois de confirmar a receção. Se a passagem falhar, o controlo mantém-se no primeiro dispositivo.','Ficar sem internet não liberta a equipa. Para usar outra equipa, seleciona-a normalmente. Usa Continuar em emergência apenas quando confirmares que o primeiro dispositivo deixou de registar.']],
  ['Como uso o mesmo atleta em duas equipas?',['Cria o atleta no primeiro plantel. No segundo, escolhe Adicionar atleta de outra equipa e seleciona-o. Pode ter convocatórias e minutos diferentes em cada equipa.','Se já o criaste duas vezes, usa Ligar atleta no plantel e confirma que é a mesma pessoa. Não se juntam atletas automaticamente pelo nome. Os jogos e sessões originais mantêm os seus identificadores.','Nas Estatísticas, a equipa filtra o percurso nessa equipa. Todas as equipas mostra o total individual e o quadro Percurso por equipa. A carga global soma as sessões registadas em ambas; evita registar a mesma sessão duas vezes.']],
  ['Como adiciono jogos e sessões anteriores?',['Em Jogos guardados, usa Adicionar jogo anterior. Escolhe a data, adversário, resultado e convocados. Preenche apenas os minutos, golos, assistências e ações que tens registados. O jogo em curso mantém-se.','Em cada golo, podes identificar a origem e quem estava em campo. Só as formações conhecidas entram na análise de quartetos, duplas e presenças em golos.','No Wellness, usa Sessão anterior para registar treinos ou jogos passados com PSE e minutos por jogador; o bem-estar é opcional. Para aproveitar um jogo guardado, usa Importar jogo e confirma em Criar sessão.','Campos em branco significam não registado. Nas Estatísticas, os totais somam apenas os dados conhecidos. Para corrigir um registo anterior, usa Editar jogo anterior ou Editar registo anterior em tabela. Confirma Sincronizado antes de fechar.']],
  ['Como apago ou recupero jogos?',['Em Jogos guardados, usa Apagar junto à partida. O jogo deixa de entrar no arquivo normal e nas Estatísticas. Podes recuperá-lo em Jogos apagados.','As sessões do Wellness são independentes: apaga-as no Calendário do Wellness, se também as quiseres retirar. Confirma a sincronização antes de fechar.']],
@@ -3551,7 +3560,7 @@ function organiseAppMenu(){
   ['configureClockBtn','Cronómetro e prolongamento','tools'],['gcInstallApp','Instalar aplicação','app'],
   ['gcBackupExport','Exportar cópia de segurança','data'],['gcBackupImport','Importar cópia de segurança','data'],
   ['themeToggle',null,'app'],['fullscreenBtn','Ecrã inteiro','app'],['gcUpdatesButton','Novidades','app'],
-  ['logoutBtn','Terminar sessão','account']
+  ['gcProfileButton','Perfil','account'],['logoutBtn','Terminar sessão','account']
  ])moveControl(id,label,group);
  const theme=document.getElementById('themeToggle');if(theme){theme.title='Mudar tema';theme.setAttribute('aria-label','Mudar tema');}
  const syncBar=document.getElementById('gcSyncBar');
@@ -3617,6 +3626,7 @@ exportPng=()=>{if(pendingGoalScorer||pendingAssistForGoal||selectedAction||pendi
 const gcReportButton=document.getElementById('printBtn');if(gcReportButton)gcReportButton.onclick=exportPng;
 </script></body>
 </html>
+
 
 
 

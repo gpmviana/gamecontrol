@@ -1,7 +1,8 @@
-const VERSION = 'gc-pwa-team-control-2026-11-02-3';
+const VERSION = 'gc-pwa-registration-2026-11-02-4';
 const ROOT = new URL('./', self.location.href);
 
 const SHELL = [
+  'profile.js',
   'safe-core.js',
   'control-sync.js',
   'gc-report.js',
@@ -149,4 +150,5 @@ self.addEventListener('fetch', event => {
     return response;
   })());
 });
+
 

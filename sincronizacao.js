@@ -1,5 +1,5 @@
 import {createControl} from './control-sync.js';
-import {collection,doc,onSnapshot,runTransaction,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
+import {collection,doc,onSnapshot,runTransaction,serverTimestamp,getDocFromServer,getDocsFromServer} from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
 
 export function canonicalString(value){
  if(value===undefined)return undefined;
@@ -48,7 +48,8 @@ export async function startAccountSync(user,db,options={}){
    }
    throw Error('Os dados continuam a mudar noutro dispositivo. Tenta novamente quando esse dispositivo terminar.');
   },
-  async beforeRelease(id){await reconcile();if(busy||[...conflicts.keys()].some(p=>p.split('/')[0]===id)||lastError)throw Error('Ainda existem alterações pendentes ou conflitos. O controlo foi mantido.');const local=api.collect();for(const [p,v]of Object.entries(local))if(p.split('/')[0]===id&&canonicalString(v)!==canonicalString(remote.get(p)?.payload))throw Error('Há dados por enviar. Tenta sincronizar novamente antes de passar para consulta.');},
+  async beforeRelease(id){await reconcile();if(busy||[...conflicts.keys()].some(p=>p.split('/')[0]===id)||lastError)throw Error('Ainda existem alterações pendentes ou conflitos. O controlo foi mantido.');const local=api.collect();for(const [p,v]of Object.entries(local))if(p.split('/')[0]===id&&canonicalString(v)!==canonicalString(remote.get(p)?.payload))throw Error('Há dados por enviar. Tenta sincronizar novamente antes de passar para consulta.');return {revision:remote.get(id)?.revision};},
+  async receive(id,revision){const root=await getDocFromServer(refFor(id)),matches=await getDocsFromServer(collection(refFor(id),'matches'));if(!root.exists()||root.data().revision<revision)throw Error('Ainda não foi recebida a versão confirmada.');const local=api.collect();for(const [p,v]of Object.entries(local))if(p.split('/')[0]===id)preserve(p,v,'Antes de receber passagem de registo');const values=[[id,root.data()],...matches.docs.map(d=>[id+'/matches/'+d.id,d.data()])];for(const [p,v]of values){if(!v.payload)continue;api.apply(p,v.payload);remote.set(p,v);acknowledge(p,v);conflicts.delete(p);approved.delete(p);}api.refresh();},
   restore(path,payload){const local=api.collect()[path];preserve(path,local,'Antes de recuperar versão');api.restoreArchive(path,payload);if(remote.get(path))acknowledge(path,remote.get(path));approved.set(path,canonicalString(api.collect()[path]));schedule();}
  });
  function preserve(path,payload,reason){GCSafe.remember(store,path,payload,reason);}
@@ -84,13 +85,13 @@ export async function startAccountSync(user,db,options={}){
   const item=await runTransaction(db,async transaction=>{
    const reference=refFor(path),snapshot=await transaction.get(reference),existing=snapshot.exists()?snapshot.data():null;
    const controlSnapshot=await transaction.get(controller.ref(teamId));
-   if(controlSnapshot.data()?.holder!==controller.token||(controlSnapshot.data()?.expiresAt?.toMillis?.()||0)<=Date.now())throw Error("O controlo expirou ou passou para outro dispositivo.");
+   if(controlSnapshot.data()?.holder!==controller.token||controlSnapshot.data()?.protocol!==3)throw Error("O controlo passou para outro dispositivo.");
    if((existing?.revision??0)!==expected){const error=Error('Conflito de versões');error.code='gc/conflict';throw error;}
    const revision=expected+1;
    // Campos resumidos permitem a consulta pelo painel de administração atual.
    const summary=path.includes('/matches/')?{id:payload.id,date:payload.date,teamA:payload.teamA,teamB:payload.teamB,scoreA:payload.scoreA,scoreB:payload.scoreB}:{name:payload.name,roster:payload.roster};
    if(existing?.payload)transaction.set(doc(reference,'versions','r'+existing.revision),{payload:existing.payload,revision:existing.revision,at:serverTimestamp(),device:existing.device||'Versão anterior'});
-   transaction.set(reference,{...summary,payload,revision,updatedAt:serverTimestamp(),updatedBy:user.uid,writer:controller.token,device:controller.label,protocol:2});
+   transaction.set(reference,{...summary,payload,revision,updatedAt:serverTimestamp(),updatedBy:user.uid,writer:controller.token,device:controller.label,protocol:3});
    return {payload,revision};
   });
   remote.set(path,item);acknowledge(path,item);approved.delete(path);
@@ -170,6 +171,7 @@ export async function startAccountSync(user,db,options={}){
  window.gcSyncSession={uid:user.uid,stop(){controller.stop();active=false;clearInterval(interval);clearTimeout(timer);unsubscribers.forEach(stop=>stop());window.removeEventListener('online',online);window.removeEventListener('offline',schedule);if(gameWrapper)gameWrapper.inert=false;bar.remove();}};
  schedule();
 }
+
 
 
 
