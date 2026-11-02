@@ -34,22 +34,30 @@ export async function startAccountSync(user,db,options={}){
  controller=createControl(user,db,api,store,bar,{
   report,schedule,paths:()=>[...remote.keys()],
   async beforeClaim(id){
-   if(!ready||pendingTeams)throw Error('Aguarda a consulta das equipas e jogos.');
-   const local=api.collect(),cloud=remote.get(id);
-   if(cloud&&canonicalString(local[id])!==canonicalString(cloud.payload)&&approved.get(id)!==canonicalString(local[id])){
+   if(!ready||pendingTeams)throw Error('A aguardar a consulta das equipas. Tenta novamente dentro de alguns segundos.');
+   for(let attempt=0;attempt<5;attempt++){
+    const local=api.collect(),cloud=remote.get(id);
+    if(!cloud||canonicalString(local[id])===canonicalString(cloud.payload)||approved.get(id)===canonicalString(local[id]))return;
     const decision=syncDecision(local[id],cloud,meta.docs[id],false);
-    if(decision==='download'){preserve(id,local[id],'Antes de assumir controlo');api.apply(id,cloud.payload);acknowledge(id,cloud);api.refresh();}
-    else {conflicts.set(id,{local:local[id],remote:cloud});report('Há versões diferentes. Compara antes de assumir o controlo.');throw Error('Compara as versões no menu e escolhe qual manter antes de assumir o controlo.');}
+    if(decision==='download'){preserve(id,local[id],'Antes de assumir controlo');api.apply(id,cloud.payload);acknowledge(id,cloud);api.refresh();return;}
+    // Dados locais novos e servidor inalterado: não é um conflito de duas edições.
+    if(decision==='upload'&&!GCSafe.regressions(cloud.payload,local[id]).length)return;
+    conflicts.set(id,{local:local[id],remote:cloud});report('Escolhe a versão do jogo para começar nesta equipa.');
+    const selected=await compareItem(id,{local:local[id],remote:cloud},true);
+    if(!selected){const error=Error('Escolhe uma versão para começar a registar nesta equipa.');error.code='gc/cancelled';throw error;}
    }
+   throw Error('Os dados continuam a mudar noutro dispositivo. Tenta novamente quando esse dispositivo terminar.');
   },
-  async beforeRelease(id){await reconcile();if(busy||conflicts.size||lastError)throw Error('Ainda existem alterações pendentes ou conflitos. O controlo foi mantido.');const local=api.collect();for(const [p,v]of Object.entries(local))if(p.split('/')[0]===id&&canonicalString(v)!==canonicalString(remote.get(p)?.payload))throw Error('Há dados por enviar. Tenta sincronizar novamente antes de passar para consulta.');},
+  async beforeRelease(id){await reconcile();if(busy||[...conflicts.keys()].some(p=>p.split('/')[0]===id)||lastError)throw Error('Ainda existem alterações pendentes ou conflitos. O controlo foi mantido.');const local=api.collect();for(const [p,v]of Object.entries(local))if(p.split('/')[0]===id&&canonicalString(v)!==canonicalString(remote.get(p)?.payload))throw Error('Há dados por enviar. Tenta sincronizar novamente antes de passar para consulta.');},
   restore(path,payload){const local=api.collect()[path];preserve(path,local,'Antes de recuperar versão');api.restoreArchive(path,payload);if(remote.get(path))acknowledge(path,remote.get(path));approved.set(path,canonicalString(api.collect()[path]));schedule();}
  });
  function preserve(path,payload,reason){GCSafe.remember(store,path,payload,reason);}
  const refFor=path=>doc(db,'users',user.uid,'teams',...path.split('/'));
+ function archiveChangeOnly(a,b){if(!a||!b)return false;const x={...a},y={...b};delete x.archiveStatus;delete y.archiveStatus;return canonicalString(x)===canonicalString(y)&&canonicalString(a.archiveStatus)!==canonicalString(b.archiveStatus);}
  const saveMeta=()=>store.setItem('gc_sync_meta_v1',JSON.stringify(meta));
  function acknowledge(path,item){meta.docs[path]={revision:item.revision,digest:canonicalString(item.payload)};saveMeta();}
  function report(message){text.textContent=message;resolveButton.hidden=!conflicts.size;}
+ window.gcResolveConflicts=resolveConflicts;
  function watchMatches(teamId){
   if(teamsWatched.has(teamId))return;teamsWatched.add(teamId);pendingTeams++;controller.watch(teamId);
   const stop=onSnapshot(collection(db,'users',user.uid,'teams',teamId,'matches'),snapshot=>{
@@ -91,7 +99,7 @@ export async function startAccountSync(user,db,options={}){
   if(!active||busy){queued=true;return;}
   if(!navigator.onLine){if(gameWrapper)gameWrapper.inert=false;report('Sem ligação · alterações guardadas neste dispositivo e por enviar');return;}
   if(!ready||pendingTeams){report('A consultar as equipas e jogos da tua conta…');return;}
-  busy=true;queued=false;let changed=false,waiting=false;lastError="";
+  busy=true;queued=false;let changed=false,waiting=false,otherTeamPending=false;lastError="";
   try{
    await controller.ensure(api.activeTeam());
    if(!api.initialised()&&remote.size===0)api.seed();
@@ -100,10 +108,19 @@ export async function startAccountSync(user,db,options={}){
    // Equipas primeiro; jogos a seguir.
    for(const path of [...paths].sort((a,b)=>a.split('/').length-b.split('/').length)){
     if(!active)return;
-    const payload=local[path],cloud=remote.get(path);let decision=syncDecision(payload,cloud,meta.docs[path],api.running());
+    let payload=local[path];const cloud=remote.get(path);let decision=syncDecision(payload,cloud,meta.docs[path],api.running());
     if(decision!=='ack'&&!path.includes('/')&&window.gcReadOnly&&cloud&&payload&&!api.running()&&!(payload.state?.scoreA||payload.state?.scoreB)&&
       !(payload.state?.timeline||[]).length&&!(payload.state?.players||[]).some(p=>Number(p.seconds)>0)&&
       canonicalString(payload.roster)===canonicalString(cloud.payload.roster)&&payload.name===cloud.payload.name)decision='download';
+    if(!path.includes('/')&&path!==api.activeTeam()&&cloud&&payload){
+     let base;try{base=JSON.parse(meta.docs[path]?.digest||'null');}catch{}
+     if(archiveChangeOnly(payload,base)&&canonicalString(payload)!==canonicalString(cloud.payload)){
+      preserve(path,payload,'Antes de atualizar estado da equipa');payload={...cloud.payload,archiveStatus:payload.archiveStatus};api.apply(path,payload);acknowledge(path,cloud);decision='upload';changed=true;
+     }
+     if(decision==='upload'&&archiveChangeOnly(payload,cloud.payload)){
+      try{await controller.metadataLease(path,()=>upload(path,payload));conflicts.delete(path);}catch(error){if(error.code!=='gc/team-busy')throw error;otherTeamPending=true;}continue;
+     }
+    }
     if(decision==='ack'){acknowledge(path,cloud);conflicts.delete(path);}
     else if(decision==='download'){preserve(path,payload,'Antes de receber versão sincronizada');api.apply(path,cloud.payload);acknowledge(path,cloud);changed=true;conflicts.delete(path);}
     else if(decision==='upload'){
@@ -115,10 +132,12 @@ export async function startAccountSync(user,db,options={}){
     else if(decision==='conflict')conflicts.set(path,{local:payload,remote:cloud});
    }
    if(changed)api.refresh();
-   if(conflicts.size)report('Há versões diferentes em '+conflicts.size+' registo(s). Nenhuma foi substituída.');
+   const teamConflicts=[...conflicts.keys()].filter(p=>p.split('/')[0]===api.activeTeam()).length;
+   if(teamConflicts)report('Há versões diferentes em '+teamConflicts+' registo(s). Nenhuma foi substituída.');
    else if(waiting)report('Há alterações por enviar/receber · assume o controlo ou conclui a ação aberta.');
    else if(lastError)report(lastError);
-   else report('Sincronizado · '+new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}));
+   else report('Sincronizado · '+new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})+(otherTeamPending?' · outra equipa aguarda o fim do registo no outro dispositivo.':''));
+   if(!api.running())setTimeout(()=>{if(active)controller.maybeClaim();},0);
   }catch(error){
    if(error.code==='gc/conflict')report('Outro dispositivo alterou estes dados. A aguardar a nova versão para comparar.');
    else{lastError='Alterações locais mantidas · sincronização pendente: '+(error.code||error.message);report(lastError);}
@@ -126,21 +145,32 @@ export async function startAccountSync(user,db,options={}){
  }
  let timer;
  function schedule(){if(!active)return;clearTimeout(timer);timer=setTimeout(reconcile,900);}
- async function resolveConflicts(){
-  if(api.running()){alert('Pausa o cronómetro e fecha a ação antes de comparar versões.');return;}
-  const first=conflicts.entries().next().value;if(!first)return;const [path,item]=first;
-  controller.compare(path,item,async kind=>{
+ function compareItem(path,item,claiming=false){
+  const teamId=path.split('/')[0],root=api.collect()[teamId]||remote.get(teamId)?.payload;
+  return controller.compare(path,item,async kind=>{
+   const latest=remote.get(path);
+   if(latest&&latest.revision!==item.remote.revision){const error=Error('Chegou uma versão mais recente. Carrega em Atualizar comparação.');error.code='gc/newer';throw error;}
    preserve(path,item.local,'Conflito · este dispositivo');preserve(path,item.remote.payload,'Conflito · sincronizada');
    if(kind==='local'){acknowledge(path,item.remote);approved.set(path,canonicalString(item.local));}
    else {api.apply(path,item.remote.payload);acknowledge(path,item.remote);api.refresh();}
-   conflicts.delete(path);lastError='';schedule();
-  });
+   conflicts.delete(path);lastError='';report('Versão escolhida · a confirmar sincronização…');schedule();
+  },{claiming,teamName:root?.name||'Equipa',refresh:()=>resolveConflicts()});
+ }
+ function resolveConflicts(){
+  if(api.running()){alert('Pausa o cronómetro e fecha a ação antes de comparar versões.');return;}
+  const first=[...conflicts.entries()].sort(([a],[b])=>Number(b.split('/')[0]===api.activeTeam())-Number(a.split('/')[0]===api.activeTeam()))[0];
+  if(!first){report('Não há versões por resolver nesta equipa.');return;}
+  const [path,item]=first;item.local=api.collect()[path];
+  compareItem(path,item).then(selected=>{
+   if(selected&&path.split('/')[0]===api.activeTeam()&&window.gcReadOnly)controller.requestCurrent();
+  }).catch(error=>report(error.message));
  }
  const interval=setInterval(()=>{if(active)reconcile();},15000);
  const online=()=>{lastError='';schedule();};window.addEventListener('online',online);window.addEventListener('offline',schedule);
  window.gcSyncSession={uid:user.uid,stop(){controller.stop();active=false;clearInterval(interval);clearTimeout(timer);unsubscribers.forEach(stop=>stop());window.removeEventListener('online',online);window.removeEventListener('offline',schedule);if(gameWrapper)gameWrapper.inert=false;bar.remove();}};
  schedule();
 }
+
 
 
 

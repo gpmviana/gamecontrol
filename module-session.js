@@ -8,6 +8,7 @@ const moduleName=document.body.dataset.gcModule,app=getApps()[0]||initializeApp(
 let currentUser=null,currentProfile=null,started=false,stops=[],locked=true,flushTimer,busy=false,queued=false,blockedSync=false,remoteSessions=new Map(),meta={docs:{}};
 
 const gate=document.getElementById('moduleGate'),content=document.getElementById('moduleContent'),status=document.getElementById('moduleStatus'),sync=document.getElementById('moduleSyncStatus');
+let startRosterWatch=null;
 const raw=localStorage,prefix=uid=>'gc_account_'+uid+'__',key=k=>prefix(currentUser.uid)+k;
 
 function message(text){status.textContent=text;}
@@ -85,11 +86,11 @@ function assertOwner(user){
 }
 
 async function readCloud(user){
- const teams=await getDocsFromServer(collection(db,'users',user.uid,'teams')),profiles={},archives={},rosters={},links={};
+ const teams=await getDocsFromServer(collection(db,'users',user.uid,'teams')),profiles={},archives={},rosters={},links={},archived={};
 
  for(const item of teams.docs){
   const data=item.data().payload||{},id=item.id;
-  profiles[id]=data.name||'Equipa';
+  profiles[id]=data.name||'Equipa';archived[id]=data.archiveStatus?.archived===true;
   links[id]=data.athleteLinks||{};
   rosters[id]=(data.roster||[]).map(p=>({
    ...p,
@@ -103,7 +104,7 @@ async function readCloud(user){
  assertOwner(user);
 
  window.GCSharedRoster={
-  readTeams:()=>Object.entries(profiles).map(([id,name])=>({
+  readTeams:()=>Object.entries(profiles).filter(([id])=>!archived[id]).map(([id,name])=>({
    id,
    name,
    athleteLinks:structuredClone(links[id]||{}),
@@ -111,7 +112,7 @@ async function readCloud(user){
   })),
   storage:{
    getItem:k=>{
-    if(k==='gc_team_profiles_v1')return JSON.stringify(profiles);
+    if(k==='gc_team_profiles_v1')return JSON.stringify(Object.fromEntries(Object.entries(profiles).filter(([id])=>!archived[id])));
     if(k.startsWith('gc_roster_v1_'))return JSON.stringify(rosters[k.slice(13)]||[]);
     if(k.startsWith('gc_match_archive_v1_'))return JSON.stringify(archives[k.slice(20)]||[]);
     if(k==='gc_active_team_v1')return cacheGet(k);
@@ -121,6 +122,28 @@ async function readCloud(user){
   backup:()=>({})
  };
 
+ startRosterWatch=()=>{
+  const watched=new Set();
+  const valid=()=>!locked&&auth.currentUser?.uid===user.uid&&currentUser?.uid===user.uid;
+  function notify(){if(!valid())return;
+   if(moduleName==='athleteStats'){const state=JSON.parse(cacheGet('gc_wellness_view_v1')||'{"sessions":[]}');state.teams=window.GCSharedRoster.readTeams();cacheSet('gc_wellness_view_v1',JSON.stringify(state));}
+   window.dispatchEvent(new Event('gc:teams-updated'));
+  }
+  function watchMatches(id){if(watched.has(id))return;watched.add(id);stops.push(onSnapshot(collection(db,'users',user.uid,'teams',id,'matches'),snapshot=>{
+   if(!valid()||snapshot.metadata.fromCache)return;archives[id]=snapshot.docs.map(d=>d.data().payload).filter(Boolean);notify();
+  },()=>report('Não foi possível atualizar os jogos. Usa Atualizar dados.')));}
+  stops.push(onSnapshot(collection(db,'users',user.uid,'teams'),snapshot=>{
+   if(!valid()||snapshot.metadata.fromCache)return;const seen=new Set();
+   for(const item of snapshot.docs){const data=item.data().payload||{},id=item.id;seen.add(id);profiles[id]=data.name||'Equipa';archived[id]=data.archiveStatus?.archived===true;links[id]=data.athleteLinks||{};
+    rosters[id]=(data.roster||[]).map(p=>({...p,athleteId:data.athleteLinks?.[p.id]||p.athleteId||p.id}));watchMatches(id);
+   }
+   for(const id of Object.keys(profiles))if(!seen.has(id)){delete profiles[id];delete rosters[id];delete links[id];delete archived[id];delete archives[id];}
+   notify();
+  },()=>report('Não foi possível atualizar as equipas. Usa Atualizar dados.')));
+  if(moduleName==='athleteStats')stops.push(onSnapshot(collection(db,'users',user.uid,'wellness'),snapshot=>{
+   if(!valid()||snapshot.metadata.fromCache)return;const state={version:1,teams:window.GCSharedRoster.readTeams(),sessions:snapshot.docs.map(d=>d.data().payload).filter(Boolean),currentId:null};cacheSet('gc_wellness_view_v1',JSON.stringify(state));notify();
+  },()=>report('Não foi possível atualizar as sessões. Usa Atualizar dados.')));
+ };
  // O Wellness fica numa coleção própria, sem herdar a leitura dos jogos da aplicação mãe.
  const sessions=await getDocsFromServer(collection(db,'users',user.uid,'wellness'));
  assertOwner(user);
@@ -345,7 +368,7 @@ async function boot(user){
 
   const teams=window.GCSharedRoster.readTeams();
 
-  if(!teams.length){
+  if(!teams.length&&moduleName!=='athleteStats'){
    lock('Ainda não existem equipas sincronizadas. Cria o plantel na aplicação mãe e confirma a sincronização antes de voltar aqui.');
    return;
   }
@@ -367,6 +390,7 @@ async function boot(user){
   script.src=moduleName==='wellness'?'wellness-app.js':'athletes.js';
   script.onload=()=>{
    report('Dados sincronizados · '+(currentProfile.displayName||currentProfile.name||user.email||''));
+   startRosterWatch?.();
    if(moduleName==='wellness')window.gcWellnessPersist();
   };
   script.onerror=()=>lock('Não foi possível carregar o módulo. Atualiza a página.');
@@ -454,3 +478,4 @@ window.addEventListener('beforeunload',event=>{
 
 auth.languageCode='pt';
 onAuthStateChanged(auth,boot);
+

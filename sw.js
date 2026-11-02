@@ -1,4 +1,4 @@
-const VERSION = 'gc-pwa-safe-athletes-2026-11-02-2';
+const VERSION = 'gc-pwa-team-control-2026-11-02-3';
 const ROOT = new URL('./', self.location.href);
 
 const SHELL = [
@@ -149,3 +149,4 @@ self.addEventListener('fetch', event => {
     return response;
   })());
 });
+
