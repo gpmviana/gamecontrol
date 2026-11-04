@@ -21,7 +21,7 @@ export async function startAccountSync(user,db,options={}){
  if(window.gcSyncSession?.uid===user.uid)return;
  window.gcSyncSession?.stop();
  let active=true,busy=false,queued=false,ready=false,lastError='',unsubscribers=[],teamsWatched=new Set(),matchesReady=new Set();
- const gameWrapper=document.getElementById('appWrapper');if(gameWrapper)gameWrapper.inert=!options.offline;
+ const gameWrapper=document.getElementById('appWrapper');if(gameWrapper)gameWrapper.inert=false;
  const remote=new Map(),conflicts=new Map(),approved=new Map();let pendingTeams=0;
  let controller,timer;
  const meta=JSON.parse(store.getItem('gc_sync_meta_v1')||'{"docs":{}}');meta.docs ||= {};
@@ -29,7 +29,7 @@ export async function startAccountSync(user,db,options={}){
  document.getElementById('gcSyncBar')?.remove();
  const text=document.createElement('span');text.textContent='A ligar à sincronização…';bar.appendChild(text);
  function button(label,fn){const b=document.createElement('button');b.textContent=label;b.style.cssText='font:inherit;padding:6px 9px;border:1px solid var(--gc-line);border-radius:6px;color:var(--gc-ink);background:var(--gc-raised);cursor:pointer';b.onclick=fn;bar.appendChild(b);return b;}
- button('Sincronizar agora',()=>{lastError='';schedule();});
+ const syncButton=button('Sincronizar agora',()=>{lastError='';schedule();});
  const resolveButton=button('Resolver conflito',resolveConflicts);resolveButton.hidden=true;
  document.querySelector('header').after(bar);
  controller=createControl(user,db,api,store,bar,{
@@ -53,14 +53,24 @@ export async function startAccountSync(user,db,options={}){
   async receive(id,revision){const root=await getDocFromServer(refFor(id)),matches=await getDocsFromServer(collection(refFor(id),'matches'));if(!root.exists()||root.data().revision<revision)throw Error('Ainda não foi recebida a versão confirmada.');const local=api.collect();for(const [p,v]of Object.entries(local))if(p.split('/')[0]===id)preserve(p,v,'Antes de receber passagem de registo');const values=[[id,root.data()],...matches.docs.map(d=>[id+'/matches/'+d.id,d.data()])];for(const [p,v]of values){if(!v.payload)continue;api.apply(p,v.payload);remote.set(p,v);acknowledge(p,v);conflicts.delete(p);approved.delete(p);}api.refresh();},
   restore(path,payload){const local=api.collect()[path];preserve(path,local,'Antes de recuperar versão');api.restoreArchive(path,payload);if(remote.get(path))acknowledge(path,remote.get(path));approved.set(path,canonicalString(api.collect()[path]));schedule();}
  });
- const permanent=await startPermanent(user,db,{
+ let permanent;
+ try{
+ permanent=await startPermanent(user,db,{
   kinds:['team','match','version','session'],storage:store,writer:()=>controller.token,
   guard(){if(!api.deletionReady?.())throw Error('Pausa o jogo e conclui a ação antes de eliminar.');},
   flush:()=>reconcile(),
   async withTeam(id,task){if(id===api.activeTeam()){if(!controller.own(id))await controller.requestCurrent();if(!controller.valid(id))throw Error('É necessário ter o registo desta equipa para eliminar.');return task();}return controller.metadataLease(id,task);},
-  changed(p){api.prunePermanent?.(p);for(const key of [...remote.keys()])if(p.blocks(key)){remote.delete(key);conflicts.delete(key);approved.delete(key);delete meta.docs[key];}saveMeta();schedule();},
+  changed(p){if(options.isCurrent?.()===false)return;api.prunePermanent?.(p);for(const key of [...remote.keys()])if(p.blocks(key)){remote.delete(key);conflicts.delete(key);approved.delete(key);delete meta.docs[key];}saveMeta();schedule();},
   error:error=>report('Não foi possível confirmar as eliminações: '+error.code)
  });
+ if(options.isCurrent?.()===false){permanent.stop();throw Error('A sessão mudou durante a ligação.');}
+ }catch(error){
+  active=false;
+  clearTimeout(timer);
+  controller.stop();
+  bar.remove();
+  throw error;
+ }
  window.gcOpenPermanent=()=>permanent.openPending();
  function preserve(path,payload,reason){GCSafe.remember(store,path,payload,reason);}
  const refFor=path=>doc(db,'users',user.uid,'teams',...path.split('/'));
@@ -71,14 +81,14 @@ export async function startAccountSync(user,db,options={}){
  window.gcResolveConflicts=resolveConflicts;
  function watchMatches(teamId){
   if(teamsWatched.has(teamId))return;teamsWatched.add(teamId);pendingTeams++;controller.watch(teamId);
-  const stop=onSnapshot(collection(db,'users',user.uid,'teams',teamId,'matches'),snapshot=>{
+  const stop=onSnapshot(collection(db,'users',user.uid,'teams',teamId,'matches'),{includeMetadataChanges:true},snapshot=>{
     if(!active)return;
     snapshot.docChanges().forEach(change=>{if(change.type!=='removed'){const value=change.doc.data();if(value.payload&&Number.isInteger(value.revision))remote.set(teamId+'/matches/'+change.doc.id,value);}});
     if(!snapshot.metadata.fromCache&&!matchesReady.has(teamId)){matchesReady.add(teamId);pendingTeams--;}
     schedule();
   },error=>{if(gameWrapper)gameWrapper.inert=false;lastError='Não foi possível consultar os jogos: '+error.code;report(lastError);});unsubscribers.push(stop);
  }
- const stopTeams=onSnapshot(collection(db,'users',user.uid,'teams'),snapshot=>{
+ const stopTeams=onSnapshot(collection(db,'users',user.uid,'teams'),{includeMetadataChanges:true},snapshot=>{
   if(!active)return;
   snapshot.docChanges().forEach(change=>{
    if(change.type==='removed')return;
@@ -109,7 +119,7 @@ export async function startAccountSync(user,db,options={}){
  async function reconcile(){
   if(!active||busy){queued=true;return;}
   if(!navigator.onLine){if(gameWrapper)gameWrapper.inert=false;report('Sem ligação · alterações guardadas neste dispositivo e por enviar');return;}
-  if(!ready||pendingTeams){report('A consultar as equipas e jogos da tua conta…');return;}
+  if(!ready||pendingTeams){report(lastError||'A consultar as equipas e jogos da tua conta…');return;}
   busy=true;queued=false;let changed=false,waiting=false,otherTeamPending=false;lastError="";
   try{
    await controller.ensure(api.activeTeam());
@@ -145,7 +155,7 @@ export async function startAccountSync(user,db,options={}){
    if(changed)api.refresh();
    const teamConflicts=[...conflicts.keys()].filter(p=>p.split('/')[0]===api.activeTeam()).length;
    if(teamConflicts)report('Há versões diferentes em '+teamConflicts+' registo(s). Nenhuma foi substituída.');
-   else if(waiting)report('Há alterações por enviar/receber · assume o controlo ou conclui a ação aberta.');
+   else if(waiting||otherTeamPending)report('Há alterações por enviar/receber · assume o controlo ou conclui a ação aberta.');
    else if(lastError)report(lastError);
    else report('Sincronizado · '+new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})+(otherTeamPending?' · outra equipa aguarda o fim do registo no outro dispositivo.':''));
    if(!api.running())setTimeout(()=>{if(active)controller.maybeClaim();},0);
@@ -178,9 +188,12 @@ export async function startAccountSync(user,db,options={}){
  }
  const interval=setInterval(()=>{if(active)reconcile();},15000);
  const online=()=>{lastError='';schedule();};window.addEventListener('online',online);window.addEventListener('offline',schedule);
- window.gcSyncSession={uid:user.uid,stop(){permanent.stop();controller.stop();active=false;clearInterval(interval);clearTimeout(timer);unsubscribers.forEach(stop=>stop());window.removeEventListener('online',online);window.removeEventListener('offline',schedule);if(gameWrapper)gameWrapper.inert=false;bar.remove();}};
+ const session={uid:user.uid,stop(){if(!active)return;active=false;if(window.gcSyncSession===session)delete window.gcSyncSession;permanent.stop();controller.stop();clearInterval(interval);clearTimeout(timer);unsubscribers.forEach(stop=>stop());window.removeEventListener('online',online);window.removeEventListener('offline',schedule);if(gameWrapper)gameWrapper.inert=false;resolveButton.remove();syncButton.remove();bar.remove();}};
+ window.gcSyncSession=session;
  schedule();
 }
+
+
 
 
 

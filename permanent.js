@@ -47,5 +47,8 @@ export async function startPermanent(user,db,options={}){
   await erase([team]);
  }
  const stop=onSnapshot(ledger,snapshot=>{if(!active||snapshot.metadata.fromCache)return;const known=new Map(items.map(v=>[v.key,v]));for(const d of snapshot.docs){const old=known.get(d.id),value={...d.data(),key:d.id};known.set(d.id,old?.status==='done'?{...value,status:'done'}:value);}items=[...known.values()];options.storage?.setItem('gc_purges_v1',JSON.stringify(items));options.changed?.(api);},error=>options.error?.(error));
- window.gcPermanent=api;options.changed?.(api);return api;
+ window.gcPermanent=api;
+ try{options.changed?.(api);}catch(error){api.stop();throw error;}
+ return api;
 }
+

@@ -20,7 +20,7 @@ export function createControl(user,db,api,store,bar,callbacks){
    !navigator.onLine?'Sem ligação · escolhe Registar offline se fores usar esta equipa.':'Esta equipa está disponível · a preparar o registo.';
   renderRequests();if(!owns&&received&&!working)mode.textContent+=' Última receção: '+received.toLocaleTimeString('pt-PT')+'.';
  }
- function watch(id){if(watched.has(id))return;watched.add(id);watchRequests(id);stops.push(onSnapshot(ref(id),snap=>{if(!active||snap.metadata.fromCache)return;const v=snap.exists()?snap.data():null;leases.set(id,v);if(v?.holder!==token){if(owners.has(id)){try{GCSafe.remember(store,id,api.collect()[id],'Controlo alterado · cópia deste dispositivo');}catch(error){callbacks.report('Mantém esta janela aberta: não foi possível conservar a cópia local.');}}owners.delete(id);}update();callbacks.schedule();},e=>{owners.delete(id);update();callbacks.report('Não foi possível confirmar o controlo: '+e.code);}));}
+ function watch(id){if(watched.has(id))return;watched.add(id);watchRequests(id);stops.push(onSnapshot(ref(id),{includeMetadataChanges:true},snap=>{if(!active||snap.metadata.fromCache)return;const v=snap.exists()?snap.data():null;leases.set(id,v);if(v?.holder!==token){if(owners.has(id)){try{GCSafe.remember(store,id,api.collect()[id],'Controlo alterado · cópia deste dispositivo');}catch(error){callbacks.report('Mantém esta janela aberta: não foi possível conservar a cópia local.');}}owners.delete(id);}update();callbacks.schedule();},e=>{owners.delete(id);update();callbacks.report('Não foi possível confirmar o controlo: '+e.code);}));}
  async function claim({automatic=false,emergency=false}={}){if(!navigator.onLine){if(confirm('Registar apenas neste dispositivo, sem sincronização? Confirma que ninguém está a registar a mesma equipa noutro dispositivo. Ao voltar a ligação, compara as versões e assume o controlo para enviar.')){offlineOwners.add(api.activeTeam());update();}return;}if(working)return;const id=api.activeTeam();working=true;update();try{
   const known=leases.get(id);
   if(known?.holder&&known.holder!==token&&!emergency){if(!automatic)await requestRegistration(id,known);return;}
@@ -157,6 +157,8 @@ export function createControl(user,db,api,store,bar,callbacks){
   if(lease?.holder&&lease.holder!==token)return;autoTried.add(id);claim({automatic:true});}
  return {token,get label(){return label;},ref,own,valid,watch,compare,maybeClaim,metadataLease,requestCurrent:()=>claim({automatic:true}),received(){received=new Date();update();},async ensure(id){if(own(id)&&!valid(id))await renew(id);},stop(){active=false;document.removeEventListener('close',nudge,true);clearInterval(pulse);stops.forEach(fn=>fn());for(const event of ['click','change','keydown','pointerdown','touchstart'])document.removeEventListener(event,guard,true);window.removeEventListener('online',online);window.removeEventListener('offline',online);window.removeEventListener('gc:team-changed',teamChanged);window.gcCanEditTeam=()=>false;window.gcRequestControl=async()=>false;api.setViewer(true);mode.remove();}};
 }
+
+
 
 
 
