@@ -1,4 +1,4 @@
-const VERSION = 'gc-pwa-recruitment-2026-11-04-1';
+const VERSION = 'gc-pwa-recruitment-2026-11-04-2';
 const ROOT = new URL('./', self.location.href);
 
 const SHELL = [
@@ -20,6 +20,7 @@ const SHELL = [
   'sincronizacao.js',
   'modules.css',
   'permissoes.js',
+  'permissoes-recrutamento-v2.js',
   'wellness.html',
   'wellness-app.js',
   'atletas.html',
@@ -161,3 +162,14 @@ self.addEventListener('fetch', event => {
 
 
 
+
+// Atualizar os ficheiros para a próxima navegação, sem recarregar jogos abertos.
+self.addEventListener('message', event => {
+  if(event.data?.type !== 'GC_RECRUITMENT_ACTIVATE' || !event.source?.id) return;
+  event.waitUntil((async()=>{
+    const client=await self.clients.get(event.source.id);
+    if(!client) return;
+    const url=new URL(client.url);
+    if(url.origin===ROOT.origin && url.pathname===new URL('recrutamento.html',ROOT).pathname) await self.skipWaiting();
+  })());
+});

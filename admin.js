@@ -1,5 +1,5 @@
 import {data} from './admin-data.js';
-import {modulePermissions,MODULE_LABELS} from './permissoes.js';
+import {modulePermissions,MODULE_LABELS} from './permissoes-recrutamento-v2.js';
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));let users=[],selected=null,tab='access',allowed=false,stopWatch,serial=0,more=false,loadSerial=0;
 const invalidActive=p=>Object.hasOwn(p,'active')&&typeof p.active!=='boolean';
 const state=p=>p.status||(p.active===false?'rejected':'approved'),stateName=p=>({approved:'Aprovado',pending:'Pendente',rejected:'Suspenso / recusado'}[state(p)]||state(p));const name=p=>p.displayName||p.name||p.email||p.id;
