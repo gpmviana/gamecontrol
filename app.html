@@ -1009,7 +1009,9 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
           return;
         }
         // antes de abrir a app: valida perfil + device
+        let entryStage='Validar acesso';
         try{
+          entryStage='Ler perfil';
           const profile = await resolveProfile(user.uid);
           if(!profile){
             loginError.textContent = "Sem permissões (conta não registada).";
@@ -1018,7 +1020,9 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
           }
           if(!moduleAllowed(profile.data,user,'gameControl'))throw Error('A tua conta não tem acesso ao Game Control. Contacta a administração.');
           window.gcModuleAccess=modulePermissions(profile.data);window.dispatchEvent(new Event('gc:permissions'));
+          entryStage='Validar ou registar dispositivo';
           const { deviceRef } = await ensureDeviceAllowed(profile);
+          entryStage='Abrir armazenamento local';
           if(window.gcSyncSession?.uid!==user.uid)window.gcSyncSession?.stop();
           if(await window.gcPrepareAccountStorage(user.uid)){location.reload();return;}
           updateAdminShortcut(profile.data);
@@ -1030,14 +1034,17 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
           grantOffline(user);
           loginScreen.style.display = "none";
           appWrapper.style.display  = "block";
-          try{const {startAccountSync}=await import('./sincronizacao.js');await startAccountSync(user,db);}catch(error){console.error(error);alert('Não foi possível iniciar a sincronização. Mantém esta janela aberta e confirma os ficheiros sincronizacao.js, control-sync.js e safe-core.js antes de registar.');}
+          window.gcSyncAPI.setViewer(true);
+          await connectGameSync(user);
           if(logoutBtn) logoutBtn.style.display = "inline-flex";
           window.dispatchEvent(new Event('gc:ready'));
         }catch(e){
           console.error(e);
           if(canEnterOffline(user)&&['unavailable','deadline-exceeded','auth/network-request-failed'].includes(e?.code)){await showOfflineSession(user);return;}
           localStorage.removeItem(OFFLINE_GRANT_KEY);
-          loginError.textContent = e?.message || "Acesso recusado.";
+          loginError.textContent = e?.code==='permission-denied'
+            ? entryStage+' · acesso recusado. Contacta a administração.'
+            : e?.message || 'Acesso recusado.';
           try{ await signOut(auth); }catch(_){}
           loginScreen.style.display = "flex";
           appWrapper.style.display  = "none";
@@ -1052,8 +1059,32 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
         if(logoutBtn) logoutBtn.style.display = "none";
       }
     }
+    let connecting=false;
+    async function connectGameSync(user){
+      if(connecting||window.gcSyncSession?.uid===user.uid)return;
+      connecting=true;
+      window.gcSyncAPI.setViewer(true);
+      window.gcSyncStartError='';
+      try{
+        const {startAccountSync}=await import('./sincronizacao.js');
+        if(auth.currentUser?.uid===user.uid)await startAccountSync(user,db,{isCurrent:()=>auth.currentUser?.uid===user.uid});
+      }catch(error){
+        console.error('Arranque da sincronização',error);
+        window.gcSyncStartError=error.code==='permission-denied'
+          ? 'Consulta · sem permissão para sincronizar. Exporta uma cópia e contacta a administração.'
+          : 'Consulta · sincronização indisponível. Exporta uma cópia ou tenta novamente.';
+      }finally{
+        connecting=false;
+        window.dispatchEvent(new Event('gc:sync-status'));
+      }
+    }
     onAuthStateChanged(auth,handleAuthState);
-    window.addEventListener('online',()=>{if(auth.currentUser)handleAuthState(auth.currentUser);});
+    window.gcRetrySync=()=>{if(auth.currentUser&&appWrapper.style.display==='block')return connectGameSync(auth.currentUser);};
+    window.addEventListener('online',()=>{
+      if(!auth.currentUser)return;
+      if(appWrapper.style.display==='block')window.gcRetrySync();
+      else handleAuthState(auth.currentUser);
+    });
   });
 </script>
 <style>
@@ -2118,7 +2149,18 @@ function saveData(){
     catch(error){console.error('Cópia de recuperação indisponível',error);if(!window.gcJournalWarning){window.gcJournalWarning=true;alert('O armazenamento está cheio ou indisponível. Exporta uma cópia completa. As cópias de recuperação não estão a ser criadas.');}}
   }
   }
-  window.gcAccountStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  try{
+    window.gcAccountStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    if(window.gcLocalSaveError){
+      window.gcLocalSaveError=false;
+      window.dispatchEvent(new Event('gc:sync-status'));
+    }
+  }catch(error){
+    const firstFailure=!window.gcLocalSaveError;
+    window.gcLocalSaveError=true;
+    if(firstFailure)window.dispatchEvent(new Event('gc:sync-status'));
+    console.error('Guardar jogo neste dispositivo',error);
+  }
 }
 function loadData(){
   const raw = window.gcAccountStorage.getItem(STORAGE_KEY);
@@ -3267,9 +3309,10 @@ window.gcSyncAPI={
  },
  backup(){
   try{saveData();}catch(error){console.warn('Exportar a cópia diretamente da memória',error);}
-  const content=window.gcRawAccountBackup();
+  let content={};
+  try{content=window.gcRawAccountBackup();}catch(error){console.warn('Cópia limitada ao jogo em memória',error);}
   // Export must work even when localStorage is full. Include the current in-memory game.
-  if(window.gcReadOnly!==true){const current=archiveSnapshot();content[STORAGE_KEY]=JSON.stringify({...current,theme});content[MATCH_ID_KEY]=currentMatchId;content[teamStorageKey('gc_match_date_v1')]=current.date;}
+  if(window.gcReadOnly!==true||!content[STORAGE_KEY]){const current=archiveSnapshot();content[STORAGE_KEY]=JSON.stringify({...current,theme});content[MATCH_ID_KEY]=currentMatchId;content[teamStorageKey('gc_match_date_v1')]=current.date;}
   const data={format:'gamecontrol-account-copy',version:1,createdAt:new Date().toISOString(),data:content};
   const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download='GameControl-conta-'+localMatchDate()+'.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  }
@@ -3480,6 +3523,24 @@ const cleanStatusDot=document.createElement('span');cleanStatusDot.className='gc
 const cleanStatusText=document.createElement('span');
 const conflictShortcut=document.createElement('button');conflictShortcut.textContent='Resolver';conflictShortcut.hidden=true;conflictShortcut.onclick=()=>{appMenu.open=false;if(window.gcResolveConflicts)window.gcResolveConflicts();};
 cleanStatus.appendChild(cleanStatusDot);cleanStatus.appendChild(cleanStatusText);cleanStatus.appendChild(conflictShortcut);cleanHeader.after(cleanStatus);
+// Mantém a recuperação disponível mesmo se o módulo de sincronização não carregar.
+function guardWithoutSync(event){
+ if(window.gcSyncSession||!window.gcReadOnly)return;
+ const target=event.target;
+ if(!target.closest?.('#appWrapper')||target.closest('#gcCompactStatus,[data-lower-tab],#currentTeamSelect,#gcAppMenu > summary,#gcBackupExport'))return;
+ if(!target.closest('button,input,select,a,[onclick],.player,[contenteditable]'))return;
+ event.preventDefault();
+ event.stopImmediatePropagation();
+}
+for(const type of ['click','change','keydown','pointerdown','touchstart'])document.addEventListener(type,guardWithoutSync,true);
+const retrySync=document.createElement('button');
+retrySync.textContent='Tentar novamente';
+retrySync.hidden=true;
+retrySync.onclick=()=>window.gcRetrySync?.();
+const exportLocal=document.createElement('button');
+exportLocal.textContent='Exportar cópia';
+exportLocal.onclick=()=>window.gcSyncAPI.backup();
+cleanStatus.append(retrySync,exportLocal);
 function readSyncText(){return document.getElementById('gcSyncBar')?.querySelector('span')?.textContent||'';}
 function readOfflineText(){return document.getElementById('gcOfflineBar')?.querySelector('span')?.textContent||'';}
 function updateCompactStatus(){
@@ -3487,7 +3548,9 @@ function updateCompactStatus(){
  const sync=readSyncText(),offline=readOfflineText(),conflict=/versões diferentes|conflito/i.test(sync);
  cleanStatus.dataset.warning=String(conflict||/pendente|possível|alterações por receber/i.test(sync));
  conflictShortcut.hidden=!conflict;
- cleanStatusText.textContent=window.gcReadOnly===true?'Consulta desta equipa · podes escolher outra equipa':!navigator.onLine?'Sem ligação · dados guardados neste dispositivo':conflict?'Conflito de versões por resolver':sync.startsWith('Sincronizado')?sync.replace('Sincronizado · ','Sincronizado às '):/alterações.*receber/i.test(sync)?'Alterações por receber':/pendente|possível/i.test(sync)?'Sincronização pendente':'A sincronizar…';
+ retrySync.hidden=!window.gcSyncStartError;
+ exportLocal.hidden=!(window.gcReadOnly||window.gcLocalSaveError||!navigator.onLine);
+ cleanStatusText.textContent=window.gcLocalSaveError?'Jogo em memória · exporta uma cópia agora':window.gcSyncStartError|| (window.gcReadOnly===true?'Consulta desta equipa · podes escolher outra equipa':!navigator.onLine?'Sem ligação · dados guardados neste dispositivo':conflict?'Conflito de versões por resolver':sync.startsWith('Sincronizado')?sync.replace('Sincronizado · ','Sincronizado às '):/alterações.*receber/i.test(sync)?'Alterações por receber':/pendente|possível/i.test(sync)?'Sincronização pendente':'A sincronizar…');
  cleanStatus.title=[sync,offline].filter(Boolean).join('\n');
  const installed=window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true;
  const install=document.getElementById('gcInstallApp');if(install)install.hidden=installed;
@@ -3528,6 +3591,7 @@ const stateButton=document.createElement('button');stateButton.textContent='Esta
 new MutationObserver(organiseAppMenu).observe(cleanTop,{childList:true});
 new MutationObserver(organiseAppMenu).observe(document.body,{childList:true});
 new MutationObserver(updateCompactStatus).observe(document.getElementById('loginScreen'),{attributes:true,attributeFilter:['style']});
+window.addEventListener('gc:sync-status',updateCompactStatus);
 window.addEventListener('online',updateCompactStatus);window.addEventListener('offline',updateCompactStatus);window.addEventListener('appinstalled',updateCompactStatus);
 window.matchMedia?.('(display-mode: standalone)').addEventListener?.('change',updateCompactStatus);
 document.addEventListener('click',event=>{if(appMenu.open&&!appMenu.contains(event.target))appMenu.open=false;});
@@ -3567,6 +3631,7 @@ exportPng=()=>{if(pendingGoalScorer||pendingAssistForGoal||selectedAction||pendi
 const gcReportButton=document.getElementById('printBtn');if(gcReportButton)gcReportButton.onclick=exportPng;
 </script></body>
 </html>
+
 
 
 

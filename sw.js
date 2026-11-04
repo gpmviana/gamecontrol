@@ -1,4 +1,4 @@
-const VERSION = 'gc-pwa-permanent-2026-11-02-5';
+const VERSION = 'gc-pwa-sync-2026-11-04-1';
 const ROOT = new URL('./', self.location.href);
 
 const SHELL = [
@@ -152,6 +152,7 @@ self.addEventListener('fetch', event => {
     return response;
   })());
 });
+
 
 
 
