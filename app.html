@@ -935,7 +935,16 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
   }
   let heartbeatInterval = null,permissionWatch=null;
   
+  function updateRecruitmentShortcut(profile){
+    const allowed=!!profile&&!!auth.currentUser&&moduleAllowed(profile,auth.currentUser,'recruitment');
+    window.gcRecruitmentAllowed=allowed;
+    if(!allowed){document.getElementById('recruitmentModuleLink')?.remove();return;}
+    let link=document.getElementById('recruitmentModuleLink');
+    if(!link){link=document.createElement('a');link.id='recruitmentModuleLink';link.dataset.moduleLink='recruitment';link.title='Recrutamento';link.setAttribute('aria-label','Abrir recrutamento');link.href='recrutamento.html';link.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-raised);color:var(--gc-ink);text-decoration:none';link.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3"/><path d="M4 20v-2a6 6 0 0 1 8-5.7"/><circle cx="17" cy="17" r="3.5"/><path d="m19.5 19.5 2.5 2.5"/></svg>';link.onclick=event=>{if(!window.gcRecruitmentAllowed){event.preventDefault();return;}if(pendingPlayerEvent||pendingGoalScorer||pendingAssistForGoal||selectedAction){event.preventDefault();alert('Conclui ou cancela a ação antes de abrir o recrutamento.');return;}if(running&&!confirm('Pausar o jogo e abrir o recrutamento?')){event.preventDefault();return;}pauseTimer();saveData();link.href='recrutamento.html?equipa='+encodeURIComponent(activeTeam);};const anchor=document.getElementById('athletesModuleLink')||document.getElementById('wellnessModuleLink');if(anchor)anchor.insertAdjacentElement('afterend',link);else document.querySelector('.top-buttons')?.append(link);}
+  }
+
   function updateAdminShortcut(profile){
+    updateRecruitmentShortcut(profile);
     const allowed=profile?.role==='admin'&&profile.active!==false&&(!profile.status||profile.status==='approved');
     window.gcIsAdmin=allowed;
     if(!allowed){document.getElementById('adminAccountsLink')?.remove();return;}
@@ -944,7 +953,7 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
   }
 
   function clearModuleAccess(){updateAdminShortcut(null);window.gcModuleAccess={gameControl:false,wellness:false,athleteStats:false};window.dispatchEvent(new Event('gc:permissions'));}
-  function watchPermissions(user,profile){permissionWatch?.();permissionWatch=onSnapshot(profile.baseRef,snapshot=>{if(snapshot.metadata.fromCache)return;const data=snapshot.exists()?snapshot.data():{};updateAdminShortcut(data);window.gcModuleAccess=modulePermissions(data);window.dispatchEvent(new Event('gc:permissions'));if(!snapshot.exists()||!moduleAllowed(data,user,'gameControl')){window.gcSyncSession?.stop();if(typeof pauseTimer==='function')pauseTimer();localStorage.removeItem(OFFLINE_GRANT_KEY);document.getElementById('appWrapper').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginError').textContent='Acesso retirado ou conta suspensa. Contacta a administração.';clearModuleAccess();}else grantOffline(user);},()=>{window.gcSyncSession?.stop();localStorage.removeItem(OFFLINE_GRANT_KEY);clearModuleAccess();document.getElementById('appWrapper').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginError').textContent='Não foi possível confirmar as permissões. Atualiza com ligação.';});}
+  function watchPermissions(user,profile){permissionWatch?.();permissionWatch=onSnapshot(profile.baseRef,snapshot=>{if(snapshot.metadata.fromCache)return;const data=snapshot.exists()?snapshot.data():{};updateAdminShortcut(data);window.gcModuleAccess=modulePermissions(data,user);window.dispatchEvent(new Event('gc:permissions'));if(!snapshot.exists()||!moduleAllowed(data,user,'gameControl')){window.gcSyncSession?.stop();if(typeof pauseTimer==='function')pauseTimer();localStorage.removeItem(OFFLINE_GRANT_KEY);document.getElementById('appWrapper').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginError').textContent='Acesso retirado ou conta suspensa. Contacta a administração.';clearModuleAccess();}else grantOffline(user);},()=>{window.gcSyncSession?.stop();localStorage.removeItem(OFFLINE_GRANT_KEY);clearModuleAccess();document.getElementById('appWrapper').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginError').textContent='Não foi possível confirmar as permissões. Atualiza com ligação.';});}
 
   function startHeartbeat(deviceRef){
     if(heartbeatInterval) clearInterval(heartbeatInterval);
@@ -1019,7 +1028,7 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
             return;
           }
           if(!moduleAllowed(profile.data,user,'gameControl'))throw Error('A tua conta não tem acesso ao Game Control. Contacta a administração.');
-          window.gcModuleAccess=modulePermissions(profile.data);window.dispatchEvent(new Event('gc:permissions'));
+          window.gcModuleAccess=modulePermissions(profile.data,user);window.dispatchEvent(new Event('gc:permissions'));
           entryStage='Validar ou registar dispositivo';
           const { deviceRef } = await ensureDeviceAllowed(profile);
           entryStage='Abrir armazenamento local';

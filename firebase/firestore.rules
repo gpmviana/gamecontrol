@@ -1,0 +1,285 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function owner(uid) { return signedIn() && request.auth.uid == uid; }
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin'
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('active', true) == true
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('status', 'approved') == 'approved';
+    }
+    function approved(uid) {
+      let profile = get(/databases/$(database)/documents/users/$(uid)).data;
+      return owner(uid) && profile.get('active', true) == true
+        && profile.get('status', 'approved') == 'approved'
+        && (profile.get('registrationVersion', 0) == 0 || request.auth.token.email_verified == true);
+    }
+    function hasModule(uid, module) {
+      let profile = get(/databases/$(database)/documents/users/$(uid)).data;
+      return approved(uid) && (profile.get('role', '') == 'admin'
+        || profile.get('modules', {}).get(module, module == 'gameControl') == true);
+    }
+    function canReadGameData(uid) {
+      return isAdmin() || hasModule(uid, 'gameControl') || hasModule(uid, 'wellness') || hasModule(uid, 'athleteStats') || hasModule(uid, 'recruitment');
+    }
+    function validModules(data) {
+      let modules = data.get('modules', {});
+      return modules is map && modules.keys().hasOnly(['gameControl', 'wellness', 'athleteStats', 'recruitment'])
+        && modules.get('gameControl', true) is bool && modules.get('wellness', false) is bool && modules.get('athleteStats', false) is bool && modules.get('recruitment', false) is bool;
+    }
+    function validWellness(sessionId) {
+      let data = request.resource.data;
+      let p = data.payload;
+      return data.keys().hasOnly(['payload', 'revision', 'updatedAt'])
+        && data.revision is int && data.revision >= 1 && data.updatedAt == request.time
+        && p is map && p.id == sessionId && p.teamId is string
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/teams/$(p.teamId))
+        && p.date is string && p.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && p.type in ['treino', 'jogo'] && p.participants is list && p.roster is list && p.records is map
+        && p.participants.size() <= 100 && p.roster.size() <= 100;
+    }
+    function validPendingProfile() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['displayName', 'email', 'club', 'role', 'active', 'status', 'deviceLimit', 'emailVerified', 'registrationVersion', 'createdAt'])
+        && data.keys().hasAll(['displayName', 'email', 'club', 'role', 'active', 'status', 'deviceLimit', 'emailVerified', 'registrationVersion', 'createdAt'])
+        && data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 100
+        && data.club is string && data.club.size() <= 120
+        && data.email == request.auth.token.email
+        && data.role == 'coach' && data.active == false && data.status == 'pending'
+        && data.deviceLimit == 3 && data.emailVerified == false
+        && data.registrationVersion == 1 && data.createdAt == request.time;
+    }
+// ADICIONAR dentro de match /databases/{database}/documents,
+// antes de match /users/{uid}. Não substituir as restantes regras.
+// As duas alterações às funções existentes estão no ficheiro LE-ME-REGRAS.txt.
+
+function recruitmentAccess(uid) {
+  let p = get(/databases/$(database)/documents/users/$(uid)).data;
+  return request.auth != null && request.auth.uid == uid
+    && p.get('active', true) == true
+    && p.get('status', 'approved') == 'approved'
+    && (p.get('registrationVersion', 0) == 0 || request.auth.token.email_verified == true)
+    && (p.get('modules', {}).get('recruitment', false) == true
+      || (uid == '3CiirBW7qhUd5OZwdng2Vvw7OCz2' && p.get('role', '') == 'admin'));
+}
+
+match /users/{uid}/recruitment/{documentId} {
+  function validRecruitment() {
+    let d = request.resource.data;
+    return documentId == 'workspace'
+      && d.keys().hasOnly(['payload', 'revision', 'updatedAt', 'updatedBy'])
+      && d.keys().hasAll(['payload', 'revision', 'updatedAt', 'updatedBy'])
+      && d.payload is map && d.payload.version == 1
+      && d.payload.players is list && d.payload.players.size() <= 2000
+      && d.payload.histories is map && d.payload.plans is map
+      && d.revision is int && d.updatedAt == request.time
+      && d.updatedBy == uid;
+  }
+  allow read: if recruitmentAccess(uid);
+  allow create: if recruitmentAccess(uid) && validRecruitment() && request.resource.data.revision == 1;
+  allow update: if recruitmentAccess(uid) && validRecruitment()
+    && request.resource.data.revision == resource.data.revision + 1;
+  allow delete: if false;
+}
+
+    match /users/{uid} {
+      allow read: if owner(uid) || isAdmin();
+      allow create: if owner(uid) && validPendingProfile();
+      allow update: if owner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'email', 'club', 'lastLogin', 'emailVerified'])
+        && request.resource.data.get('displayName', '') is string
+        && request.resource.data.get('displayName', '').size() <= 100
+        && request.resource.data.get('club', '') is string
+        && request.resource.data.get('club', '').size() <= 120
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['email']) || request.resource.data.email == request.auth.token.email)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['emailVerified'])
+          || request.resource.data.emailVerified == request.auth.token.email_verified);
+      // Só administradores já existentes podem validar contas ou alterar permissões.
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active', 'status', 'deviceLimit', 'role', 'modules', 'reviewedAt', 'reviewedBy'])
+        && validModules(request.resource.data)
+        && request.resource.data.get('active', false) is bool
+        && request.resource.data.get('deviceLimit', 3) is int
+        && request.resource.data.get('deviceLimit', 3) >= 1 && request.resource.data.get('deviceLimit', 3) <= 100
+        && request.resource.data.get('role', 'coach') in ['coach', 'admin']
+        && request.resource.data.get('status', 'approved') in ['pending', 'approved', 'rejected']
+        && (request.resource.data.get('status', 'approved') != 'approved'
+          || resource.data.get('registrationVersion', 0) == 0 || resource.data.get('emailVerified', false) == true);
+      match /devices/{deviceId} {
+        allow read: if owner(uid) || isAdmin();
+        allow create: if approved(uid)
+          && request.resource.data.keys().hasOnly(['createdAt', 'lastSeen', 'blocked', 'userAgent', 'platform'])
+          && request.resource.data.blocked == false
+          && request.resource.data.createdAt == request.time && request.resource.data.lastSeen == request.time;
+        allow update: if approved(uid) && resource.data.get('blocked', false) == false
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen'])
+          && request.resource.data.lastSeen == request.time;
+        allow write: if isAdmin();
+      }
+      // Sem wildcard recursivo: a permissão da aplicação mãe não abre os dados de Wellness.
+      function purgedTeam(uid, t) { return exists(/databases/$(database)/documents/users/$(uid)/purges/$('team_' + t)); }
+      function purgedMatch(uid, t, m) { return exists(/databases/$(database)/documents/users/$(uid)/purges/$('match_' + t + '_' + m)); }
+      function purgedSession(uid, t, s) { return purgedTeam(uid,t) || exists(/databases/$(database)/documents/users/$(uid)/purges/$('session_' + t + '_' + s)); }
+      function purgedVersion(uid, t, m, v) { return exists(/databases/$(database)/documents/users/$(uid)/purges/$('version_' + t + '_' + (m == '' ? 'current' : m) + '_' + v)); }
+      function purgeAccess(uid, key) { return exists(/databases/$(database)/documents/users/$(uid)/purges/$(key))
+        && controls(uid,get(/databases/$(database)/documents/users/$(uid)/purges/$(key)).data.teamId,get(/databases/$(database)/documents/users/$(uid)/purges/$(key)).data.writer); }
+      function purgeTeamAccess(uid,t) { return purgeAccess(uid,'team_'+t); }
+      function purgeMatchAccess(uid,t,m) { return purgeTeamAccess(uid,t) || purgeAccess(uid,'match_'+t+'_'+m); }
+      function purgeVersionAccess(uid,t,m,v) { return purgeMatchAccess(uid,t,m) || purgeAccess(uid,'version_'+t+'_'+(m==''?'current':m)+'_'+v); }
+      match /purges/{purgeId} {
+        allow read: if canReadGameData(uid);
+        function shape() { let d=request.resource.data;return d.keys().hasOnly(['kind','teamId','id','matchId','status','writer','at'])
+          && d.kind in ['team','match','session','version'] && d.teamId is string && d.teamId.size()>0 && d.teamId.size()<=150
+          && d.id is string && d.id.size()<=150 && d.matchId is string && d.matchId.size()<=150
+          && d.writer is string && d.status in ['pending','done']; }
+        function access() {let d=request.resource.data;return d.kind=='session'?hasModule(uid,'wellness'):controls(uid,d.teamId,d.writer);}
+        function versionExists(t,m,v) {return m==''?exists(/databases/$(database)/documents/users/$(uid)/teams/$(t)/versions/$(v)):exists(/databases/$(database)/documents/users/$(uid)/teams/$(t)/matches/$(m)/versions/$(v));}
+        allow create: if owner(uid) && shape() && access() && request.resource.data.at==request.time && request.resource.data.status=='pending'
+          && ((request.resource.data.kind=='team' && purgeId=='team_'+request.resource.data.teamId && request.resource.data.id==''
+              && get(/databases/$(database)/documents/users/$(uid)/teams/$(request.resource.data.teamId)).data.payload.archiveStatus.archived==true)
+            || (request.resource.data.kind=='match' && purgeId=='match_'+request.resource.data.teamId+'_'+request.resource.data.id
+              && get(/databases/$(database)/documents/users/$(uid)/teams/$(request.resource.data.teamId)/matches/$(request.resource.data.id)).data.payload.deleted==true
+              && get(/databases/$(database)/documents/users/$(uid)/teams/$(request.resource.data.teamId)).data.payload.matchId!=request.resource.data.id)
+            || (request.resource.data.kind=='session' && purgeId=='session_'+request.resource.data.teamId+'_'+request.resource.data.id
+              && get(/databases/$(database)/documents/users/$(uid)/wellness/$(request.resource.data.id)).data.payload.teamId==request.resource.data.teamId
+              && get(/databases/$(database)/documents/users/$(uid)/wellness/$(request.resource.data.id)).data.payload.deleted==true)
+            || (request.resource.data.kind=='version' && purgeId=='version_'+request.resource.data.teamId+'_'+(request.resource.data.matchId==''?'current':request.resource.data.matchId)+'_'+request.resource.data.id
+              && versionExists(request.resource.data.teamId,request.resource.data.matchId,request.resource.data.id)));
+        allow update: if owner(uid) && shape() && access() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['writer','status']);
+        allow delete: if false;
+      }
+      function controls(uid, teamId, writer) {
+        let lease = get(/databases/$(database)/documents/users/$(uid)/teams/$(teamId)/control/session).data;
+        return hasModule(uid, 'gameControl') && writer is string && writer.size() > 0
+          && lease.holder == writer && lease.protocol == 3;
+      }
+      function validGameWrite(uid, teamId) {
+        return !purgedTeam(uid,teamId) && controls(uid, teamId, request.resource.data.get('writer', ''))
+          && request.resource.data.protocol == 3 && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == uid && request.resource.data.payload is map;
+      }
+      match /teams/{teamId} {
+        allow read: if canReadGameData(uid);
+        allow create: if validGameWrite(uid, teamId) && request.resource.data.revision == 1;
+        allow update: if validGameWrite(uid, teamId)
+          && request.resource.data.revision == resource.data.revision + 1;
+        allow delete: if purgeTeamAccess(uid,teamId);
+        match /control/{sessionId} {
+          allow read: if canReadGameData(uid);
+          function leaseShape() {
+            let d = request.resource.data;
+            return sessionId == 'session' && d.protocol == 3 && d.keys().hasOnly(['holder', 'label', 'expiresAt', 'updatedAt', 'previousHolder', 'protocol', 'requestId', 'emergency']) && d.previousHolder is string
+              && d.holder is string && d.holder.size() <= 100 && d.label is string && d.label.size() <= 80
+              // No protocolo 3 a reserva não expira. expiresAt é um campo de
+              // compatibilidade e não decide quem pode registar. O relógio
+              // do dispositivo não deve bloquear a aquisição/renovação.
+              && d.expiresAt is timestamp && d.updatedAt == request.time;
+          }
+          allow create: if hasModule(uid, 'gameControl') && leaseShape() && request.resource.data.holder != '';
+          function acceptedTransfer() {
+            let rid = request.resource.data.get('requestId', '');
+            let r = getAfter(/databases/$(database)/documents/users/$(uid)/teams/$(teamId)/controlRequests/$(rid)).data;
+            return rid != '' && r.status == 'completed' && r.expiresAt > request.time
+              && r.holder == resource.data.holder && r.requester == request.resource.data.holder
+              && request.resource.data.previousHolder == resource.data.holder;
+          }
+          allow update: if hasModule(uid, 'gameControl') && leaseShape()
+            && (resource.data.holder == ''
+              || (resource.data.holder == request.resource.data.holder && request.resource.data.previousHolder == resource.data.holder)
+              || (request.resource.data.holder == '' && request.resource.data.previousHolder == resource.data.holder)
+              || (request.resource.data.get('emergency', false) == true
+                && resource.data.updatedAt <= request.time - duration.value(90, 's')
+                && request.resource.data.previousHolder == resource.data.holder)
+              || acceptedTransfer());
+          allow delete: if false;
+        }
+        match /controlRequests/{requestId} {
+          allow read: if canReadGameData(uid);
+          function shape() {
+            let r = request.resource.data;
+            return r.keys().hasOnly(['requester', 'requesterLabel', 'holder', 'status', 'expiresAt', 'createdAt', 'updatedAt', 'acceptedRevision'])
+              && r.requester is string && r.requester.size() > 0 && r.requester.size() <= 100
+              && r.requesterLabel is string && r.requesterLabel.size() <= 80
+              && r.holder is string && r.holder.size() > 0 && r.holder != r.requester
+              && r.expiresAt is timestamp && r.createdAt is timestamp && r.updatedAt == request.time;
+          }
+          allow create: if hasModule(uid, 'gameControl') && shape()
+            && request.resource.data.status == 'pending' && request.resource.data.createdAt == request.time
+            && request.resource.data.expiresAt > request.time
+            && request.resource.data.expiresAt <= request.time + duration.value(100, 's')
+            && request.resource.data.holder == get(/databases/$(database)/documents/users/$(uid)/teams/$(teamId)/control/session).data.holder;
+          allow update: if hasModule(uid, 'gameControl') && shape() && resource.data.status in ['pending', 'accepted']
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt', 'acceptedRevision'])
+            && ((request.resource.data.status in ['cancelled', 'declined'] && resource.data.status == 'pending')
+              || (request.resource.data.status == 'expired' && resource.data.expiresAt <= request.time)
+              || (request.resource.data.status == 'accepted' && resource.data.status == 'pending' && resource.data.expiresAt > request.time
+                && request.resource.data.acceptedRevision == getAfter(/databases/$(database)/documents/users/$(uid)/teams/$(teamId)).data.revision
+                && get(/databases/$(database)/documents/users/$(uid)/teams/$(teamId)/control/session).data.holder == resource.data.holder
+                && getAfter(/databases/$(database)/documents/users/$(uid)/teams/$(teamId)/control/session).data.holder == resource.data.holder)
+              || (request.resource.data.status == 'completed' && resource.data.status == 'accepted' && resource.data.expiresAt > request.time
+                && resource.data.acceptedRevision == get(/databases/$(database)/documents/users/$(uid)/teams/$(teamId)).data.revision
+                && get(/databases/$(database)/documents/users/$(uid)/teams/$(teamId)/control/session).data.holder == resource.data.holder
+                && getAfter(/databases/$(database)/documents/users/$(uid)/teams/$(teamId)/control/session).data.holder == resource.data.requester
+                && getAfter(/databases/$(database)/documents/users/$(uid)/teams/$(teamId)/control/session).data.get('requestId', '') == requestId));
+          allow delete: if purgeTeamAccess(uid,teamId);
+        }
+        match /versions/{versionId} {
+          allow read: if canReadGameData(uid);
+          allow create: if !purgedTeam(uid,teamId) && !purgedVersion(uid,teamId,'',versionId) && hasModule(uid, 'gameControl')
+            && request.resource.data.payload == get(/databases/$(database)/documents/users/$(uid)/teams/$(teamId)).data.payload
+            && request.resource.data.revision == get(/databases/$(database)/documents/users/$(uid)/teams/$(teamId)).data.revision
+            && request.resource.data.at == request.time
+            && controls(uid, teamId, getAfter(/databases/$(database)/documents/users/$(uid)/teams/$(teamId)).data.writer);
+          allow update: if false;
+          allow delete: if purgeVersionAccess(uid,teamId,'',versionId);
+        }
+        match /matches/{matchId} {
+          allow read: if canReadGameData(uid);
+          allow create: if !purgedMatch(uid,teamId,matchId) && validGameWrite(uid, teamId) && request.resource.data.revision == 1;
+          allow update: if !purgedMatch(uid,teamId,matchId) && validGameWrite(uid, teamId) && request.resource.data.revision == resource.data.revision + 1;
+          allow delete: if purgeMatchAccess(uid,teamId,matchId);
+          match /versions/{versionId} {
+            allow read: if canReadGameData(uid);
+            allow create: if !purgedTeam(uid,teamId) && !purgedMatch(uid,teamId,matchId) && !purgedVersion(uid,teamId,matchId,versionId) && hasModule(uid, 'gameControl')
+              && request.resource.data.payload == get(/databases/$(database)/documents/users/$(uid)/teams/$(teamId)/matches/$(matchId)).data.payload
+              && request.resource.data.revision == get(/databases/$(database)/documents/users/$(uid)/teams/$(teamId)/matches/$(matchId)).data.revision
+              && request.resource.data.at == request.time
+              && controls(uid, teamId, getAfter(/databases/$(database)/documents/users/$(uid)/teams/$(teamId)/matches/$(matchId)).data.writer);
+            allow update: if false;
+            allow delete: if purgeVersionAccess(uid,teamId,matchId,versionId);
+          }
+        }
+      }
+      match /wellness/{sessionId} {
+        allow read: if isAdmin() || hasModule(uid, 'wellness') || hasModule(uid, 'athleteStats') || (hasModule(uid,'gameControl') && purgedTeam(uid,resource.data.payload.teamId));
+        allow create: if !purgedSession(uid,request.resource.data.payload.teamId,sessionId) && hasModule(uid, 'wellness') && validWellness(sessionId) && request.resource.data.revision == 1;
+        allow update: if !purgedSession(uid,request.resource.data.payload.teamId,sessionId) && hasModule(uid, 'wellness') && validWellness(sessionId)
+          && request.resource.data.revision == resource.data.revision + 1;
+        // As sessões são conservadas ou marcadas como eliminadas; sem apagamento definitivo pelo cliente.
+        allow delete: if purgeTeamAccess(uid,resource.data.payload.teamId) || (hasModule(uid,'wellness') && exists(/databases/$(database)/documents/users/$(uid)/purges/$('session_'+resource.data.payload.teamId+'_'+sessionId)));
+      }
+    }
+    // Compatibilidade com perfis antigos de clube, sem permitir alterar permissões.
+    match /clubs/{uid} {
+      allow read: if owner(uid) || isAdmin();
+      allow update: if owner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin', 'displayName', 'club', 'email'])
+        && request.resource.data.get('displayName', '') is string && request.resource.data.get('displayName', '').size() <= 100
+        && request.resource.data.get('club', '') is string && request.resource.data.get('club', '').size() <= 120
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['email']) || request.resource.data.email == request.auth.token.email);
+      allow update: if isAdmin();
+      match /devices/{deviceId} {
+        allow read: if owner(uid) || isAdmin();
+        allow create: if owner(uid) && get(/databases/$(database)/documents/clubs/$(uid)).data.get('active', true) == true
+          && request.resource.data.keys().hasOnly(['createdAt', 'lastSeen', 'blocked', 'userAgent', 'platform'])
+          && request.resource.data.blocked == false && request.resource.data.createdAt == request.time && request.resource.data.lastSeen == request.time;
+        allow update: if owner(uid) && resource.data.get('blocked', false) == false
+          && get(/databases/$(database)/documents/clubs/$(uid)).data.get('active', true) == true
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen']) && request.resource.data.lastSeen == request.time;
+        allow write: if isAdmin();
+      }
+    }
+  }
+}

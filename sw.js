@@ -1,4 +1,4 @@
-const VERSION = 'gc-pwa-sync-2026-11-04-1';
+const VERSION = 'gc-pwa-recruitment-2026-11-04-1';
 const ROOT = new URL('./', self.location.href);
 
 const SHELL = [
@@ -12,6 +12,11 @@ const SHELL = [
   'history.css',
   'past-matches.js',
   'app.html',
+  'recrutamento.html',
+  'recruitment-ui.js',
+  'recruitment-session.js',
+  'recruitment-core.js',
+  'recruitment.css',
   'sincronizacao.js',
   'modules.css',
   'permissoes.js',
