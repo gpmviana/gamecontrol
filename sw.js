@@ -1,4 +1,4 @@
-const VERSION = 'gc-pwa-recruitment-2026-11-04-2';
+const VERSION = 'gc-pwa-recruitment-2026-11-05-1';
 const ROOT = new URL('./', self.location.href);
 
 const SHELL = [
