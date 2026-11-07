@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-<script src="safe-core.js"></script>
+<script src="safe-core-v20261107.js"></script>
 <script>
 (function(){
+ window.gcReadOnly=true;
  const raw=window.localStorage,ownerKey='gc_sync_storage_owner_v1';
  const prefix=()=> 'gc_account_'+(raw.getItem(ownerKey)||'unassigned')+'__';
  const shared=key=>key==='gc_device_id';
  const actual=key=>shared(key)?key:prefix()+key;
- window.gcAccountStorage={getItem:key=>raw.getItem(actual(key)),setItem:(key,value)=>raw.setItem(actual(key),String(value)),removeItem:key=>raw.removeItem(actual(key))};
+ function put(key,value,scope=prefix()){return GCSafe.write(raw,key,String(value),scope+'gc_recovery_v2');}
+ window.gcStorageWriteRaw=(key,value)=>put(key,value);
+ window.gcAccountStorage={getItem:key=>raw.getItem(actual(key)),setItem:(key,value)=>put(actual(key),value),removeItem:key=>raw.removeItem(actual(key))};
  window.gcInitialAccountData=!!raw.getItem(prefix()+'gc_sync_initialised_v1');
  window.gcPrepareAccountStorage=async uid=>{
   if(raw.getItem(ownerKey)===uid)return false;
@@ -20,10 +23,10 @@
   }
   if(legacy.length&&confirm('Existem equipas/jogos antigos neste navegador, ainda sem dono. Pertencem à conta com que acabaste de entrar?\n\nOK: associar uma cópia à tua conta para sincronizar.\nCancelar: começar o espaço privado da conta sem importar esses dados. Os originais não são apagados.')){
    // Guardar primeiro os valores; só identificar o dono quando a cópia estiver concluída.
-   for(const [key,value]of legacy)raw.setItem(target+key,value);
-   raw.setItem(target+'gc_sync_initialised_v1','true');raw.setItem('gc_legacy_claimed_by_v1',uid);
+   for(const [key,value]of legacy)put(target+key,value,target);
+   put(target+'gc_sync_initialised_v1','true',target);put('gc_legacy_claimed_by_v1',uid,target);
   }
-  raw.setItem(ownerKey,uid);return true;
+  put(ownerKey,uid,target);return true;
  };
  window.gcRawAccountBackup=()=>{
   const data={};for(let i=0;i<raw.length;i++){const key=raw.key(i);if(key.startsWith(prefix()))data[key.slice(prefix().length)]=raw.getItem(key);}return data;
@@ -860,7 +863,7 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
   auth.languageCode="pt";
   const db  = getFirestore(app);
   const OFFLINE_GRANT_KEY='gc_offline_grant_v2';
-  function grantOffline(user){localStorage.setItem(OFFLINE_GRANT_KEY,JSON.stringify({uid:user.uid,modules:window.gcModuleAccess||{gameControl:true,wellness:false,athleteStats:false},device:getDeviceId(),expires:Date.now()+7*86400000}));}
+  function grantOffline(user){window.gcStorageWriteRaw(OFFLINE_GRANT_KEY,JSON.stringify({uid:user.uid,modules:window.gcModuleAccess||{gameControl:true,wellness:false,athleteStats:false},device:getDeviceId(),expires:Date.now()+7*86400000}));}
   function canEnterOffline(user){try{const grant=JSON.parse(localStorage.getItem(OFFLINE_GRANT_KEY)||'null');return !!user&&grant?.uid===user.uid&&grant.modules?.gameControl!==false&&grant.device===getDeviceId()&&grant.expires>Date.now()&&localStorage.getItem('gc_sync_storage_owner_v1')===user.uid;}catch(error){return false;}}
 
   // ✅ deviceId único por browser
@@ -1007,6 +1010,7 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
       try{const {startAccountSync}=await import('./sincronizacao.js');await startAccountSync(user,db,{offline:true});}catch(error){console.warn('Sincronização por iniciar quando houver internet',error);}
     }
     async function handleAuthState(user){
+      window.gcSyncAPI?.setViewer(true);
       window.gcProfileStop?.();window.gcProfileStop=null;
       updateAdminShortcut(null);
       const logged = !!user;
@@ -1291,6 +1295,7 @@ header{position:relative;z-index:1300}
     <label class="login-label" for="loginPassword">Palavra-passe</label>
     <input id="loginPassword" type="password" placeholder="Palavra-passe" autocomplete="current-password">
     <button id="loginBtn">Entrar</button>
+    <a href="recuperar.html" style="display:block;text-align:center;color:#bfd8eb;font-size:13px;margin:14px 0">Esqueceste-te da palavra-passe?</a>
     <div id="loginError" role="status" aria-live="polite"></div>
     <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:6px;font-size:13px">
       <a href="registar.html" style="color:#bfd8eb">Criar conta</a>
@@ -1300,6 +1305,7 @@ header{position:relative;z-index:1300}
 </div>
 <!-- APP -->
 <div id="appWrapper" style="display:none;">
+  <div id="gcStorageNotice" hidden role="status" style="padding:12px 16px;border:1px solid #c6a96b66;background:var(--gc-panel,#202d39);color:var(--gc-ink,#e1eaf3);font-size:13px;line-height:1.5"><span id="gcStorageNoticeText"></span> <button type="button" onclick="window.gcSyncAPI.backup()" style="margin:6px;padding:9px;border-radius:8px;cursor:pointer">Exportar cópia completa</button></div>
   <button id="floatingPlayBtn" class="paused">⏵</button>
   <div id="teamInputs">
     <span class="scoreBubble" id="scoreA">0</span>
@@ -2151,15 +2157,16 @@ function saveData(){
     scoreB,
     timeline
   };
-  if(window.gcSyncAPI){const journalKey=activeTeam+'/current';
-  const journalMark=JSON.stringify([currentMatchId,matchPeriod,firstHalf,timeline.length,scoreA,scoreB]);
-  if(window.gcJournalMarks?.[activeTeam]!==journalMark){
-    try{GCSafe.remember(window.gcAccountStorage,journalKey,{...data,id:currentMatchId,teamProfile:activeTeam},'Evento / mudança de parte');window.gcJournalMarks||={};window.gcJournalMarks[activeTeam]=journalMark;}
-    catch(error){console.error('Cópia de recuperação indisponível',error);if(!window.gcJournalWarning){window.gcJournalWarning=true;alert('O armazenamento está cheio ou indisponível. Exporta uma cópia completa. As cópias de recuperação não estão a ser criadas.');}}
-  }
-  }
+
   try{
     window.gcAccountStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    if(window.gcSyncAPI&&window.gcSyncSession&&window.gcReadOnly===false){
+      const journalKey=activeTeam+'/current',journalMark=JSON.stringify([currentMatchId,matchPeriod,firstHalf,timeline.length,scoreA,scoreB]);
+      if(window.gcJournalMarks?.[activeTeam]!==journalMark){
+        try{GCSafe.remember(window.gcAccountStorage,journalKey,{...data,id:currentMatchId,teamProfile:activeTeam},'Evento / mudança de parte');window.gcJournalMarks||={};window.gcJournalMarks[activeTeam]=journalMark;if(window.gcRecoverySaveError){window.gcRecoverySaveError=false;window.dispatchEvent(new Event('gc:sync-status'));}}
+        catch(error){if(!window.gcRecoverySaveError){window.gcRecoverySaveError=true;window.dispatchEvent(new Event('gc:sync-status'));}console.warn('O jogo foi guardado, mas a cópia de recuperação não ficou disponível.',error);}
+      }
+    }
     if(window.gcLocalSaveError){
       window.gcLocalSaveError=false;
       window.dispatchEvent(new Event('gc:sync-status'));
@@ -3271,6 +3278,7 @@ window.gcSyncAPI={
  collect(){
   if(!this.initialised())return {};
   saveData();
+  if(window.gcLocalSaveError)throw Error('O jogo ainda não foi guardado neste dispositivo. Mantém a janela aberta e exporta uma cópia completa.');
   const profiles=JSON.parse(window.gcAccountStorage.getItem('gc_team_profiles_v1')||JSON.stringify(TEAM_PROFILES)),result={};
   for(const [id,name]of Object.entries(profiles)){
    const state=JSON.parse(window.gcAccountStorage.getItem('gameControl_withWorkloadGestao_v2_'+id)||'null');
@@ -3555,12 +3563,16 @@ function readOfflineText(){return document.getElementById('gcOfflineBar')?.query
 function updateCompactStatus(){
  const login=document.getElementById('loginScreen');cleanStatus.hidden=!!login&&getComputedStyle(login).display!=='none';groups.account.hidden=cleanStatus.hidden;
  const sync=readSyncText(),offline=readOfflineText(),conflict=/versões diferentes|conflito/i.test(sync);
- cleanStatus.dataset.warning=String(conflict||/pendente|possível|alterações por receber/i.test(sync));
+ cleanStatus.dataset.warning=String(conflict||window.gcLocalSaveError||window.gcRecoverySaveError||/pendente|possível|alterações por receber/i.test(sync));
  conflictShortcut.hidden=!conflict;
  retrySync.hidden=!window.gcSyncStartError;
- exportLocal.hidden=!(window.gcReadOnly||window.gcLocalSaveError||!navigator.onLine);
- cleanStatusText.textContent=window.gcLocalSaveError?'Jogo em memória · exporta uma cópia agora':window.gcSyncStartError|| (window.gcReadOnly===true?'Consulta desta equipa · podes escolher outra equipa':!navigator.onLine?'Sem ligação · dados guardados neste dispositivo':conflict?'Conflito de versões por resolver':sync.startsWith('Sincronizado')?sync.replace('Sincronizado · ','Sincronizado às '):/alterações.*receber/i.test(sync)?'Alterações por receber':/pendente|possível/i.test(sync)?'Sincronização pendente':'A sincronizar…');
+ exportLocal.hidden=!(window.gcReadOnly||window.gcLocalSaveError||window.gcRecoverySaveError||!navigator.onLine);
+ cleanStatusText.textContent=window.gcLocalSaveError?'Jogo em memória · exporta uma cópia agora':window.gcRecoverySaveError?'Jogo guardado no dispositivo · cópia de recuperação indisponível':window.gcSyncStartError|| (window.gcReadOnly===true?'Consulta desta equipa · podes escolher outra equipa':!navigator.onLine?'Sem ligação · dados guardados neste dispositivo':conflict?'Conflito de versões por resolver':sync.startsWith('Sincronizado')?sync.replace('Sincronizado · ','Sincronizado às '):/alterações.*receber/i.test(sync)?'Alterações por receber':/pendente|possível/i.test(sync)?'Sincronização pendente':'A sincronizar…');
  cleanStatus.title=[sync,offline].filter(Boolean).join('\n');
+ const storageNotice=document.getElementById('gcStorageNotice');
+ storageNotice.hidden=cleanStatus.hidden||!(window.gcLocalSaveError||window.gcRecoverySaveError);
+ const storageMessage=window.gcLocalSaveError?'Não foi possível guardar o jogo neste dispositivo. Mantém esta janela aberta e exporta uma cópia completa agora.':'O jogo está guardado neste dispositivo, mas não foi possível criar uma cópia de recuperação adicional. Exporta uma cópia completa e confirma a sincronização.';
+ if(document.getElementById('gcStorageNoticeText').textContent!==storageMessage)document.getElementById('gcStorageNoticeText').textContent=storageMessage;
  const installed=window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true;
  const install=document.getElementById('gcInstallApp');if(install)install.hidden=installed;
 }
@@ -3640,6 +3652,7 @@ exportPng=()=>{if(pendingGoalScorer||pendingAssistForGoal||selectedAction||pendi
 const gcReportButton=document.getElementById('printBtn');if(gcReportButton)gcReportButton.onclick=exportPng;
 </script></body>
 </html>
+
 
 
 
