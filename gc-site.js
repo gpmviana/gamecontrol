@@ -71,7 +71,7 @@
     const plan = plans[planId];
     const subject = plan ? 'Game Control — plano ' + plan.name : 'Game Control — pedido de acesso';
     const body = (plan
-      ? 'Olá, gostaria de pedir o plano ' + plan.name + ' (' + plan.price + ' € por época, ' + plan.accounts + (plan.accounts===1?' conta pessoal).':' contas pessoais).')
+      ? 'Olá, gostaria de pedir o plano ' + plan.name + ' (' + plan.price + ' € por época, ' + plan.accounts + (plan.accounts===1?' acesso para 1 equipa técnica).':' acessos para 5 equipas técnicas).')
       : 'Olá, gostaria de conhecer o Game Control e pedir informações sobre o acesso ou o teste de 7 dias.')
       + '\n\nNome:\nClube:\nEscalão:\n';
     document.getElementById('contact-title').textContent = plan ? 'Plano ' + plan.name + ' · ' + plan.price + ' € / época' : 'Contactar o Game Control';
