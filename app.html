@@ -2789,13 +2789,16 @@ function saveMatch({restore=false}={}){
     if(index>=0&&games[index].deleted){if(!restore)return true;if(!confirm('Este jogo foi apagado. Queres recuperá-lo e atualizar o registo?'))return false;}
     if(index>=0){
       const previous=games[index];
-      GCSafe.remember(window.gcAccountStorage,activeTeam+'/matches/'+snapshot.id,previous,'Antes de guardar novamente');
       const losses=GCSafe.regressions(previous,snapshot);
+      try{GCSafe.remember(window.gcAccountStorage,activeTeam+'/matches/'+snapshot.id,previous,'Antes de guardar novamente');}
+      catch(error){if(losses.length)throw error;window.gcRecoverySaveError=error;}
       if(losses.length&&!confirm('Este registo tem menos dados do que o jogo guardado:\n'+losses.join('\n')+'\n\nA versão anterior foi conservada. Queres mesmo guardar esta versão?'))return false;
       games[index]=snapshot;
     }else games.push(snapshot);
-    GCSafe.remember(window.gcAccountStorage,activeTeam+'/matches/'+snapshot.id,snapshot,'Jogo guardado');
     window.gcAccountStorage.setItem(ARCHIVE_KEY,JSON.stringify(games));
+    try{GCSafe.remember(window.gcAccountStorage,activeTeam+'/matches/'+snapshot.id,snapshot,'Jogo guardado');window.gcRecoverySaveError=null;}
+    catch(error){window.gcRecoverySaveError=error;}
+    window.dispatchEvent(new Event('gc:sync-status'));
     renderArchive();renderCombinations();return true;
   }catch(error){alert('Não foi possível guardar o jogo. O jogo atual foi mantido. Exporta uma cópia dos dados.');console.error(error);return false;}
 }
@@ -3567,7 +3570,7 @@ function updateCompactStatus(){
  conflictShortcut.hidden=!conflict;
  retrySync.hidden=!window.gcSyncStartError;
  exportLocal.hidden=!(window.gcReadOnly||window.gcLocalSaveError||window.gcRecoverySaveError||!navigator.onLine);
- cleanStatusText.textContent=window.gcLocalSaveError?'Jogo em memória · exporta uma cópia agora':window.gcRecoverySaveError?'Jogo guardado no dispositivo · cópia de recuperação indisponível':window.gcSyncStartError|| (window.gcReadOnly===true?'Consulta desta equipa · podes escolher outra equipa':!navigator.onLine?'Sem ligação · dados guardados neste dispositivo':conflict?'Conflito de versões por resolver':sync.startsWith('Sincronizado')?sync.replace('Sincronizado · ','Sincronizado às '):/alterações.*receber/i.test(sync)?'Alterações por receber':/pendente|possível/i.test(sync)?'Sincronização pendente':'A sincronizar…');
+ cleanStatusText.textContent=window.gcLocalSaveError?'Jogo em memória · exporta uma cópia agora':window.gcRecoverySaveError?'Jogo guardado no dispositivo · cópia de recuperação indisponível':window.gcSyncStartError|| (window.gcReadOnly===true?'Consulta desta equipa · podes escolher outra equipa':!navigator.onLine?'Sem ligação · dados guardados neste dispositivo':conflict?'Conflito de versões por resolver':sync.startsWith('Sincronizado')?sync.replace('Sincronizado · ','Sincronizado às '):/alterações.*receber/i.test(sync)?'Alterações por receber':/pendente|possível/i.test(sync)?sync:'A sincronizar…');
  cleanStatus.title=[sync,offline].filter(Boolean).join('\n');
  const storageNotice=document.getElementById('gcStorageNotice');
  storageNotice.hidden=cleanStatus.hidden||!(window.gcLocalSaveError||window.gcRecoverySaveError);

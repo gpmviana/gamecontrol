@@ -1,4 +1,4 @@
-const VERSION = 'gc-pwa-account-storage-2026-11-07-1';
+const VERSION = 'gc-pwa-archive-save-2026-11-09-1';
 const ROOT = new URL('./', self.location.href);
 
 const SHELL = [
