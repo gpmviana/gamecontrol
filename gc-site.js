@@ -62,7 +62,7 @@
   [contact, image].forEach(dialog => {
     dialog.addEventListener('close', () => lastDialogTrigger?.focus());
   });
-  const address = 'viana10gfc@gmail.com';
+  const address = 'admingamecontrol@gmail.com';
   const plans = {
     treinador: {name:'Treinador', price:50, accounts:1},
     clube: {name:'Clube', price:150, accounts:5}
@@ -116,3 +116,6 @@
     });
   });
 })();
+
+
+(()=>{if(!('IntersectionObserver' in window)||matchMedia('(prefers-reduced-motion: reduce)').matches)return;const observer=new IntersectionObserver(items=>items.forEach(item=>{if(item.isIntersecting){item.target.classList.add('is-visible');observer.unobserve(item.target);}}),{threshold:0.06});document.querySelectorAll('main .section,main .story,main .home-cta,main .contact-section,main .account-band').forEach(el=>{el.classList.add('reveal');observer.observe(el);});})();
