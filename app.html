@@ -1007,7 +1007,7 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
       const grant=JSON.parse(localStorage.getItem(OFFLINE_GRANT_KEY)||'{}');window.gcModuleAccess={gameControl:true,wellness:false,athleteStats:false};window.dispatchEvent(new Event('gc:permissions'));
       loginScreen.style.display='none';appWrapper.style.display='block';appWrapper.inert=false;
       if(logoutBtn)logoutBtn.style.display='inline-flex';
-      try{const {startAccountSync}=await import('./sincronizacao.js');await startAccountSync(user,db,{offline:true});}catch(error){console.warn('Sincronização por iniciar quando houver internet',error);}
+      try{const {startAccountSync}=await import('./sincronizacao-v20261110.js');await startAccountSync(user,db,{offline:true});}catch(error){console.warn('Sincronização por iniciar quando houver internet',error);}
     }
     async function handleAuthState(user){
       window.gcSyncAPI?.setViewer(true);
@@ -1078,14 +1078,18 @@ body.light-mode dialog.gc-origin-dialog{--origin-bg:#f8fafc;--origin-card:rgba(8
       connecting=true;
       window.gcSyncAPI.setViewer(true);
       window.gcSyncStartError='';
+      window.gcSyncFailure=null;window.gcSyncStage='Carregar módulo de sincronização';
       try{
-        const {startAccountSync}=await import('./sincronizacao.js');
+        const {startAccountSync}=await import('./sincronizacao-v20261110.js');
         if(auth.currentUser?.uid===user.uid)await startAccountSync(user,db,{isCurrent:()=>auth.currentUser?.uid===user.uid});
       }catch(error){
         console.error('Arranque da sincronização',error);
         window.gcSyncStartError=error.code==='permission-denied'
           ? 'Consulta · sem permissão para sincronizar. Exporta uma cópia e contacta a administração.'
-          : 'Consulta · sincronização indisponível. Exporta uma cópia ou tenta novamente.';
+          : 'Consulta · não foi possível iniciar a sincronização. Usa Ver erro para identificar a causa.';
+        window.gcSyncFailure={version:'arranque-20261110',stage:window.gcSyncStage||'Arranque',code:String(error.code||error.name||'erro'),message:String(error.message||error).slice(0,1200),online:navigator.onLine};
+        document.getElementById('gcSyncBar')?.remove();document.getElementById('gcControlStatus')?.remove();
+        appWrapper.inert=false;
       }finally{
         connecting=false;
         window.dispatchEvent(new Event('gc:sync-status'));
@@ -2957,12 +2961,12 @@ function chooseNewMatchTeam(manageOnly=false){
     const meta=document.createElement('span');meta.textContent=readTeamRoster(id).length+' jogadores no plantel'+(id===activeTeam?' · Equipa atual':'');
     button.appendChild(title);button.appendChild(meta);button.onclick=()=>{dialog.close();chooseSquad(id,manageOnly);};if(manageOnly){const card=document.createElement('div');card.style.cssText='display:flex;flex-direction:column;gap:7px';const remove=document.createElement('button');remove.type='button';remove.textContent='Apagar equipa';remove.style.cssText='font-size:12px;padding:9px;border:1px solid #a9656a;border-radius:8px;background:transparent;color:var(--gc-ink)';remove.onclick=()=>{if(archiveTeam(id)){dialog.close();chooseNewMatchTeam(true);}};card.append(button,remove);teams.append(card);}else teams.appendChild(button);
   }dialog.appendChild(teams);
-  const form=document.createElement('form');form.className='gc-create-team';
+  const form=document.createElement('form');form.className='gc-create-team';form.dataset.gcRead='true';
   const label=document.createElement('label');label.textContent='Criar nova equipa';
   const name=document.createElement('input');name.placeholder='Ex.: Clube · Iniciados A';name.maxLength=80;name.required=true;label.appendChild(name);form.appendChild(label);
   const create=document.createElement('button');create.type='submit';create.textContent='Criar equipa e continuar';form.appendChild(create);
   form.onsubmit=event=>{
-    event.preventDefault();const value=name.value.trim();if(!value)return;
+    event.preventDefault();if(!window.gcSyncSession||!window.gcSyncReady||!navigator.onLine){alert(window.gcSyncStartError?'Não foi possível preparar a conta. Fecha esta janela e usa Ver erro no topo.':'Aguarda a confirmação da ligação antes de criar uma equipa.');return;}const value=name.value.trim();if(!value)return;
     if(Object.values(TEAM_PROFILES).some(n=>n.toLocaleLowerCase('pt')===value.toLocaleLowerCase('pt'))){alert('Já existe uma equipa com esse nome.');return;}
     const id=crypto.randomUUID();TEAM_PROFILES[id]=value;window.gcAccountStorage.setItem('gc_team_profiles_v1',JSON.stringify(TEAM_PROFILES));window.gcAccountStorage.setItem('gc_roster_v1_'+id,'[]');dialog.close();chooseSquad(id,manageOnly);
   };dialog.appendChild(form);
@@ -3560,7 +3564,8 @@ retrySync.onclick=()=>window.gcRetrySync?.();
 const exportLocal=document.createElement('button');
 exportLocal.textContent='Exportar cópia';
 exportLocal.onclick=()=>window.gcSyncAPI.backup();
-cleanStatus.append(retrySync,exportLocal);
+const syncDetails=document.createElement('button');syncDetails.textContent='Ver erro';syncDetails.dataset.gcRead='true';syncDetails.hidden=true;syncDetails.onclick=()=>{const failure=window.gcSyncFailure;if(!failure)return;const d=document.createElement('dialog');d.dataset.gcRead='true';d.className='gc-zone-dialog';const h=document.createElement('h2');h.textContent='Não foi possível iniciar a ligação';const p=document.createElement('p');p.textContent='Envia uma fotografia destes detalhes à administração. Os jogos não foram apagados.';const pre=document.createElement('pre');pre.style.cssText='white-space:pre-wrap;text-align:left;overflow-wrap:anywhere';pre.textContent=JSON.stringify(failure,null,2);const close=document.createElement('button');close.textContent='Fechar';close.onclick=()=>d.close();d.append(h,p,pre,close);d.onclose=()=>d.remove();document.body.append(d);d.showModal();};
+cleanStatus.append(retrySync,exportLocal,syncDetails);
 function readSyncText(){return document.getElementById('gcSyncBar')?.querySelector('span')?.textContent||'';}
 function readOfflineText(){return document.getElementById('gcOfflineBar')?.querySelector('span')?.textContent||'';}
 function updateCompactStatus(){
@@ -3569,6 +3574,7 @@ function updateCompactStatus(){
  cleanStatus.dataset.warning=String(conflict||window.gcLocalSaveError||window.gcRecoverySaveError||/pendente|possível|alterações por receber/i.test(sync));
  conflictShortcut.hidden=!conflict;
  retrySync.hidden=!window.gcSyncStartError;
+ syncDetails.hidden=!window.gcSyncFailure;
  exportLocal.hidden=!(window.gcReadOnly||window.gcLocalSaveError||window.gcRecoverySaveError||!navigator.onLine);
  cleanStatusText.textContent=window.gcLocalSaveError?'Jogo em memória · exporta uma cópia agora':window.gcRecoverySaveError?'Jogo guardado no dispositivo · cópia de recuperação indisponível':window.gcSyncStartError|| (window.gcReadOnly===true?'Consulta desta equipa · podes escolher outra equipa':!navigator.onLine?'Sem ligação · dados guardados neste dispositivo':conflict?'Conflito de versões por resolver':sync.startsWith('Sincronizado')?sync.replace('Sincronizado · ','Sincronizado às '):/alterações.*receber/i.test(sync)?'Alterações por receber':/pendente|possível/i.test(sync)?sync:'A sincronizar…');
  cleanStatus.title=[sync,offline].filter(Boolean).join('\n');
@@ -3655,6 +3661,7 @@ exportPng=()=>{if(pendingGoalScorer||pendingAssistForGoal||selectedAction||pendi
 const gcReportButton=document.getElementById('printBtn');if(gcReportButton)gcReportButton.onclick=exportPng;
 </script></body>
 </html>
+
 
 
 

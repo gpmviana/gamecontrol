@@ -1,7 +1,11 @@
-const VERSION = 'gc-pwa-archive-save-2026-11-09-1';
+const VERSION='gc-pwa-startup-2026-11-10-1';
 const ROOT = new URL('./', self.location.href);
 
 const SHELL = [
+  'sincronizacao-v20261110.js',
+  'control-sync-v20261110.js',
+  'admin-v20261110.js',
+  'admin-data-v20261110.js',
   'ajuda.html',
   'permanent.js',
   'profile.js',
@@ -181,3 +185,4 @@ self.addEventListener('message', event => {
 
 // Activation from the standalone recovery page refreshes future navigation; never reloads active games.
 self.addEventListener('message',event=>{if(event.data?.type!=='GC_ACCOUNT_UPDATE_ACTIVATE'||!event.source?.id)return;event.waitUntil((async()=>{const client=await self.clients.get(event.source.id);if(!client)return;const url=new URL(client.url);if(url.origin===ROOT.origin&&url.pathname===new URL('recuperar.html',ROOT).pathname)await self.skipWaiting();})());});
+
